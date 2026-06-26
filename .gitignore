@@ -1,0 +1,46 @@
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Production builds
+dist/
+**/dist/
+
+# Local environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor / System files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Ignore non-project folders and reference files in the workspace root
+/dashed/
+/dashed - reference/
+/apps_script.js
+/*.xlsx
+/*.html
+/README.md
+
+# Only allow backend and react-front folders
+!/backend/
+!/react-front/
