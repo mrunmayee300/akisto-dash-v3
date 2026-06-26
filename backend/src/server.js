@@ -23,15 +23,27 @@ app.use(helmet());
 
 // CORS Configuration
 const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS 
-  ? process.env.CORS_ALLOWED_ORIGINS.split(',') 
+  ? process.env.CORS_ALLOWED_ORIGINS.split(',').map(o => o.trim()) 
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const isAllowed = allowedOrigins.some(allowed => {
+      const cleanAllowed = allowed.toLowerCase();
+      const cleanOrigin = origin.toLowerCase();
+      return cleanAllowed === '*' || cleanOrigin === cleanAllowed;
+    });
+
+    const isVercelPreview = origin.endsWith('.vercel.app');
+
+    if (isAllowed || isVercelPreview || process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   credentials: true,
@@ -59,9 +71,16 @@ app.use('/api/', apiLimiter);
 // ===================================================================
 // BACKWARDS COMPATIBILITY LAYER (Apps Script query action mapping)
 // ===================================================================
-app.all('/api', (req, res, next) => {
+app.all(['/', '/api'], (req, res, next) => {
   const action = req.query.action || req.body.action;
   if (!action) {
+    if (req.path === '/') {
+      return res.json({
+        name: 'Akisto API',
+        version: '1.0.0',
+        status: 'running'
+      });
+    }
     return next(); // Fall through to standard RESTful routes
   }
 
@@ -97,15 +116,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/po', poRoutes);
 app.use('/api/supplier', supplierRoutes);
-
-// Base Route
-app.get('/', (req, res) => {
-  res.json({
-    name: 'Akisto API',
-    version: '1.0.0',
-    status: 'running'
-  });
-});
 
 // Global Error Handler
 app.use((err, req, res, next) => {
