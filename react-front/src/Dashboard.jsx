@@ -21,12 +21,12 @@ function formatCurrentDate() {
     timeZone = 'America/New_York';
     tzLabel = 'EST';
   }
-  
+
   const weekday = d.toLocaleDateString('en-US', { weekday: 'long', timeZone });
   const day = d.toLocaleDateString('en-US', { day: 'numeric', timeZone });
   const month = d.toLocaleDateString('en-US', { month: 'long', timeZone });
   const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone });
-  
+
   return `${weekday}, ${day} ${month} · ${time} ${tzLabel}`;
 }
 
@@ -45,6 +45,8 @@ function Dashboard() {
 
   const userEmail = localStorage.getItem('userEmail');
   const companyName = localStorage.getItem('companyName');
+  const userName = localStorage.getItem('userName');
+  const userRole = localStorage.getItem('userRole');
   const navigate = useNavigate();
 
   const loadDashboard = async () => {
@@ -64,6 +66,8 @@ function Dashboard() {
         localStorage.removeItem('sessionToken');
         localStorage.removeItem('userEmail');
         localStorage.removeItem('companyName');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userRole');
         navigate('/login');
         return;
       }
@@ -83,7 +87,7 @@ function Dashboard() {
   useEffect(() => {
     loadDashboard();
     const interval = setInterval(loadDashboard, 30000);
-    
+
     const timeInterval = setInterval(() => {
       setCurrentDateStr(formatCurrentDate());
     }, 60000);
@@ -98,6 +102,8 @@ function Dashboard() {
     localStorage.removeItem('sessionToken');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('companyName');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
     navigate('/login');
   };
 
@@ -186,13 +192,13 @@ function Dashboard() {
 
   const renderTableRows = (list, tabKey, showExtraColumn = false) => {
     const { sliced } = getPageData(list, tabKey);
-    
+
     if (sliced.length === 0) {
       let emptyText = "Nothing needs attention right now";
       if (tabKey === 'open') emptyText = "No open POs found";
       if (tabKey === 'track') emptyText = "No POs are currently on track";
       if (tabKey === 'await') emptyText = "No POs are awaiting reply";
-      
+
       const colSpan = showExtraColumn ? (tabKey === 'await' ? 9 : 8) : 7;
       return (
         <tr>
@@ -274,7 +280,9 @@ function Dashboard() {
           <span className="text-[14.5px] text-muted font-semibold border-l border-line pl-[13px]">{labels[activeTab]}</span>
         </div>
         <div className="text-right">
-          <div className="text-[15px] font-bold text-body">{userEmail} &middot; {companyName}</div>
+          <div className="text-[15px] font-bold text-body">
+            {userName || userEmail}{userRole ? ` • ${userRole}` : ''}
+          </div>
           <div className="text-[13px] text-muted mt-0.5 flex items-center justify-end gap-2.5">
             <span id="current-date">{currentDateStr}</span>
             <button id="logout-btn" onClick={handleLogout} className="bg-none border border-line p-0.5 px-2 rounded text-muted text-[11px] font-semibold cursor-pointer transition-all duration-200 hover:bg-canvas">Logout</button>

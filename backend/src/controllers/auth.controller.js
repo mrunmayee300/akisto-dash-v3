@@ -69,7 +69,9 @@ const authController = {
           userId: req.user.userId,
           email: req.user.email,
           clientCode: req.user.clientCode,
-          role: req.user.role
+          role: req.user.role,
+          userName: req.user.userName || '',
+          userRole: req.user.userRole || ''
         }
       });
     } catch (error) {

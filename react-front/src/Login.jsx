@@ -49,6 +49,8 @@ function Login() {
         localStorage.setItem('sessionToken', data.token);
         localStorage.setItem('userEmail', data.email);
         localStorage.setItem('companyName', data.companyName);
+        localStorage.setItem('userName', data.userName || '');
+        localStorage.setItem('userRole', data.userRole || '');
         navigate('/dashboard');
       } else {
         setErrorMessage(data.message || 'Login failed. Please check your credentials.');

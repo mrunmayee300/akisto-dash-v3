@@ -38,7 +38,9 @@ const authService = {
       userId: user.user_id,
       email: user.email,
       clientCode: user.client_code,
-      role: user.role
+      role: user.role,
+      userName: user['User Name'] || user.userName || '',
+      userRole: user['Role'] || user.userRole || ''
     };
     return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
   },
@@ -109,6 +111,8 @@ const authService = {
       token,
       email: foundUser.email,
       role: foundUser.role,
+      userName: foundUser['User Name'] || foundUser.userName || '',
+      userRole: foundUser['Role'] || foundUser.userRole || '',
       companyName: foundClient.client_company_name || foundClient.company_name || foundClient.client_company_name_full
     };
   }
