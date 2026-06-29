@@ -273,8 +273,8 @@ function Dashboard() {
   };
 
   return (
-    <div className="w-full max-w-[96vw] mx-auto bg-white border border-line rounded-2xl overflow-hidden flex flex-col h-[calc(100vh-32px)]">
-      <header className="flex items-center justify-between p-[18px] px-7 border-b border-line shrink-0">
+    <div className="w-screen min-h-screen bg-white flex flex-col">
+      <header className="flex items-center justify-between p-[18px] px-7 border-b border-line">
         <div className="flex items-center gap-[13px]">
           <span className="text-[23px] font-extrabold text-emerald tracking-[-0.5px]">akisto<span className="text-gold">.</span></span>
           <span className="text-[14.5px] text-muted font-semibold border-l border-line pl-[13px]">{labels[activeTab]}</span>
@@ -290,7 +290,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <div className="grid grid-cols-[1.45fr_1fr] gap-[14px] pt-[20px] px-7 pb-[6px] shrink-0">
+      <div className="grid grid-cols-[1.45fr_1fr] gap-[14px] pt-[20px] px-7 pb-[6px]">
         <div className="rounded-xl p-[15px] px-[18px] bg-pale border border-[#C5E3D4]">
           <div className="flex items-center gap-2 text-[12.5px] font-extrabold tracking-[1px] uppercase mb-[11px] text-emerald">
             <span className="w-[19px] h-[19px] rounded-[5px] bg-emerald relative inline-flex items-center justify-center">
@@ -317,7 +317,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-[13px] pt-[14px] px-7 pb-[6px] shrink-0">
+      <div className="grid grid-cols-4 gap-[13px] pt-[14px] px-7 pb-[6px]">
         <div className="border border-line rounded-[11px] py-[13px] px-[16px]">
           <div className="text-[14px] text-muted font-semibold flex items-center gap-[7px]"><span className="w-[9px] h-[9px] rounded-full inline-block bg-[#B9C2BD]"></span>Open POs</div>
           <div className="text-[35px] font-extrabold text-body mt-[2px] tracking-[-1px]">{openPOs.length}</div>
@@ -340,7 +340,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="flex gap-1 pt-[14px] px-7 pb-0 border-b border-line shrink-0">
+      <div className="flex gap-1 pt-[14px] px-7 pb-0 border-b border-line">
         <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'open' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('open')}>
           Open POs <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'open' ? '!bg-pale !text-emerald' : ''}`}>{openPOs.length}</span>
         </button>
@@ -356,12 +356,12 @@ function Dashboard() {
       </div>
 
       {/* ============ OPEN POs ============ */}
-      <div className={`hidden ${activeTab === 'open' ? '!flex flex-col flex-1 min-h-0' : ''}`} id="open">
-        <div className="py-[14px] px-7 pb-[4px] flex items-baseline gap-[10px] shrink-0">
+      <div className={`hidden ${activeTab === 'open' ? '!block' : ''}`} id="open">
+        <div className="py-[18px] px-7 pb-[4px] flex items-baseline gap-[10px]">
           <h2 className="text-[18px] font-extrabold text-emerald">Open POs</h2>
           <span className="text-[14px] text-muted font-semibold">all {openPOs.length} open POs across every status</span>
         </div>
-        <div className="overflow-auto flex-1 min-h-0 w-full">
+        <div className="overflow-x-auto w-full">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -379,7 +379,7 @@ function Dashboard() {
             </tbody>
           </table>
         </div>
-        <div className="p-3 px-7 pb-[14px] flex items-center justify-between flex-wrap gap-y-2.5 shrink-0 border-t border-line">
+        <div className="p-3.5 px-7 pb-[18px] flex items-center justify-between flex-wrap gap-y-2.5">
           <div className="flex items-center gap-3.5"><span className="text-[14px] text-accent font-bold">{getShowingText(openPOs, 'open')}</span></div>
           <div className="flex items-center gap-1" id="pagerOpen">
             {renderReactPager('open', openPOs.length)}
@@ -389,12 +389,12 @@ function Dashboard() {
       </div>
 
       {/* ============ NEEDS ATTENTION ============ */}
-      <div className={`hidden ${activeTab === 'attn' ? '!flex flex-col flex-1 min-h-0' : ''}`} id="attn">
-        <div className="py-[14px] px-7 pb-[4px] flex items-baseline gap-[10px] shrink-0">
+      <div className={`hidden ${activeTab === 'attn' ? '!block' : ''}`} id="attn">
+        <div className="py-[18px] px-7 pb-[4px] flex items-baseline gap-[10px]">
           <h2 className="text-[18px] font-extrabold text-emerald">Needs attention today</h2>
           <span className="text-[14px] text-muted font-semibold">{needsAttention.length} of {openPOs.length} open POs</span>
         </div>
-        <div className="overflow-auto flex-1 min-h-0 w-full">
+        <div className="overflow-x-auto w-full">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -413,7 +413,7 @@ function Dashboard() {
             </tbody>
           </table>
         </div>
-        <div className="p-3 px-7 pb-[14px] flex items-center justify-between flex-wrap gap-y-2.5 shrink-0 border-t border-line">
+        <div className="p-3.5 px-7 pb-[18px] flex items-center justify-between flex-wrap gap-y-2.5">
           <div className="flex items-center gap-3.5"><span className="text-[14px] text-accent font-bold">{getShowingText(needsAttention, 'attn')}</span></div>
           <div className="flex items-center gap-1" id="pagerAttn">
             {renderReactPager('attn', needsAttention.length)}
@@ -423,12 +423,12 @@ function Dashboard() {
       </div>
 
       {/* ============ ON TRACK ============ */}
-      <div className={`hidden ${activeTab === 'track' ? '!flex flex-col flex-1 min-h-0' : ''}`} id="track">
-        <div className="py-[14px] px-7 pb-[4px] flex items-baseline gap-[10px] shrink-0">
+      <div className={`hidden ${activeTab === 'track' ? '!block' : ''}`} id="track">
+        <div className="py-[18px] px-7 pb-[4px] flex items-baseline gap-[10px]">
           <h2 className="text-[18px] font-extrabold text-emerald">On track</h2>
           <span className="text-[14px] text-muted font-semibold">{onTrack.length} of {openPOs.length} open POs, confirmed, no action needed</span>
         </div>
-        <div className="overflow-auto flex-1 min-h-0 w-full">
+        <div className="overflow-x-auto w-full">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -447,7 +447,7 @@ function Dashboard() {
             </tbody>
           </table>
         </div>
-        <div className="p-3 px-7 pb-[14px] flex items-center justify-between flex-wrap gap-y-2.5 shrink-0 border-t border-line">
+        <div className="p-3.5 px-7 pb-[18px] flex items-center justify-between flex-wrap gap-y-2.5">
           <div className="flex items-center gap-3.5"><span className="text-[14px] text-accent font-bold">{getShowingText(onTrack, 'track')}</span></div>
           <div className="flex items-center gap-1" id="pagerTrack">
             {renderReactPager('track', onTrack.length)}
@@ -457,12 +457,12 @@ function Dashboard() {
       </div>
 
       {/* ============ AWAITING REPLY ============ */}
-      <div className={`hidden ${activeTab === 'await' ? '!flex flex-col flex-1 min-h-0' : ''}`} id="await">
-        <div className="py-[14px] px-7 pb-[4px] flex items-baseline gap-[10px] shrink-0">
+      <div className={`hidden ${activeTab === 'await' ? '!block' : ''}`} id="await">
+        <div className="py-[18px] px-7 pb-[4px] flex items-baseline gap-[10px]">
           <h2 className="text-[18px] font-extrabold text-emerald">Awaiting reply</h2>
           <span className="text-[14px] text-muted font-semibold">{awaitingReply.length} of {openPOs.length} open POs, chasing, within window</span>
         </div>
-        <div className="overflow-auto flex-1 min-h-0 w-full">
+        <div className="overflow-x-auto w-full">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -482,7 +482,7 @@ function Dashboard() {
             </tbody>
           </table>
         </div>
-        <div className="p-3 px-7 pb-[14px] flex items-center justify-between flex-wrap gap-y-2.5 shrink-0 border-t border-line">
+        <div className="p-3.5 px-7 pb-[18px] flex items-center justify-between flex-wrap gap-y-2.5">
           <div className="flex items-center gap-3.5"><span className="text-[14px] text-accent font-bold">{getShowingText(awaitingReply, 'await')}</span></div>
           <div className="flex items-center gap-1" id="pagerAwait">
             {renderReactPager('await', awaitingReply.length)}
