@@ -96,7 +96,7 @@ function Login() {
                 <input
                   type="text"
                   id="company-name"
-                  placeholder="e.g., Biotique"
+                  placeholder=""
                   required
                   autoComplete="organization"
                   value={companyName}
