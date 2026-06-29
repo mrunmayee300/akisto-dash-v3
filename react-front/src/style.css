@@ -24,7 +24,11 @@
     font-family: 'Aptos', 'Segoe UI', -apple-system, sans-serif;
     background-color: var(--canvas);
     color: var(--body);
-    padding: 30px;
+    padding: 16px;
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 }
 
