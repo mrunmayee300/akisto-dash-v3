@@ -278,6 +278,12 @@ function Dashboard() {
         <div className="flex items-center gap-[13px]">
           <span className="text-[23px] font-extrabold text-emerald tracking-[-0.5px]">akisto<span className="text-gold">.</span></span>
           <span className="text-[14.5px] text-muted font-semibold border-l border-line pl-[13px]">{labels[activeTab]}</span>
+          <button
+            onClick={() => navigate('/supplier-performance')}
+            className="ml-4 bg-emerald text-white px-3 py-1 rounded text-[12px] font-bold transition-all hover:bg-accent"
+          >
+            Supplier Performance
+          </button>
         </div>
         <div className="text-right">
           <div className="text-[15px] font-bold text-body">

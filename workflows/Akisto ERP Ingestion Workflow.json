@@ -1,0 +1,3549 @@
+{
+  "name": "Akisto ERP Ingestion Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        64
+      ],
+      "id": "08fed2a0-0afa-496b-a305-0f93fb4595b1",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {},
+      "id": "456e5201-5a1f-4f5b-9548-059f7741103f",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -816,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "inputSpreadsheetId",
+              "value": "1L99cnq7tgv4jl-Ocgy0zxOJKIUDEbKql3qulitCZ6as"
+            },
+            {
+              "name": "outputSpreadsheetId",
+              "value": "1-og69jKI34UReQJX9nCLEtxuEZ-WJsn_ao0x5SPASrE"
+            },
+            {
+              "name": "clientCode",
+              "value": "C1"
+            },
+            {
+              "name": "runDate",
+              "value": "2026-06-26"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0a7eeabd-800b-4015-b49f-7363ab354263",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').item.json.inputSpreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 796294573,
+          "mode": "list",
+          "cachedResultName": "Email id and Contact",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L99cnq7tgv4jl-Ocgy0zxOJKIUDEbKql3qulitCZ6as/edit#gid=796294573"
+        },
+        "options": {}
+      },
+      "id": "f9d98421-49c5-43f2-bf98-a2a85f08eecf",
+      "name": "Read Contacts",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        48,
+        -112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').item.json.inputSpreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Open PO  latest",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L99cnq7tgv4jl-Ocgy0zxOJKIUDEbKql3qulitCZ6as/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "3aa9e640-fd50-435c-82b9-d84501f15866",
+      "name": "Read Open PO Latest",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        48,
+        32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').item.json.outputSpreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1520911334,
+          "mode": "list",
+          "cachedResultName": "Material and Supplier Master Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-og69jKI34UReQJX9nCLEtxuEZ-WJsn_ao0x5SPASrE/edit#gid=1520911334"
+        },
+        "options": {}
+      },
+      "id": "992889e9-e5d9-44e1-b949-7f3bf9dab895",
+      "name": "Read Supplier Master",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        48,
+        176
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').item.json.outputSpreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1716007832,
+          "mode": "list",
+          "cachedResultName": "PO consolidated data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-og69jKI34UReQJX9nCLEtxuEZ-WJsn_ao0x5SPASrE/edit#gid=1716007832"
+        },
+        "options": {}
+      },
+      "id": "ac406dce-a1a9-4196-8464-29ac4b6ca39d",
+      "name": "Read PO Consolidated",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        48,
+        320
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').item.json.outputSpreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 711817731,
+          "mode": "list",
+          "cachedResultName": "Communication Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-og69jKI34UReQJX9nCLEtxuEZ-WJsn_ao0x5SPASrE/edit#gid=711817731"
+        },
+        "options": {}
+      },
+      "id": "dc3fdac7-c88c-4c21-9c7b-0a328890bb9f",
+      "name": "Read Comm Logs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        48,
+        464
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').item.json.outputSpreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 557607354,
+          "mode": "list",
+          "cachedResultName": "Bands Table",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-og69jKI34UReQJX9nCLEtxuEZ-WJsn_ao0x5SPASrE/edit#gid=557607354"
+        },
+        "options": {}
+      },
+      "id": "ca4aa486-1838-4d3f-a9cd-0ba162f0a2b3",
+      "name": "Read Bands",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        48,
+        672
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "new_master_rows",
+        "options": {}
+      },
+      "id": "2df4a35e-94d4-4c96-a308-62238e7f75cb",
+      "name": "Split Master Appends",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        560,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "new_poc_rows",
+        "options": {}
+      },
+      "id": "2eb0b4d9-2e49-4bec-aa0c-fb1cd59ae8f0",
+      "name": "Split POC Appends",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        560,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "new_log_rows",
+        "options": {}
+      },
+      "id": "0dcf8e33-dd53-49d9-ba25-f0af0323e9a8",
+      "name": "Split Log Appends",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        560,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').item.json.outputSpreadsheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1520911334,
+          "mode": "list",
+          "cachedResultName": "Material and Supplier Master Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-og69jKI34UReQJX9nCLEtxuEZ-WJsn_ao0x5SPASrE/edit#gid=1520911334"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "supplier_email_key": "={{ $json.supplier_email_key }}",
+            "client_code": "={{ $json.client_code }}",
+            "client_company_short_name": "={{ $json.client_company_short_name }}",
+            "supplier_code": "={{ $json.supplier_code }}",
+            "supplier_name_full": "={{ $json.supplier_name_full }}",
+            "supplier_name": "={{ $json.supplier_name }}",
+            "material_code": "={{ $json.material_code }}",
+            "material_name": "={{ $json.material_name }}",
+            "primary_contact_names": "={{ $json.primary_contact_names }}",
+            "primary_emails": "={{ $json.primary_emails }}",
+            "primary_phones": "={{ $json.primary_phones }}",
+            "working_days": "={{ $json.working_days }}",
+            "supplier_source_location": "={{ $json.supplier_source_location }}",
+            "PO_active (y/n)?": "={{ $json.PO_active }}",
+            "ai_agent_buyer_name": "={{ $json.ai_agent_buyer_name }}",
+            "ai_agent_buyer_position": "={{ $json.ai_agent_buyer_position }}",
+            "ai_agent_buyer_email": "={{ $json.ai_agent_buyer_email }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "supplier_email_key",
+              "displayName": "supplier_email_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_company_short_name",
+              "displayName": "client_company_short_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_code",
+              "displayName": "supplier_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_name_full",
+              "displayName": "supplier_name_full",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_name",
+              "displayName": "supplier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_code",
+              "displayName": "material_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_name",
+              "displayName": "material_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "primary_contact_names",
+              "displayName": "primary_contact_names",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "primary_emails",
+              "displayName": "primary_emails",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "primary_phones",
+              "displayName": "primary_phones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_escalation_contact_name  (inactive)",
+              "displayName": "supplier_escalation_contact_name  (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_escalation_contact_emails  (inactive)",
+              "displayName": "supplier_escalation_contact_emails  (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_escalation_phones  (inactive)",
+              "displayName": "supplier_escalation_phones  (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "backup_contact_names (inactive)",
+              "displayName": "backup_contact_names (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "backup_contact_emails  (inactive)",
+              "displayName": "backup_contact_emails  (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "agreed_lead_time_days (inactive)",
+              "displayName": "agreed_lead_time_days (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "transit_time_days",
+              "displayName": "transit_time_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "preferred_contact_method  (inactive)",
+              "displayName": "preferred_contact_method  (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_timezone  (inactive)",
+              "displayName": "supplier_timezone  (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "working_days",
+              "displayName": "working_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_holidays (inactive)",
+              "displayName": "supplier_holidays (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_email_language  (inactive)",
+              "displayName": "supplier_email_language  (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_phone_language  (inactive)",
+              "displayName": "supplier_phone_language  (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_source_location",
+              "displayName": "supplier_source_location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_location",
+              "displayName": "delivery_location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PO_active (y/n)?",
+              "displayName": "PO_active (y/n)?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ai_agent_buyer_name",
+              "displayName": "ai_agent_buyer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_agent_buyer_position",
+              "displayName": "ai_agent_buyer_position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_agent_buyer_email",
+              "displayName": "ai_agent_buyer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_agent_buyer_phone",
+              "displayName": "ai_agent_buyer_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client_buyer_name",
+              "displayName": "client_buyer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client_buyer_position",
+              "displayName": "client_buyer_position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client_buyer_email",
+              "displayName": "client_buyer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "66b68b50-6d58-4701-80a3-a42b5b3a3fd6",
+      "name": "Append Master Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        800,
+        -112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').item.json.outputSpreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1716007832,
+          "mode": "list",
+          "cachedResultName": "PO consolidated data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-og69jKI34UReQJX9nCLEtxuEZ-WJsn_ao0x5SPASrE/edit#gid=1716007832"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "po_line_key": "={{ $json.po_line_key }}",
+            "client_code": "={{ $json.client_code }}",
+            "client_company_name": "={{ $json.client_company_name }}",
+            "comms_group_id": "={{ $json.comms_group_id }}",
+            "po_number": "={{ $json.po_number }}",
+            "supplier_code": "={{ $json.supplier_code }}",
+            "supplier_name": "={{ $json.supplier_name }}",
+            "po_line_item": "={{ $json.po_line_item }}",
+            "material_code": "={{ $json.material_code }}",
+            "material_name": "={{ $json.material_name }}",
+            "quantity": "={{ $json.quantity }}",
+            "unit_of_measure": "={{ $json.unit_of_measure }}",
+            "issue_date": "={{ $json.issue_date }}",
+            "po_status": "={{ $json.po_status }}",
+            "deliver_by_date_delivery_1": "={{ $json.deliver_by_date_delivery_1 }}",
+            "ship_by_date_delivery_1": "={{ $json.ship_by_date_delivery_1 }}",
+            "number_of_ship_by_days": "={{ $json.number_of_ship_by_days }}",
+            "ship_by_band": "={{ $json.ship_by_band }}",
+            "quantity_delivery_1": "={{ $json.quantity_delivery_1 }}",
+            "last_updated": "={{ $json.last_updated }}",
+            "primary_email": "={{ $json.primary_email }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "po_line_key",
+              "displayName": "po_line_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_company_name",
+              "displayName": "client_company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comms_group_id",
+              "displayName": "comms_group_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_number",
+              "displayName": "po_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_code",
+              "displayName": "supplier_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_name",
+              "displayName": "supplier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_line_item",
+              "displayName": "po_line_item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_code",
+              "displayName": "material_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_name",
+              "displayName": "material_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "quantity",
+              "displayName": "quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unit_of_measure",
+              "displayName": "unit_of_measure",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_value (inactive)",
+              "displayName": "po_value (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "po_currency (inactive)",
+              "displayName": "po_currency (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "issue_date",
+              "displayName": "issue_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_location",
+              "displayName": "delivery_location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "po_status",
+              "displayName": "po_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "single_or_multiple_delivery (inactive)",
+              "displayName": "single_or_multiple_delivery (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "deliver_by_date_delivery_1",
+              "displayName": "deliver_by_date_delivery_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ship_by_date_delivery_1",
+              "displayName": "ship_by_date_delivery_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "number_of_ship_by_days",
+              "displayName": "number_of_ship_by_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ship_by_band",
+              "displayName": "ship_by_band",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "expected_delivery_per_lead_time",
+              "displayName": "expected_delivery_per_lead_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "communicated_delivery_date_1",
+              "displayName": "communicated_delivery_date_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "production_date_1",
+              "displayName": "production_date_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "quantity_delivery_1",
+              "displayName": "quantity_delivery_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "quantity_delivery_2 (inactive)",
+              "displayName": "quantity_delivery_2 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "communicated_delivery_date_2 (inactive)",
+              "displayName": "communicated_delivery_date_2 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "production_date_2 (inactive)",
+              "displayName": "production_date_2 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "quantity_delivery_3 (inactive)",
+              "displayName": "quantity_delivery_3 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "communicated_delivery_date_3 (inactive)",
+              "displayName": "communicated_delivery_date_3 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "production_date_3 (inactive)",
+              "displayName": "production_date_3 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "quantity_delivery_4 (inactive)",
+              "displayName": "quantity_delivery_4 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "communicated_delivery_date_4 (inactive)",
+              "displayName": "communicated_delivery_date_4 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "production_date_4 (inactive)",
+              "displayName": "production_date_4 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "quantity_delivery_5 (inactive)",
+              "displayName": "quantity_delivery_5 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "communicated_delivery_date_5 (inactive)",
+              "displayName": "communicated_delivery_date_5 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "production_date_5 (inactive)",
+              "displayName": "production_date_5 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "quantity_fulfilled (inactive)",
+              "displayName": "quantity_fulfilled (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "quantity_outstanding (inactive)",
+              "displayName": "quantity_outstanding (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "actual_delivery_date_1",
+              "displayName": "actual_delivery_date_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "actual_delivery_date_2 (inactive)",
+              "displayName": "actual_delivery_date_2 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "actual_delivery_date_3 (inactive)",
+              "displayName": "actual_delivery_date_3 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "actual_delivery_date_4 (inactive)",
+              "displayName": "actual_delivery_date_4 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "actual_delivery_date_5 (inactive)",
+              "displayName": "actual_delivery_date_5 (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_1_fulfillment_status",
+              "displayName": "delivery_1_fulfillment_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_2_fulfillment_status (inactive)",
+              "displayName": "delivery_2_fulfillment_status (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_3_fulfillment_status (inactive)",
+              "displayName": "delivery_3_fulfillment_status (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_4_fulfillment_status (inactive)",
+              "displayName": "delivery_4_fulfillment_status (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_5_fulfillment_status (inactive)",
+              "displayName": "delivery_5_fulfillment_status (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_1_variance_days",
+              "displayName": "delivery_1_variance_days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_2_variance_days (inactive)",
+              "displayName": "delivery_2_variance_days (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_3_variance_days (inactive)",
+              "displayName": "delivery_3_variance_days (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_4_variance_days (inactive)",
+              "displayName": "delivery_4_variance_days (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_5_variance_days (inactive)",
+              "displayName": "delivery_5_variance_days (inactive)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "po_closed_date",
+              "displayName": "po_closed_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_updated",
+              "displayName": "last_updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "primary_email",
+              "displayName": "primary_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "0a2fec40-dab7-478d-99fd-f5bdcdba31f4",
+      "name": "Append PO Consolidated",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        800,
+        96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').item.json.outputSpreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 711817731,
+          "mode": "list",
+          "cachedResultName": "Communication Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-og69jKI34UReQJX9nCLEtxuEZ-WJsn_ao0x5SPASrE/edit#gid=711817731"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "po_line_key": "={{ $json.po_line_key }}",
+            "client_code": "={{ $json.client_code }}",
+            "client_company_name": "={{ $json.client_company_name }}",
+            "comms_group_id": "={{ $json.comms_group_id }}",
+            "po_number": "={{ $json.po_number }}",
+            "supplier_code": "={{ $json.supplier_code }}",
+            "supplier_name": "={{ $json.supplier_name }}",
+            "po_line_item": "={{ $json.po_line_item }}",
+            "material_code": "={{ $json.material_code }}",
+            "material_name": "={{ $json.material_name }}",
+            "follow_up_stage": "={{ $json.follow_up_stage }}",
+            "follow_up_status": "={{ $json.follow_up_status }}",
+            "last_action_timestamp": "={{ $json.last_action_timestamp }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "po_line_key",
+              "displayName": "po_line_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_company_name",
+              "displayName": "client_company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comms_group_id",
+              "displayName": "comms_group_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_number",
+              "displayName": "po_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_code",
+              "displayName": "supplier_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_name",
+              "displayName": "supplier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_line_item",
+              "displayName": "po_line_item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_code",
+              "displayName": "material_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_name",
+              "displayName": "material_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PO line item status",
+              "displayName": "PO line item status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "follow_up_stage",
+              "displayName": "follow_up_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "follow_up_status",
+              "displayName": "follow_up_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_sent",
+              "displayName": "stage1_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_outreach_mail_subject",
+              "displayName": "stage1_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_outreach_body",
+              "displayName": "stage1_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_outreach_thread_id",
+              "displayName": "stage1_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_outreach_message_id",
+              "displayName": "stage1_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_outreach_timestamp",
+              "displayName": "stage1_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail1_sent",
+              "displayName": "stage1_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail1_body",
+              "displayName": "stage1_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail1_timestamp",
+              "displayName": "stage1_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail2_sent",
+              "displayName": "stage1_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail2_body",
+              "displayName": "stage1_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail2_timestamp",
+              "displayName": "stage1_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail3_sent",
+              "displayName": "stage1_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail3_body",
+              "displayName": "stage1_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_mail3_timestamp",
+              "displayName": "stage1_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call1_sent",
+              "displayName": "stage1_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call1_timestamp",
+              "displayName": "stage1_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call1_answered",
+              "displayName": "stage1_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call1_call_outcome",
+              "displayName": "stage1_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call1_delivery_status_classification",
+              "displayName": "stage1_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call1_delivery_status_text",
+              "displayName": "stage1_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call1_supplier_raw_statement",
+              "displayName": "stage1_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call2_sent",
+              "displayName": "stage1_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call2_timestamp",
+              "displayName": "stage1_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call2_answered",
+              "displayName": "stage1_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call2_call_outcome",
+              "displayName": "stage1_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call2_delivery_status_classification",
+              "displayName": "stage1_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call2_delivery_status_text",
+              "displayName": "stage1_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call2_supplier_raw_statement",
+              "displayName": "stage1_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call3_sent",
+              "displayName": "stage1_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call3_timestamp",
+              "displayName": "stage1_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call3_answered",
+              "displayName": "stage1_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call3_call_outcome",
+              "displayName": "stage1_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call3_delivery_status_classification",
+              "displayName": "stage1_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call3_delivery_status_text",
+              "displayName": "stage1_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reminder_call3_supplier_raw_statement",
+              "displayName": "stage1_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_internal_escalation_sent",
+              "displayName": "stage1_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_internal_escalation_timestamp",
+              "displayName": "stage1_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_supplier_reply_status",
+              "displayName": "stage1_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_reply_timestamp",
+              "displayName": "stage1_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_supplier_reply_confidence",
+              "displayName": "stage1_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_delivery_status_classification",
+              "displayName": "stage1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_delivery_status_text",
+              "displayName": "stage1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_supplier_raw_statement",
+              "displayName": "stage1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_mode_of_reply_received",
+              "displayName": "stage1_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_supplier_reply_message_id",
+              "displayName": "stage1_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_supplier_reply_thread_id",
+              "displayName": "stage1_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_acknowledgment_sent",
+              "displayName": "stage1_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_supplier_reply_status",
+              "displayName": "stage1_5_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_reply_timestamp",
+              "displayName": "stage1_5_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_supplier_reply_confidence",
+              "displayName": "stage1_5_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_delivery_status_classification",
+              "displayName": "stage1_5_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_delivery_status_text",
+              "displayName": "stage1_5_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_supplier_raw_statement",
+              "displayName": "stage1_5_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_mode_of_reply_received",
+              "displayName": "stage1_5_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_supplier_reply_message_id",
+              "displayName": "stage1_5_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_supplier_reply_thread_id",
+              "displayName": "stage1_5_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_acknowledgment_sent",
+              "displayName": "stage1_5_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_outreach_sent",
+              "displayName": "stage2_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_outreach_mail_subject",
+              "displayName": "stage2_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_outreach_body",
+              "displayName": "stage2_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_outreach_thread_id",
+              "displayName": "stage2_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_outreach_message_id",
+              "displayName": "stage2_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_outreach_timestamp",
+              "displayName": "stage2_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail1_sent",
+              "displayName": "stage2_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail1_body",
+              "displayName": "stage2_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail1_timestamp",
+              "displayName": "stage2_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail2_sent",
+              "displayName": "stage2_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail2_body",
+              "displayName": "stage2_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail2_timestamp",
+              "displayName": "stage2_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail3_sent",
+              "displayName": "stage2_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail3_body",
+              "displayName": "stage2_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_mail3_timestamp",
+              "displayName": "stage2_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call1_sent",
+              "displayName": "stage2_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call1_timestamp",
+              "displayName": "stage2_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call1_answered",
+              "displayName": "stage2_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call1_call_outcome",
+              "displayName": "stage2_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call1_delivery_status_classification",
+              "displayName": "stage2_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call1_delivery_status_text",
+              "displayName": "stage2_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call1_supplier_raw_statement",
+              "displayName": "stage2_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call2_sent",
+              "displayName": "stage2_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call2_timestamp",
+              "displayName": "stage2_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call2_answered",
+              "displayName": "stage2_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call2_call_outcome",
+              "displayName": "stage2_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call2_delivery_status_classification",
+              "displayName": "stage2_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call2_delivery_status_text",
+              "displayName": "stage2_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call2_supplier_raw_statement",
+              "displayName": "stage2_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call3_sent",
+              "displayName": "stage2_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call3_timestamp",
+              "displayName": "stage2_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call3_answered",
+              "displayName": "stage2_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call3_call_outcome",
+              "displayName": "stage2_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call3_delivery_status_classification",
+              "displayName": "stage2_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call3_delivery_status_text",
+              "displayName": "stage2_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reminder_call3_supplier_raw_statement",
+              "displayName": "stage2_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_internal_escalation_sent",
+              "displayName": "stage2_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_internal_escalation_timestamp",
+              "displayName": "stage2_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_supplier_reply_status",
+              "displayName": "stage2_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_supplier_reply_confidence",
+              "displayName": "stage2_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_reply_timestamp",
+              "displayName": "stage2_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_delivery_status_classification",
+              "displayName": "stage2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_delivery_status_text",
+              "displayName": "stage2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_supplier_raw_statement",
+              "displayName": "stage2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_mode_of_reply_received",
+              "displayName": "stage2_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_supplier_reply_message_id",
+              "displayName": "stage2_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_supplier_reply_thread_id",
+              "displayName": "stage2_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_acknowledgment_sent",
+              "displayName": "stage2_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_supplier_reply_status",
+              "displayName": "stage2_5_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_supplier_reply_confidence",
+              "displayName": "stage2_5_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_reply_timestamp",
+              "displayName": "stage2_5_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_delivery_status_classification",
+              "displayName": "stage2_5_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_delivery_status_text",
+              "displayName": "stage2_5_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_supplier_raw_statement",
+              "displayName": "stage2_5_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_mode_of_reply_received",
+              "displayName": "stage2_5_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_supplier_reply_message_id",
+              "displayName": "stage2_5_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_supplier_reply_thread_id",
+              "displayName": "stage2_5_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_acknowledgment_sent",
+              "displayName": "stage2_5_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_outreach_sent",
+              "displayName": "stage3_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_outreach_mail_subject",
+              "displayName": "stage3_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_outreach_body",
+              "displayName": "stage3_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_outreach_thread_id",
+              "displayName": "stage3_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_outreach_message_id",
+              "displayName": "stage3_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_outreach_timestamp",
+              "displayName": "stage3_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail1_sent",
+              "displayName": "stage3_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail1_body",
+              "displayName": "stage3_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail1_timestamp",
+              "displayName": "stage3_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail2_sent",
+              "displayName": "stage3_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail2_body",
+              "displayName": "stage3_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail2_timestamp",
+              "displayName": "stage3_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail3_sent",
+              "displayName": "stage3_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail3_body",
+              "displayName": "stage3_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_mail3_timestamp",
+              "displayName": "stage3_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call1_sent",
+              "displayName": "stage3_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call1_timestamp",
+              "displayName": "stage3_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call1_answered",
+              "displayName": "stage3_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call1_call_outcome",
+              "displayName": "stage3_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call1_delivery_status_classification",
+              "displayName": "stage3_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call1_delivery_status_text",
+              "displayName": "stage3_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call1_supplier_raw_statement",
+              "displayName": "stage3_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call2_sent",
+              "displayName": "stage3_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call2_timestamp",
+              "displayName": "stage3_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call2_answered",
+              "displayName": "stage3_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call2_call_outcome",
+              "displayName": "stage3_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call2_delivery_status_classification",
+              "displayName": "stage3_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call2_delivery_status_text",
+              "displayName": "stage3_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call2_supplier_raw_statement",
+              "displayName": "stage3_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call3_sent",
+              "displayName": "stage3_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call3_timestamp",
+              "displayName": "stage3_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call3_answered",
+              "displayName": "stage3_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call3_call_outcome",
+              "displayName": "stage3_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call3_delivery_status_classification",
+              "displayName": "stage3_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call3_delivery_status_text",
+              "displayName": "stage3_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reminder_call3_supplier_raw_statement",
+              "displayName": "stage3_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_internal_escalation_sent",
+              "displayName": "stage3_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_internal_escalation_timestamp",
+              "displayName": "stage3_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_supplier_reply_status",
+              "displayName": "stage3_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_supplier_reply_confidence",
+              "displayName": "stage3_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_reply_timestamp",
+              "displayName": "stage3_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_delivery_status_classification",
+              "displayName": "stage3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_delivery_status_text",
+              "displayName": "stage3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_supplier_raw_statement",
+              "displayName": "stage3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_mode_of_reply_received",
+              "displayName": "stage3_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_supplier_reply_message_id",
+              "displayName": "stage3_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_supplier_reply_thread_id",
+              "displayName": "stage3_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_acknowledgment_sent",
+              "displayName": "stage3_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "needs_human_review",
+              "displayName": "needs_human_review",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "human_review_status",
+              "displayName": "human_review_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_action_timestamp",
+              "displayName": "last_action_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage 2_outreach_sent",
+              "displayName": "stage 2_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage 2_outreach_mail_subject",
+              "displayName": "stage 2_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage 2_outreach_body",
+              "displayName": "stage 2_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage 2_outreach_message_id",
+              "displayName": "stage 2_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage 2_outreach_thread_id",
+              "displayName": "stage 2_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage 2_outreach_timestamp",
+              "displayName": "stage 2_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_supplier_reply_subject",
+              "displayName": "stage1_supplier_reply_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_supplier_reply_subject",
+              "displayName": "stage1_5_supplier_reply_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_supplier_reply_subject",
+              "displayName": "stage2_supplier_reply_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_supplier_reply_subject",
+              "displayName": "stage2_5_supplier_reply_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_supplier_reply_subject",
+              "displayName": "stage3_supplier_reply_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_supplier_reply_from",
+              "displayName": "stage1_supplier_reply_from",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage1_5_supplier_reply_from",
+              "displayName": "stage1_5_supplier_reply_from",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_supplier_reply_from",
+              "displayName": "stage2_supplier_reply_from",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage2_5_supplier_reply_from",
+              "displayName": "stage2_5_supplier_reply_from",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stage3_supplier_reply_from",
+              "displayName": "stage3_supplier_reply_from",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "68f61196-a8f2-4dcd-8738-1eaecee29687",
+      "name": "Append Comm Logs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        800,
+        288
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helper to safely get data from other nodes\nfunction getNodeData(nodeName) {\n    try {\n        const data = $(nodeName).all();\n        if (!data || !Array.isArray(data)) {\n            return [];\n        }\n        return data;\n    } catch (e) {\n        throw new Error(`Failed to retrieve data from node '${nodeName}'. Please ensure that a node named '${nodeName}' exists in your workflow, is connected in series, and has executed successfully before this node.`);\n    }\n}\n\n// Normalize helpers\nfunction normalizeString(val) {\n    if (val === null || val === undefined) {\n        return \"\";\n    }\n    return String(val).trim().replace(/\\s+/g, ' ').toLowerCase();\n}\n\n// Clean and normalize email addresses, extracting from brackets if present\nfunction cleanEmail(rawVal) {\n    if (!rawVal) {\n        return \"\";\n    }\n    const valStr = String(rawVal).trim();\n    const match = valStr.match(/<([^>]+)>/);\n    if (match) {\n        return match[1].trim().toLowerCase();\n    }\n    return valStr.toLowerCase();\n}\n\n// Date parsing for multiple standard formats\nfunction parseDate(dateVal, defaultYear) {\n    if (!dateVal) {\n        return null;\n    }\n    if (dateVal instanceof Date) {\n        return dateVal;\n    }\n    try {\n        let valStr = String(dateVal).trim();\n        if (valStr.includes(\" \")) {\n            valStr = valStr.split(\" \")[0];\n        }\n        if (valStr.includes(\"T\")) {\n            valStr = valStr.split(\"T\")[0];\n        }\n        \n        let parsed = new Date(valStr);\n        if (!isNaN(parsed.getTime())) {\n            parsed.setHours(0, 0, 0, 0);\n            if (parsed.getFullYear() === 2001 && defaultYear) {\n                const parts = valStr.split(/[-/,\\s]+/);\n                let hasExplicit2001Year = false;\n                if (parts.length >= 3) {\n                    const first = parts[0];\n                    const last = parts[parts.length - 1];\n                    if (first === \"2001\" || first === \"01\" || last === \"2001\" || last === \"01\") {\n                        hasExplicit2001Year = true;\n                    }\n                }\n                if (!hasExplicit2001Year) {\n                    parsed.setFullYear(defaultYear);\n                }\n            }\n            return parsed;\n        }\n        \n        const partsDash = valStr.split(\"-\");\n        if (partsDash.length === 3) {\n            const months = [\"jan\", \"feb\", \"mar\", \"apr\", \"may\", \"jun\", \"jul\", \"aug\", \"sep\", \"oct\", \"nov\", \"dec\"];\n            const mIdx = months.indexOf(partsDash[1].toLowerCase().substring(0, 3));\n            if (mIdx !== -1) {\n                let day = parseInt(partsDash[0], 10);\n                let year = parseInt(partsDash[2], 10);\n                if (year < 100) year += 2000;\n                return new Date(year, mIdx, day, 0, 0, 0, 0);\n            }\n        }\n        \n        const partsSlash = valStr.split(\"/\");\n        if (partsSlash.length === 3) {\n            let p0 = parseInt(partsSlash[0], 10);\n            let p1 = parseInt(partsSlash[1], 10);\n            let p2 = parseInt(partsSlash[2], 10);\n            if (p2 < 100) p2 += 2000;\n            if (p0 > 12) {\n                return new Date(p2, p1 - 1, p0, 0, 0, 0, 0);\n            } else {\n                let d = new Date(p2, p0 - 1, p1, 0, 0, 0, 0);\n                if (!isNaN(d.getTime())) return d;\n            }\n        }\n    } catch (e) {}\n    return null;\n}\n\n// Format Date object to YYYY-MM-DD\nfunction formatDateStr(date) {\n    if (!date) return null;\n    const y = date.getFullYear();\n    const m = String(date.getMonth() + 1).padStart(2, '0');\n    const d = String(date.getDate()).padStart(2, '0');\n    return `${y}-${m}-${d}`;\n}\n\n// Format Date object to YYYY-MM-DD HH:mm:ss\nfunction formatDateTime(date) {\n    if (!date) return \"\";\n    const y = date.getFullYear();\n    const m = String(date.getMonth() + 1).padStart(2, '0');\n    const d = String(date.getDate()).padStart(2, '0');\n    const hh = String(date.getHours()).padStart(2, '0');\n    const mm = String(date.getMinutes()).padStart(2, '0');\n    const ss = String(date.getSeconds()).padStart(2, '0');\n    return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;\n}\n\n// Mapping of header variants to support fuzzy column name checking in the Code Node\nconst HEADER_MAPPINGS = {\n    'vendor_name': [\n        'customer/vendor name', 'customer vendor name', 'vendor name', \n        'supplier name', 'customer/supplier name', 'supplier_name'\n    ],\n    'vendor_code': [\n        'customer/vendor code', 'customer vendor code', 'vendor code', \n        'supplier code', 'customer/supplier code', 'supplier_code', 'vendor_code'\n    ],\n    'po_number': [\n        'po', 'po number', 'po_number', 'po no', 'po_no'\n    ],\n    'po_date': [\n        'po date', 'po_date', 'date'\n    ],\n    'shipto': [\n        'ship-to Code', 'ship-to', 'shipto code', 'shipto', 'ship_to_code'\n    ],\n    'item_no': [\n        'item no.', 'item no', 'item_no', 'item number', 'item_number'\n    ],\n    'description': [\n        'descrption', 'description', 'desc', 'item description'\n    ],\n    'qty': [\n        'po qty', 'po_qty', 'qty', 'quantity'\n    ],\n    'price': [\n        'unit price', 'unit_price', 'price'\n    ],\n    'amount': [\n        'amount', 'value'\n    ],\n    'terms': [\n        'paymnet terms', 'payment terms', 'payment_terms', 'terms'\n    ],\n    'arrival_date': [\n        'arrival date', 'arrival_date', 'arrival'\n    ],\n    'uom': [\n        'unit of measure', 'unit_of_measure', 'uom'\n    ]\n};\n\n// Retrieve values from row dictionary using fuzzy header variant matching\nfunction getValueByHeaderVariant(row, targetKey, defaultVal = null) {\n    if (!row) return defaultVal;\n    \n    // Check exact key match\n    if (row.hasOwnProperty(targetKey)) {\n        return row[targetKey];\n    }\n    \n    // Normalize and check keys\n    const variants = HEADER_MAPPINGS[targetKey] || [];\n    const keys = Object.keys(row);\n    \n    for (const key of keys) {\n        const normKey = normalizeString(key);\n        if (normKey === targetKey) return row[key];\n        \n        for (const variant of variants) {\n            if (normKey === variant) return row[key];\n            \n            // Collapse symbols to check\n            const collapsedKey = normKey.replace(/[^a-z0-9]/g, '');\n            const collapsedVariant = variant.replace(/[^a-z0-9]/g, '');\n            if (collapsedKey === collapsedVariant) return row[key];\n        }\n    }\n    \n    return defaultVal;\n}\n\n// 1. Load config parameters\nconst config = $(\"Config\").first().json;\nconst clientCode = config.clientCode;\nconst runDateStr = config.runDate;\nconst masterTitle = config.masterSheetName || 'Material and Supplier Master Data';\nconst runDate = parseDate(runDateStr) || new Date();\nrunDate.setHours(0, 0, 0, 0);\n\nconst runDatetime = new Date(runDate);\nrunDatetime.setHours(10, 0, 0, 0);\n\n// 2. Fetch data from previous workflow nodes\nconst contactsRaw = getNodeData(\"Read Contacts\");\nconst poLatestRaw = getNodeData(\"Read Open PO Latest\");\nconst masterRaw = getNodeData(\"Read Supplier Master\");\nconst pocRaw = getNodeData(\"Read PO Consolidated\");\nconst logsRaw = getNodeData(\"Read Comm Logs\");\nconst bandsRaw = getNodeData(\"Read Bands\");\n\n// 3. Map contacts\nconst contactsMap = {};\nfor (const item of contactsRaw) {\n    const row = item.json;\n    const vname = getValueByHeaderVariant(row, 'vendor_name');\n    if (vname) {\n        const normV = normalizeString(vname);\n        contactsMap[normV] = {\n            contact_name: row[\"Contact name\"] || row[\"contact_name\"] || \"\",\n            email: cleanEmail(row[\"mail id\"] || row[\"email\"] || row[\"mail_id\"] || \"\"),\n            phone: row[\"Phone\"] !== null && row[\"Phone\"] !== undefined ? String(row[\"Phone\"]).trim() : \"\"\n        };\n    }\n}\n\n// 4. Extract existing Master records\nconst existingMasterCombos = new Set();\nconst existingSupplierCodes = {};\nconst existingSupplierCodesByCode = {};\nconst existingSNums = [];\nconst materialTransitTimes = {};\n\nfor (const item of masterRaw) {\n    const row = item.json;\n    const cCode = row[\"client_code\"];\n    const sCode = row[\"supplier_code\"];\n    const sFull = row[\"supplier_name_full\"];\n    const mCode = row[\"material_code\"];\n    const transit = row[\"transit_time_days\"];\n    \n    if (cCode === clientCode) {\n        if (sFull) {\n            existingMasterCombos.add(`${cCode}_${normalizeString(sFull)}_${normalizeString(mCode)}`);\n            existingSupplierCodes[normalizeString(sFull)] = sCode;\n        }\n        if (sCode) {\n            existingSupplierCodesByCode[String(sCode).trim()] = sFull;\n        }\n    }\n    \n    if (sCode) {\n        const sMatch = String(sCode).trim().match(/^S(\\d+)$/i);\n        if (sMatch) {\n            existingSNums.push(parseInt(sMatch[1], 10));\n        }\n    }\n    \n    if (mCode && transit !== null && transit !== undefined) {\n        try {\n            materialTransitTimes[normalizeString(mCode)] = parseInt(parseFloat(transit), 10);\n        } catch (e) {}\n    }\n}\n\nlet currentSCounter = existingSNums.length > 0 ? Math.max(...existingSNums) : 0;\n\n// 5. Extract existing PO Consolidated records\nconst existingPocCombos = new Set();\nconst existingPocLineItems = {};\nconst existingGroupIds = [];\n\nfor (const item of pocRaw) {\n    const row = item.json;\n    const cCode = row[\"client_code\"];\n    const gId = row[\"comms_group_id\"];\n    const poNum = row[\"po_number\"];\n    const lineItem = row[\"po_line_item\"];\n    const mCode = row[\"material_code\"];\n    \n    if (cCode === clientCode) {\n        existingPocCombos.add(`${cCode}_${String(poNum).trim()}_${normalizeString(mCode)}`);\n        if (poNum) {\n            const poStr = String(poNum).trim();\n            if (!existingPocLineItems[poStr]) {\n                existingPocLineItems[poStr] = [];\n            }\n            try {\n                existingPocLineItems[poStr].push(parseInt(parseFloat(lineItem), 10));\n            } catch (e) {}\n        }\n    }\n    if (gId) {\n        const gMatch = String(gId).trim().match(/^G(\\d+)$/i);\n        if (gMatch) {\n            existingGroupIds.push(parseInt(gMatch[1], 10));\n        }\n    }\n}\n\nlet maxGroupNum = existingGroupIds.length > 0 ? Math.max(...existingGroupIds) : 0;\n\n// 6. Extract existing Log keys\nconst existingLogKeys = new Set();\nfor (const item of logsRaw) {\n    const row = item.json;\n    const cCode = row[\"client_code\"];\n    const poNum = row[\"po_number\"];\n    const lineItem = row[\"po_line_item\"];\n    if (cCode && poNum && lineItem !== null && lineItem !== undefined) {\n        let liStr = \"\";\n        try {\n            liStr = String(parseInt(parseFloat(lineItem), 10));\n        } catch (e) {\n            liStr = String(lineItem).trim();\n        }\n        existingLogKeys.add(`${cCode}_${String(poNum).trim()}_${liStr}`);\n    }\n}\n\n// 7. Load Bands Table\nconst bandsList = [];\nfor (const item of bandsRaw) {\n    const row = item.json;\n    const bandLetter = row[\"Ship-by Window (days)\"] || row[\"band\"] || row[\"Bands mapping\"];\n    const wMin = row[\"min\"] || row[\"Min Window\"];\n    const wMax = row[\"max\"] || row[\"Max Window\"];\n    if (bandLetter !== null && bandLetter !== undefined && wMin !== null && wMax !== null) {\n        try {\n            bandsList.push({\n                band: String(bandLetter).trim(),\n                min: parseInt(parseFloat(wMin), 10),\n                max: parseInt(parseFloat(wMax), 10)\n            });\n        } catch (e) {}\n    }\n}\n\n// 8. Scan and Filter incoming ERP PO lines\nlet parsedLines = [];\nfor (const item of poLatestRaw) {\n    const row = item.json;\n    const vendorName = getValueByHeaderVariant(row, 'vendor_name');\n    const vendorCode = getValueByHeaderVariant(row, 'vendor_code');\n    const poNum = getValueByHeaderVariant(row, 'po_number');\n    const itemNo = getValueByHeaderVariant(row, 'item_no');\n    \n    if (!vendorName || !poNum || !itemNo) {\n        continue;\n    }\n    const defaultYear = runDate.getFullYear();\n    const poDate = parseDate(getValueByHeaderVariant(row, 'po_date'), defaultYear);\n    const arrivalDate = parseDate(getValueByHeaderVariant(row, 'arrival_date'), defaultYear);\n    const uomRaw = getValueByHeaderVariant(row, 'uom');\n    const uomStr = uomRaw !== null && uomRaw !== undefined && String(uomRaw).trim() !== \"\" ? String(uomRaw).trim() : \"kg\";\n    \n    parsedLines.push({\n        vendor_name: String(vendorName).trim(),\n        vendor_code: vendorCode ? String(vendorCode).trim() : null,\n        po_number: String(poNum).trim(),\n        po_date: poDate,\n        item_no: String(itemNo).trim(),\n        description: getValueByHeaderVariant(row, 'description', \"\"),\n        qty: parseFloat(getValueByHeaderVariant(row, 'qty', 0)),\n        price: parseFloat(getValueByHeaderVariant(row, 'price', 0)),\n        amount: parseFloat(getValueByHeaderVariant(row, 'amount', 0)),\n        terms: getValueByHeaderVariant(row, 'terms', \"\"),\n        arrival_date: arrivalDate,\n        shipto: getValueByHeaderVariant(row, 'shipto', \"\"),\n        uom: uomStr\n    });\n}\n\n// Filter duplicates against existing POC\nparsedLines = parsedLines.filter(p => !existingPocCombos.has(`${clientCode}_${p.po_number}_${normalizeString(p.item_no)}`));\n\n// 9. Process Supplier Master Mapping & Ingestion\nconst newMasterAppends = [];\nconst tempMasterCombos = new Set(existingMasterCombos);\nconst filteredParsedLines = [];\nconst manualReviews = [];\nconst flaggedVendorsInRun = new Set();\n\nfor (const p of parsedLines) {\n    const vname = p.vendor_name;\n    let vcode = p.vendor_code;\n    if (vcode) {\n        vcode = String(vcode).trim();\n        if (!vcode || vcode === \"None\" || vcode === \"-\") {\n            vcode = null;\n        }\n    } else {\n        vcode = null;\n    }\n    \n    const normVname = normalizeString(vname);\n    \n    if (flaggedVendorsInRun.has(normVname)) {\n        continue;\n    }\n    \n    let sCode = null;\n    // Match A: Name Match\n    if (existingSupplierCodes[normVname]) {\n        sCode = existingSupplierCodes[normVname];\n    } else {\n        // Match B: Code Match\n        if (vcode && existingSupplierCodesByCode.hasOwnProperty(vcode)) {\n            const matchedName = existingSupplierCodesByCode[vcode];\n            manualReviews.push({\n                candidate_name: vname,\n                candidate_code: vcode,\n                existing_name_full: matchedName\n            });\n            flaggedVendorsInRun.add(normVname);\n            continue;\n        }\n        \n        if (vcode) {\n            sCode = vcode;\n        } else {\n            currentSCounter += 1;\n            sCode = `S${currentSCounter}`;\n        }\n        \n        existingSupplierCodes[normVname] = sCode;\n        existingSupplierCodesByCode[sCode] = vname;\n    }\n    \n    p.supplier_code = sCode;\n    filteredParsedLines.push(p);\n    \n    const mCombo = `${clientCode}_${normVname}_${normalizeString(p.item_no)}`;\n    if (!tempMasterCombos.has(mCombo)) {\n        tempMasterCombos.add(mCombo);\n        const contactInfo = contactsMap[normVname] || { contact_name: '', email: '', phone: '' };\n        \n        newMasterAppends.push({\n            client_code: clientCode,\n            supplier_code: sCode,\n            supplier_name_full: vname,\n            supplier_name: vname,\n            material_code: p.item_no,\n            material_name: p.description,\n            primary_contact_name: contactInfo.contact_name,\n            primary_email: contactInfo.email,\n            primary_phone: contactInfo.phone,\n            supplier_source_location: p.shipto\n        });\n    }\n}\n\nparsedLines = filteredParsedLines;\n\n// 10. PO Line Sequence counters\nconst poItemCounters = {};\nfor (const p of parsedLines) {\n    const poStr = p.po_number;\n    if (!poItemCounters[poStr]) {\n        if (existingPocLineItems[poStr]) {\n            poItemCounters[poStr] = Math.max(...existingPocLineItems[poStr]);\n        } else {\n            poItemCounters[poStr] = 0;\n        }\n    }\n    poItemCounters[poStr] += 1;\n    p.po_line_item = poItemCounters[poStr];\n}\n\n// 11. Comms Grouping (Gap <= 5 days)\nconst groupingBuckets = {};\nfor (const p of parsedLines) {\n    const key = `${p.supplier_code}_${p.po_number}`;\n    if (!groupingBuckets[key]) {\n        groupingBuckets[key] = [];\n    }\n    groupingBuckets[key].push(p);\n}\n\nfor (const key in groupingBuckets) {\n    const lines = groupingBuckets[key];\n    const linesSorted = [...lines].sort((a, b) => {\n        const da = a.arrival_date ? a.arrival_date.getTime() : Infinity;\n        const db = b.arrival_date ? b.arrival_date.getTime() : Infinity;\n        return da - db;\n    });\n    \n    let currentSubgroup = [];\n    for (const line of linesSorted) {\n        if (currentSubgroup.length === 0) {\n            currentSubgroup.push(line);\n        } else {\n            const prevLine = currentSubgroup[currentSubgroup.length - 1];\n            if (prevLine.arrival_date && line.arrival_date) {\n                const gapMs = line.arrival_date.getTime() - prevLine.arrival_date.getTime();\n                const gapDays = gapMs / (1000 * 60 * 60 * 24);\n                if (gapDays <= 5) {\n                    currentSubgroup.push(line);\n                } else {\n                    maxGroupNum += 1;\n                    for (const l of currentSubgroup) {\n                        l.comms_group_id = `G${maxGroupNum}`;\n                    }\n                    currentSubgroup = [line];\n                }\n            } else {\n                maxGroupNum += 1;\n                for (const l of currentSubgroup) {\n                    l.comms_group_id = `G${maxGroupNum}`;\n                }\n                currentSubgroup = [line];\n            }\n        }\n    }\n    if (currentSubgroup.length > 0) {\n        maxGroupNum += 1;\n        for (const l of currentSubgroup) {\n            l.comms_group_id = `G${maxGroupNum}`;\n        }\n    }\n}\n\n// 12. Map PO Consolidated & Logs Data Lists\nconst newPocRows = [];\nconst newLogRows = [];\nconst tempPocCombos = new Set(existingPocCombos);\nconst tempLogKeys = new Set(existingLogKeys);\n\nconst masterStart = masterRaw.length + 1;\nconst pocStart = pocRaw.length + 1;\nconst logsStart = logsRaw.length + 1;\n\nfor (let idx = 0; idx < parsedLines.length; idx++) {\n    const p = parsedLines[idx];\n    const itemNo = p.item_no;\n    const sCode = p.supplier_code;\n    const commsId = p.comms_group_id;\n    const lineItemNum = p.po_line_item;\n    \n    const pocCombo = `${clientCode}_${p.po_number}_${normalizeString(itemNo)}`;\n    if (!tempPocCombos.has(pocCombo)) {\n        tempPocCombos.add(pocCombo);\n        const transitDays = materialTransitTimes[normalizeString(itemNo)] !== undefined ? materialTransitTimes[normalizeString(itemNo)] : 3;\n        \n        let bandLetter = \"G\";\n        if (p.arrival_date && p.po_date) {\n            const shipDate = new Date(p.arrival_date);\n            shipDate.setDate(shipDate.getDate() - transitDays);\n            const windowMs = shipDate.getTime() - p.po_date.getTime();\n            const windowDays = Math.floor(windowMs / (1000 * 60 * 60 * 24));\n            \n            for (const band of bandsList) {\n                if (windowDays >= band.min && windowDays <= band.max) {\n                    bandLetter = band.band;\n                    break;\n                }\n            }\n        }\n        \n        const rowOffset = pocStart + newPocRows.length + 1;\n        newPocRows.push({\n            po_line_key: `=B${rowOffset}&\"_\"&E${rowOffset}&\"_\"&H${rowOffset}`,\n            client_code: clientCode,\n            client_company_name: `=iferror(vlookup(B${rowOffset},'Client info'!$A$1:$M$1000,3,False),\"-\")`,\n            comms_group_id: commsId,\n            po_number: p.po_number,\n            supplier_code: sCode,\n            supplier_name: `=iferror(vlookup(F${rowOffset},'${masterTitle}'!$D$1:$F$20000,3,False),\"-\")`,\n            po_line_item: lineItemNum,\n            material_code: itemNo,\n            material_name: p.description,\n            quantity: p.qty,\n            unit_of_measure: p.uom,\n            issue_date: formatDateStr(p.po_date),\n            po_status: 'Open',\n            deliver_by_date_delivery_1: formatDateStr(p.arrival_date),\n            ship_by_date_delivery_1: `=S${rowOffset}-${transitDays}`,\n            number_of_ship_by_days: `=T${rowOffset}-O${rowOffset}`,\n            ship_by_band: bandLetter,\n            quantity_delivery_1: p.qty,\n            last_updated: formatDateTime(runDatetime),\n            primary_email: `=vlookup(F${rowOffset},'${masterTitle}'!$D$1:$J$20000,7,False)`\n        });\n    }\n    \n    const logKeyVal = `${clientCode}_${p.po_number}_${lineItemNum}`;\n    if (!tempLogKeys.has(logKeyVal)) {\n        tempLogKeys.add(logKeyVal);\n        \n        let stageStr = \"Stage1\";\n        const transitDays = materialTransitTimes[normalizeString(itemNo)] !== undefined ? materialTransitTimes[normalizeString(itemNo)] : 3;\n        if (p.arrival_date && p.po_date) {\n            const shipDate = new Date(p.arrival_date);\n            shipDate.setDate(shipDate.getDate() - transitDays);\n            const totalWindow = (shipDate.getTime() - p.po_date.getTime()) / (1000 * 60 * 60 * 24);\n            const passedWindow = (runDate.getTime() - p.po_date.getTime()) / (1000 * 60 * 60 * 24);\n            const pctPassed = totalWindow > 0 ? (passedWindow / totalWindow * 100) : (passedWindow > 0 ? 100 : 0);\n            if (pctPassed <= 40) {\n                stageStr = \"Stage1\";\n            } else if (pctPassed <= 80) {\n                stageStr = \"Stage2\";\n            } else {\n                stageStr = \"Stage3\";\n            }\n        }\n        \n        const rowOffset = logsStart + newLogRows.length + 1;\n        newLogRows.push({\n            po_line_key: `=B${rowOffset}&\"_\"&E${rowOffset}&\"_\"&H${rowOffset}`,\n            client_code: clientCode,\n            client_company_name: `=iferror(vlookup(B${rowOffset},'Client info'!$A$1:$M$1000,3,False),\"-\")`,\n            comms_group_id: commsId,\n            po_number: p.po_number,\n            supplier_code: sCode,\n            supplier_name: `=iferror(vlookup(F${rowOffset},'${masterTitle}'!$D$1:$F$20000,3,False),\"-\")`,\n            po_line_item: lineItemNum,\n            material_code: itemNo,\n            material_name: `=vlookup(I${rowOffset},'${masterTitle}'!$G$1:$H$20000,2,False)`,\n            follow_up_stage: stageStr,\n            follow_up_status: 'Stage_Initiated',\n            last_action_timestamp: formatDateTime(runDatetime)\n        });\n    }\n}\n\nconst finalMasterRows = [];\nfor (let idx = 0; idx < newMasterAppends.length; idx++) {\n    const m = newMasterAppends[idx];\n    const rowOffset = masterStart + idx + 1;\n    finalMasterRows.push({\n        supplier_email_key: `=B${rowOffset}&\"_\"&D${rowOffset}&\"_\"&J${rowOffset}`,\n        client_code: m.client_code,\n        client_company_short_name: `=iferror(vlookup(B${rowOffset},'Client info'!$A$1:$M$1000,3,False),\"-\")`,\n        supplier_code: m.supplier_code,\n        supplier_name_full: m.supplier_name_full,\n        supplier_name: m.supplier_name,\n        material_code: m.material_code,\n        material_name: m.material_name,\n        primary_contact_names: m.primary_contact_name,\n        primary_emails: m.primary_email,\n        primary_phones: m.primary_phone,\n        working_days: 'Mon,Tue,Wed,Thu,Fri,Sat',\n        supplier_source_location: m.supplier_source_location,\n        PO_active: 'Y',\n        ai_agent_buyer_name: `=vlookup(B${rowOffset},'Client info'!$A$1:$M$4,11,False)`,\n        ai_agent_buyer_position: `=vlookup(B${rowOffset},'Client info'!$A$1:$M$4,12,False)`,\n        ai_agent_buyer_email: `=vlookup(B${rowOffset},'Client info'!$A$1:$M$4,13,False)`\n    });\n}\n\n// Return output structured array for downstream n8n nodes\nreturn [\n    {\n        json: {\n            new_master_rows: finalMasterRows,\n            new_poc_rows: newPocRows,\n            new_log_rows: newLogRows,\n            manual_reviews: manualReviews\n        }\n    }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        112
+      ],
+      "id": "b01fc7c2-19bf-4ce2-9454-cd88a3896503",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import re\nfrom datetime import datetime, date, timedelta\n\n# 1. Utility Functions\ndef normalize_string(val):\n    if val is None:\n        return \"\"\n    return re.sub(r'\\s+', ' ', str(val).strip()).lower()\n\ndef clean_email(raw_val):\n    if not raw_val:\n        return \"\"\n    val_str = str(raw_val).strip()\n    match = re.search(r'<([^>]+)>', val_str)\n    if match:\n        return match.group(1).strip().lower()\n    return val_str.lower()\n\ndef parse_date(date_val):\n    if not date_val:\n        return None\n    if isinstance(date_val, (datetime, date)):\n        return date_val if isinstance(date_val, date) else date_val.date()\n    try:\n        val_str = str(date_val).strip()\n        if \" \" in val_str:\n            val_str = val_str.split(\" \")[0]\n        for fmt in ('%Y-%m-%d', '%d-%b-%y', '%d-%b-%Y', '%m/%d/%Y', '%d/%m/%Y', '%Y-%m-%dT%H:%M:%S'):\n            try:\n                return datetime.strptime(val_str, fmt).date()\n            except ValueError:\n                continue\n    except Exception:\n        pass\n    return None\n\n# 2. Access variables from Config\nconfig = _(\"Config\").first().json\nclient_code = config.get(\"clientCode\")\nrun_date_str = config.get(\"runDate\")\nrun_date = parse_date(run_date_str) or date.today()\nrun_datetime = datetime(run_date.year, run_date.month, run_date.day, 10, 0, 0)\n\n# 3. Read raw sheets\ncontacts_raw = _(\"Read Contacts\").all()\npo_latest_raw = _(\"Read Open PO Latest\").all()\nmaster_raw = _(\"Read Supplier Master\").all()\npoc_raw = _(\"Read PO Consolidated\").all()\nlogs_raw = _(\"Read Comm Logs\").all()\nbands_raw = _(\"Read Bands\").all()\n\n# 4. Map Contacts\ncontacts_map = {}\nfor item in contacts_raw:\n    row = item.json\n    vname = row.get(\"Customer/Vendor Name\")\n    if vname:\n        norm_v = normalize_string(vname)\n        contacts_map[norm_v] = {\n            'contact_name': row.get(\"Contact name\", \"\"),\n            'email': clean_email(row.get(\"mail id\", \"\") or row.get(\"email\", \"\")),\n            'phone': str(row.get(\"Phone\", \"\")).strip() if row.get(\"Phone\") is not None else \"\"\n        }\n\n# 5. Extract existing Master records\nexisting_master_combos = set()\nexisting_supplier_codes = {}\nexisting_supplier_codes_by_code = {}\nexisting_s_nums = []\nmaterial_transit_times = {}\n\nfor item in master_raw:\n    row = item.json\n    c_code = row.get(\"client_code\")\n    s_code = row.get(\"supplier_code\")\n    s_full = row.get(\"supplier_name_full\")\n    m_code = row.get(\"material_code\")\n    transit = row.get(\"transit_time_days\")\n    \n    if c_code == client_code:\n        if s_full:\n            existing_master_combos.add((c_code, normalize_string(s_full), normalize_string(m_code)))\n            existing_supplier_codes[normalize_string(s_full)] = s_code\n        if s_code:\n            existing_supplier_codes_by_code[str(s_code).strip()] = s_full\n            \n    if s_code:\n        s_match = re.match(r'^S(\\d+)$', str(s_code).strip(), re.IGNORECASE)\n        if s_match:\n            existing_s_nums.append(int(s_match.group(1)))\n            \n    if m_code and transit:\n        try:\n            material_transit_times[normalize_string(m_code)] = int(float(transit))\n        except Exception:\n            pass\n\ncurrent_s_counter = max(existing_s_nums) if existing_s_nums else 0\n\n# 6. Extract existing PO Consolidated records\nexisting_poc_combos = set()\nexisting_poc_line_items = {}\nexisting_group_ids = []\n\nfor item in poc_raw:\n    row = item.json\n    c_code = row.get(\"client_code\")\n    g_id = row.get(\"comms_group_id\")\n    po_num = row.get(\"po_number\")\n    s_code = row.get(\"supplier_code\")\n    line_item = row.get(\"po_line_item\")\n    m_code = row.get(\"material_code\")\n    \n    if c_code == client_code:\n        existing_poc_combos.add((c_code, str(po_num).strip(), normalize_string(m_code)))\n        if po_num:\n            po_str = str(po_num).strip()\n            if po_str not in existing_poc_line_items:\n                existing_poc_line_items[po_str] = []\n            try:\n                existing_poc_line_items[po_str].append(int(float(line_item)))\n            except Exception:\n                pass\n    if g_id:\n        g_match = re.match(r'^G(\\d+)$', str(g_id).strip(), re.IGNORECASE)\n        if g_match:\n            existing_group_ids.append(int(g_match.group(1)))\n\nmax_group_num = max(existing_group_ids) if existing_group_ids else 0\n\n# 7. Extract existing Log keys\nexisting_log_keys = set()\nfor item in logs_raw:\n    row = item.json\n    c_code = row.get(\"client_code\")\n    po_num = row.get(\"po_number\")\n    line_item = row.get(\"po_line_item\")\n    if c_code and po_num and line_item is not None:\n        try:\n            li_str = str(int(float(line_item)))\n        except Exception:\n            li_str = str(line_item).strip()\n        existing_log_keys.add(f\"{c_code}_{str(po_num).strip()}_{li_str}\")\n\n# 8. Load Bands Table\nbands_list = []\nfor item in bands_raw:\n    row = item.json\n    band_letter = row.get(\"Ship-by Window (days)\") or row.get(\"band\") # fuzzy match\n    w_min = row.get(\"min\")\n    w_max = row.get(\"max\")\n    if band_letter is not None and w_min is not None and w_max is not None:\n        try:\n            bands_list.append({\n                'band': band_letter,\n                'min': int(float(w_min)),\n                'max': int(float(w_max))\n            })\n        except Exception:\n            pass\n\n# 9. Scan and Filter incoming ERP PO lines\nparsed_lines = []\nfor item in po_latest_raw:\n    row = item.json\n    vendor_name = row.get(\"Customer/Vendor Name\")\n    vendor_code = row.get(\"vendor_code\") or row.get(\"Customer/Vendor Code\")\n    po_num = row.get(\"PO\") or row.get(\"po\")\n    item_no = row.get(\"Item No.\") or row.get(\"item_no\")\n    \n    if not vendor_name or not po_num or not item_no:\n        continue\n        \n    po_date = parse_date(row.get(\"PO Date\") or row.get(\"po_date\"))\n    arrival_date = parse_date(row.get(\"Arrival Date\") or row.get(\"arrival_date\"))\n    uom_raw = row.get(\"unit_of_measure\") or row.get(\"unit of measure\") or row.get(\"uom\")\n    uom_str = str(uom_raw).strip() if uom_raw is not None and str(uom_raw).strip() != \"\" else \"kg\"\n    \n    parsed_lines.append({\n        'vendor_name': str(vendor_name).strip(),\n        'vendor_code': str(vendor_code).strip() if vendor_code else None,\n        'po_number': str(po_num).strip(),\n        'po_date': po_date,\n        'item_no': str(item_no).strip(),\n        'description': row.get(\"Descrption\") or row.get(\"description\") or \"\",\n        'qty': row.get(\"PO Qty\") or row.get(\"po_qty\") or row.get(\"qty\") or 0,\n        'price': row.get(\"Unit Price\") or row.get(\"unit_price\") or row.get(\"price\") or 0,\n        'amount': row.get(\"Amount\") or row.get(\"amount\") or 0,\n        'terms': row.get(\"PAYMNET TERMS\") or row.get(\"payment_terms\") or \"\",\n        'arrival_date': arrival_date,\n        'shipto': row.get(\"Ship-to Code\") or row.get(\"ship_to_code\") or \"\",\n        'uom': uom_str\n    })\n\n# Filter duplicates against existing POC\nparsed_lines = [p for p in parsed_lines if (client_code, p['po_number'], normalize_string(p['item_no'])) not in existing_poc_combos]\n\n# 10. Process Supplier Master Mapping & Ingestion\nnew_master_appends = []\ntemp_master_combos = set(existing_master_combos)\nfiltered_parsed_lines = []\nmanual_reviews = []\nflagged_vendors_in_run = set()\n\nfor p in parsed_lines:\n    vname = p['vendor_name']\n    vcode = p.get('vendor_code')\n    if vcode:\n        vcode = str(vcode).strip()\n        if not vcode or vcode == \"None\" or vcode == \"-\":\n            vcode = None\n    else:\n        vcode = None\n        \n    norm_vname = normalize_string(vname)\n    \n    if norm_vname in flagged_vendors_in_run:\n        continue\n        \n    # Match A: Name Match\n    if norm_vname in existing_supplier_codes:\n        s_code = existing_supplier_codes[norm_vname]\n    else:\n        # Match B: Code Match (Only if candidate has code)\n        if vcode and vcode in existing_supplier_codes_by_code:\n            matched_name = existing_supplier_codes_by_code[vcode]\n            manual_reviews.append({\n                'candidate_name': vname,\n                'candidate_code': vcode,\n                'existing_name_full': matched_name\n            })\n            flagged_vendors_in_run.add(norm_vname)\n            continue\n            \n        # Neither matches -> Create new supplier row\n        if vcode:\n            s_code = vcode\n        else:\n            current_s_counter += 1\n            s_code = f\"S{current_s_counter}\"\n            \n        existing_supplier_codes[norm_vname] = s_code\n        existing_supplier_codes_by_code[s_code] = vname\n        \n    p['supplier_code'] = s_code\n    filtered_parsed_lines.append(p)\n    \n    m_combo = (client_code, norm_vname, normalize_string(p['item_no']))\n    if m_combo not in temp_master_combos:\n        temp_master_combos.add(m_combo)\n        contact_info = contacts_map.get(norm_vname, {'contact_name': '', 'email': '', 'phone': ''})\n        \n        # Build Master Entry\n        new_master_appends.append({\n            'client_code': client_code,\n            'supplier_code': s_code,\n            'supplier_name_full': vname,\n            'supplier_name': vname,\n            'material_code': p['item_no'],\n            'material_name': p['description'],\n            'primary_contact_name': contact_info['contact_name'],\n            'primary_email': contact_info['email'],\n            'primary_phone': contact_info['phone'],\n            'supplier_source_location': p['shipto']\n        })\n\nparsed_lines = filtered_parsed_lines\n\n# 11. PO Line Sequence counters\npo_item_counters = {}\nfor p in parsed_lines:\n    po_str = p['po_number']\n    if po_str not in po_item_counters:\n        if po_str in existing_poc_line_items:\n            po_item_counters[po_str] = max(existing_poc_line_items[po_str])\n        else:\n            po_item_counters[po_str] = 0\n    po_item_counters[po_str] += 1\n    p['po_line_item'] = po_item_counters[po_str]\n\n# 12. Comms Grouping (Gap <= 5 days)\ngrouping_buckets = {}\nfor p in parsed_lines:\n    key = (p['supplier_code'], p['po_number'])\n    if key not in grouping_buckets:\n        grouping_buckets[key] = []\n    grouping_buckets[key].append(p)\n    \nfor key, lines in grouping_buckets.items():\n    lines_sorted = sorted(lines, key=lambda x: x['arrival_date'] if x['arrival_date'] else datetime.max)\n    current_subgroup = []\n    for line in lines_sorted:\n        if not current_subgroup:\n            current_subgroup.append(line)\n        else:\n            prev_line = current_subgroup[-1]\n            if prev_line['arrival_date'] and line['arrival_date']:\n                gap_days = (line['arrival_date'] - prev_line['arrival_date']).days\n                if gap_days <= 5:\n                    current_subgroup.append(line)\n                else:\n                    max_group_num += 1\n                    for l in current_subgroup:\n                        l['comms_group_id'] = f\"G{max_group_num}\"\n                    current_subgroup = [line]\n            else:\n                max_group_num += 1\n                for l in current_subgroup:\n                    l['comms_group_id'] = f\"G{max_group_num}\"\n                current_subgroup = [line]\n    if current_subgroup:\n        max_group_num += 1\n        for l in current_subgroup:\n            l['comms_group_id'] = f\"G{max_group_num}\"\n\n# 13. Map PO Consolidated & Logs Data Lists\nnew_poc_rows = []\nnew_log_rows = []\ntemp_poc_combos = set(existing_poc_combos)\ntemp_log_keys = set(existing_log_keys)\n\n# We use the final row count offset in Excel or just write values for n8n native append.\n# Since n8n native GSheets Appends automatically appends rows at the bottom, we can pass raw cells.\n# Note: In n8n Google Sheets append, formulas like \"=B{row_offset}\" are written by letting n8n handle the mapping.\n# Wait! In n8n, we write formulas by referencing the current row. How?\n# When appending, we can write \"=B\" & (last_row + row_idx), but in n8n it's simpler:\n# We write `=B{row}` or let n8n evaluate it. Wait, the formula in Google Sheets is relative, so if we write:\n# `=B{row_offset}&\"_\"&E{row_offset}&\"_\"&H{row_offset}`, the script must know the starting row offset of the target sheet!\n# Yes! We can get the sheet size from the read sheets.\n# Row offsets for Master, POC, and Logs:\nmaster_start = len(master_raw) + 1\npoc_start = len(poc_raw) + 1\nlogs_start = len(logs_raw) + 1\n\nfor idx, p in enumerate(parsed_lines):\n    item_no = p['item_no']\n    s_code = p['supplier_code']\n    comms_id = p['comms_group_id']\n    line_item_num = p['po_line_item']\n    \n    poc_combo = (client_code, p['po_number'], normalize_string(item_no))\n    if poc_combo not in temp_poc_combos:\n        temp_poc_combos.add(poc_combo)\n        transit_days = material_transit_times.get(normalize_string(item_no), 3)\n        \n        band_letter = \"G\"\n        if p['arrival_date'] and p['po_date']:\n            ship_date = p['arrival_date'] - timedelta(days=transit_days)\n            window_days = (ship_date - p['po_date']).days\n            for band in bands_list:\n                if band['min'] <= window_days <= band['max']:\n                    band_letter = band['band']\n                    break\n        \n        row_offset = poc_start + len(new_poc_rows) + 1\n        new_poc_rows.append({\n            'po_line_key': f'=B{row_offset}&\"_\"&E{row_offset}&\"_\"&H{row_offset}',\n            'client_code': client_code,\n            'client_company_name': f\"\"\"=iferror(vlookup(B{row_offset},'Client info'!$A$1:$M$1000,3,False),\"-\")\"\"\",\n            'comms_group_id': comms_id,\n            'po_number': p['po_number'],\n            'supplier_code': s_code,\n            'supplier_name': f\"\"\"=iferror(vlookup(F{row_offset},'Material and Supplier Master Data'!$D$1:$F$20000,3,False),\"-\")\"\"\",\n            'po_line_item': line_item_num,\n            'material_code': item_no,\n            'material_name': p['description'],\n            'quantity': p['qty'],\n            'unit_of_measure': p['uom'],\n            'issue_date': p['po_date'].strftime('%Y-%m-%d') if p['po_date'] else None,\n            'po_status': 'Open',\n            'deliver_by_date_delivery_1': p['arrival_date'].strftime('%Y-%m-%d') if p['arrival_date'] else None,\n            'ship_by_date_delivery_1': f'=S{row_offset}-{transit_days}',\n            'number_of_ship_by_days': f'=T{row_offset}-O{row_offset}',\n            'ship_by_band': band_letter,\n            'quantity_delivery_1': p['qty'],\n            'last_updated': run_datetime.strftime('%Y-%m-%d %H:%M:%S'),\n            'primary_email': f\"\"\"=vlookup(F{row_offset},'Material and Supplier Master Data'!$D$1:$J$20000,7,False)\"\"\"\n        })\n        \n    log_key_val = f\"{client_code}_{p['po_number']}_{line_item_num}\"\n    if log_key_val not in temp_log_keys:\n        temp_log_keys.add(log_key_val)\n        \n        stage_str = \"Stage1\"\n        transit_days = material_transit_times.get(normalize_string(item_no), 3)\n        if p['arrival_date'] and p['po_date']:\n            ship_date = p['arrival_date'] - timedelta(days=transit_days)\n            total_window = (ship_date - p['po_date']).days\n            passed_window = (run_date - p['po_date']).days\n            pct_passed = (passed_window / total_window * 100) if total_window > 0 else (100 if passed_window > 0 else 0)\n            if pct_passed <= 40:\n                stage_str = \"Stage1\"\n            elif pct_passed <= 80:\n                stage_str = \"Stage2\"\n            else:\n                stage_str = \"Stage3\"\n                \n        row_offset = logs_start + len(new_log_rows) + 1\n        new_log_rows.append({\n            'po_line_key': f'=B{row_offset}&\"_\"&E{row_offset}&\"_\"&H{row_offset}',\n            'client_code': client_code,\n            'client_company_name': f\"\"\"=iferror(vlookup(B{row_offset},'Client info'!$A$1:$M$1000,3,False),\"-\")\"\"\",\n            'comms_group_id': comms_id,\n            'po_number': p['po_number'],\n            'supplier_code': s_code,\n            'supplier_name': f\"\"\"=iferror(vlookup(F{row_offset},'Material and Supplier Master Data'!$D$1:$F$20000,3,False),\"-\")\"\"\",\n            'po_line_item': line_item_num,\n            'material_code': item_no,\n            'material_name': f\"\"\"=vlookup(I{row_offset},'Material and Supplier Master Data'!$G$1:$H$20000,2,False)\"\"\",\n            'follow_up_stage': stage_str,\n            'follow_up_status': 'Stage_Initiated',\n            'last_action_timestamp': run_datetime.strftime('%Y-%m-%d %H:%M:%S')\n        })\n\n# Map new master rows formula offset indices\nfinal_master_rows = []\nfor idx, m in enumerate(new_master_appends):\n    row_offset = master_start + idx + 1\n    final_master_rows.append({\n        'supplier_email_key': f'=B{row_offset}&\"_\"&D{row_offset}&\"_\"&J{row_offset}',\n        'client_code': m['client_code'],\n        'client_company_short_name': f\"\"\"=iferror(vlookup(B{row_offset},'Client info'!$A$1:$M$1000,3,False),\"-\")\"\"\",\n        'supplier_code': m['supplier_code'],\n        'supplier_name_full': m['supplier_name_full'],\n        'supplier_name': m['supplier_name'],\n        'material_code': m['material_code'],\n        'material_name': m['material_name'],\n        'primary_contact_names': m['primary_contact_name'],\n        'primary_emails': m['primary_email'],\n        'primary_phones': m['primary_phone'],\n        'working_days': 'Mon,Tue,Wed,Thu,Fri,Sat',\n        'supplier_source_location': m['supplier_source_location'],\n        'PO_active': 'Y',\n        'ai_agent_buyer_name': f\"\"\"=vlookup(B{row_offset},'Client info'!$A$1:$M$4,11,False)\"\"\",\n        'ai_agent_buyer_position': f\"\"\"=vlookup(B{row_offset},'Client info'!$A$1:$M$4,12,False)\"\"\",\n        'ai_agent_buyer_email': f\"\"\"=vlookup(B{row_offset},'Client info'!$A$1:$M$4,13,False)\"\"\"\n    })\n\n# Output a single JSON item containing all three arrays\nreturn [{\n    \"json\": {\n        \"new_master_rows\": final_master_rows,\n        \"new_poc_rows\": new_poc_rows,\n        \"new_log_rows\": new_log_rows,\n        \"manual_reviews\": manual_reviews\n    }\n}]\n"
+      },
+      "id": "9a57bbeb-6b29-46ae-ba2a-c1c035f38729",
+      "name": "Python Ingestion Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1232,
+        480
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Read Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Contacts": {
+      "main": [
+        [
+          {
+            "node": "Read Open PO Latest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Open PO Latest": {
+      "main": [
+        [
+          {
+            "node": "Read Supplier Master",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Supplier Master": {
+      "main": [
+        [
+          {
+            "node": "Read PO Consolidated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read PO Consolidated": {
+      "main": [
+        [
+          {
+            "node": "Read Comm Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Comm Logs": {
+      "main": [
+        [
+          {
+            "node": "Read Bands",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Bands": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Master Appends": {
+      "main": [
+        [
+          {
+            "node": "Append Master Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split POC Appends": {
+      "main": [
+        [
+          {
+            "node": "Append PO Consolidated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Log Appends": {
+      "main": [
+        [
+          {
+            "node": "Append Comm Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Master Data": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append PO Consolidated": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Comm Logs": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Split Master Appends",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split POC Appends",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Log Appends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "74a14910-f1b1-416c-90bc-2babcf0d3d7b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4ee474ecbdbe20bb5eaed48e0f4d58c1ffb0805814011251d6c608a835c16bbd"
+  },
+  "nodeGroups": [],
+  "id": "qTp8sJRW7zFR3mXS",
+  "tags": []
+}
