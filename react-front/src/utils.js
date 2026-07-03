@@ -3,13 +3,13 @@ export function formatDate(value) {
   try {
     const d = new Date(value);
     if (isNaN(d.getTime())) return value;
-    
+
     const company = localStorage.getItem('companyName') || '';
     let timeZone = 'Asia/Kolkata';
     if (!company.toLowerCase().includes('emerald') && !company.toLowerCase().includes('biotique') && !company.toLowerCase().includes('sipat')) {
       timeZone = 'America/New_York';
     }
-    
+
     const day = d.toLocaleDateString('en-US', { day: 'numeric', timeZone: timeZone });
     const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: timeZone });
     const year = d.toLocaleDateString('en-US', { year: 'numeric', timeZone: timeZone });
@@ -25,7 +25,7 @@ export function formatTimestamp(ts) {
     const hasTime = String(ts).includes(':') || String(ts).includes('T');
     const d = new Date(ts);
     if (isNaN(d.getTime())) return ts;
-    
+
     const company = localStorage.getItem('companyName') || '';
     let timeZone = 'Asia/Kolkata';
     let tzLabel = 'IST';
@@ -33,16 +33,16 @@ export function formatTimestamp(ts) {
       timeZone = 'America/New_York';
       tzLabel = 'EST';
     }
-    
+
     const day = d.toLocaleDateString('en-US', { day: 'numeric', timeZone: timeZone });
     const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: timeZone });
     const year = d.toLocaleDateString('en-US', { year: 'numeric', timeZone: timeZone });
     const datePart = `${day} ${month} ${year}`;
-    
+
     if (!hasTime) {
       return datePart;
     }
-    
+
     const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timeZone });
     return `${datePart} · ${timePart} ${tzLabel}`;
   } catch (e) {
@@ -50,65 +50,148 @@ export function formatTimestamp(ts) {
   }
 }
 
+export function resolvePoDashboardState(po) {
+  const stage = po.follow_up_stage || 'Stage1';
+  const prefix = stage.toLowerCase().replace('.', '_') + '_';
+  
+  const classification = po[prefix + 'delivery_status_classification'] || '';
+  const classificationLower = classification.toLowerCase();
+  const status = po.follow_up_status || '';
+  const statusLower = status.toLowerCase();
+  
+  const needsHumanReview = po.needs_human_review && String(po.needs_human_review).trim().toLowerCase() === 'yes';
+  const humanReviewStatus = po.human_review_status && String(po.human_review_status).trim().toLowerCase() === 'pending';
+  const isEscalated = statusLower === 'escalation_sent';
+  const isLowConfidence = po[prefix + 'supplier_reply_confidence'] && String(po[prefix + 'supplier_reply_confidence']).trim().toLowerCase() === 'low';
+
+  const isNeedsAttention = needsHumanReview || humanReviewStatus || isEscalated || 
+                           classificationLower.includes('delay') || 
+                           classificationLower.includes('late') ||
+                           isLowConfidence;
+
+  // 1. Needs Attention Bucket
+  if (isNeedsAttention) {
+    let label = 'Needs review';
+    let cls = 'p-review';
+    let subStatus = 'Human Review Pending';
+    let reason = po[prefix + 'delivery_status_text'] || 'Flagged for reviewer audit.';
+
+    if (classificationLower.includes('delay') || classificationLower.includes('late')) {
+      label = 'Delayed';
+      cls = 'p-delayed';
+      subStatus = 'Delayed';
+      reason = po[prefix + 'delivery_status_text'] || 'Delivery delayed.';
+    } else if (isEscalated) {
+      label = 'No Response';
+      cls = 'p-delayed';
+      subStatus = 'No Response (Escalated)';
+      reason = 'Automated chasing sequence exhausted.';
+    } else if (isLowConfidence) {
+      label = 'Needs review';
+      cls = 'p-review';
+      subStatus = 'Low Confidence';
+      reason = po[prefix + 'delivery_status_text'] || 'AI classification confidence is Low; review required.';
+    }
+
+    return {
+      status: 'Needs Attention',
+      label,
+      cls,
+      subStatus,
+      reason
+    };
+  }
+
+  // Helper check for Stage 1.5/2.5
+  const isPassiveStage = ['Stage1.5', 'Stage2.5', 'stage1.5', 'stage2.5'].includes(stage);
+  const hasReply = (po[prefix + 'reply_timestamp'] && po[prefix + 'reply_timestamp'] !== '') ||
+                   (po[prefix + 'supplier_reply_status'] && String(po[prefix + 'supplier_reply_status']).trim().toLowerCase() === 'received');
+
+  // 2. On Track Bucket
+  const confirmedClassifications = ['on time', 'on time tbc', 'shipped tbc'];
+  const isOnTrackState = (!isPassiveStage && confirmedClassifications.includes(classificationLower)) ||
+                         (isPassiveStage && !hasReply) ||
+                         (isPassiveStage && hasReply && confirmedClassifications.includes(classificationLower));
+
+  if (isOnTrackState) {
+    let label = isPassiveStage && !hasReply ? 'On track' : 'On time';
+    let cls = 'p-ontime';
+    
+    if (classificationLower.includes('tbc') || classificationLower.includes('soft') || classificationLower.includes('warning') || classificationLower.includes('shipped')) {
+      label = 'On time · TBC';
+      cls = 'p-tbc';
+    } else if (classificationLower.includes('risk')) {
+      label = 'At risk';
+      cls = 'p-risk';
+    }
+
+    return {
+      status: 'On Track',
+      label,
+      cls,
+      subStatus: isPassiveStage && !hasReply ? 'Monitoring' : 'Confirmed',
+      reason: po[prefix + 'delivery_status_text'] || 'Delivery is currently on schedule.'
+    };
+  }
+
+  // 3. Awaiting Reply Bucket
+  let subStatus = 'Chasing Response';
+  let reason = '';
+  if (statusLower === 'replied') {
+    reason = 'Awaiting classification';
+  } else {
+    const cleanStatus = status.replace(/_Sent$/i, '').replace(/_/g, ' ');
+    const readableStatus = cleanStatus.replace(/([A-Za-z]+)(\d+)/g, '$1 $2');
+    reason = `Chasing (${readableStatus})`;
+  }
+  let label = 'Awaiting reply';
+  let cls = 'p-await';
+
+  if (status === 'Clarification_Sent') {
+    subStatus = 'Clarification Sent';
+    reason = 'Waiting for clarification';
+    label = 'Awaiting Clarification';
+  } else if (classificationLower === 'awaiting_reply') {
+    if (po.supplier_colleague_email) {
+      subStatus = 'Delegated to Colleague';
+      reason = `Chasing colleague: ${po.supplier_colleague_email}`;
+    } else {
+      const revertDate = po.promised_revert_date || po[prefix + 'promised_revert_date'] || '';
+      if (revertDate) {
+        subStatus = 'Promised Check Date';
+        reason = `Awaiting promised update on ${formatDate(revertDate)}`;
+      } else {
+        subStatus = 'Promised Check Date';
+        reason = 'Awaiting promised check';
+      }
+    }
+  } else if (isPassiveStage && hasReply) {
+    subStatus = 'Awaiting Reply';
+    reason = po[prefix + 'delivery_status_text'] || 'Waiting for reply classification.';
+  }
+
+  return {
+    status: 'Awaiting Reply',
+    label,
+    cls,
+    subStatus,
+    reason
+  };
+}
+
 export function getStatus(po) {
-  const cls =
-    po.stage3_delivery_status_classification ||
-    po.stage2_5_delivery_status_classification ||
-    po.stage2_delivery_status_classification ||
-    po.stage1_5_delivery_status_classification ||
-    po.stage1_delivery_status_classification ||
-    '';
-
-  const x = cls.toLowerCase();
-
-  if (x === 'on time') {
-    return { label: 'On time', cls: 'p-ontime' };
-  }
-
-  if (x.includes('tbc') || x.includes('soft') || x.includes('warning')) {
-    return { label: 'On time · TBC', cls: 'p-tbc' };
-  }
-
-  if (x.includes('risk')) {
-    return { label: 'At risk', cls: 'p-risk' };
-  }
-
-  if (x.includes('delay') || x.includes('late')) {
-    return { label: 'Delayed', cls: 'p-delayed' };
-  }
-
-  if (x.includes('review') || x.includes('partial')) {
-    return { label: 'Needs review', cls: 'p-review' };
-  }
-
-  return { label: 'Awaiting reply', cls: 'p-await' };
+  const resolved = resolvePoDashboardState(po);
+  return { label: resolved.label, cls: resolved.cls };
 }
 
 export function latestSupplierUpdate(po) {
-  const text =
-    po.stage3_delivery_status_text ||
-    po.stage2_5_delivery_status_text ||
-    po.stage2_delivery_status_text ||
-    po.stage1_5_delivery_status_text ||
-    po.stage1_delivery_status_text ||
-    '';
-
-  if (text) return text;
-
-  if (po.stage3_supplier_reply_status === 'Received')
-    return 'Supplier replied, awaiting review';
-
-  if (po.stage2_supplier_reply_status === 'Received')
-    return 'Supplier replied, awaiting review';
-
-  if (po.stage1_supplier_reply_status === 'Received')
-    return 'Supplier replied, awaiting review';
-
-  return 'No supplier response yet';
+  const resolved = resolvePoDashboardState(po);
+  return resolved.reason;
 }
 
 export function nextTouchPoint(po) {
-  return po.next_touch_point || 'Monitoring';
+  const resolved = resolvePoDashboardState(po);
+  return resolved.reason;
 }
 
 export function quantityText(po) {
@@ -116,29 +199,7 @@ export function quantityText(po) {
 }
 
 export function getStatusPill(comm) {
-  const cls = (
-    comm.stage3_delivery_status_classification ||
-    comm.stage2_5_delivery_status_classification ||
-    comm.stage2_delivery_status_classification ||
-    comm.stage1_5_delivery_status_classification ||
-    comm.stage1_delivery_status_classification ||
-    ''
-  ).toLowerCase();
-
-  if (cls === 'on time') {
-    return { text: 'On time', class: 'p-ontime' };
-  }
-  if (cls.includes('tbc') || cls.includes('soft') || cls.includes('warning')) {
-    return { text: 'On time · TBC', class: 'p-tbc' };
-  }
-  if (cls.includes('risk')) {
-    return { text: 'At risk', class: 'p-risk' };
-  }
-  if (cls.includes('delay') || cls.includes('late')) {
-    return { text: 'Delayed', class: 'p-delayed' };
-  }
-  if (cls.includes('review') || cls.includes('partial')) {
-    return { text: 'Needs review', class: 'p-review' };
-  }
-  return { text: 'Awaiting reply', class: 'p-await' };
+  const resolved = resolvePoDashboardState(comm);
+  return { text: resolved.label, class: resolved.cls };
 }
+

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatDate, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint } from './utils';
+import { formatDate, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint, resolvePoDashboardState } from './utils';
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 const PAGE_SIZE = 10;
@@ -128,9 +128,22 @@ function Dashboard() {
   }
 
   const openPOs = data.openPOs || [];
-  const needsAttention = data.needsAttention || [];
-  const onTrack = data.onTrack || [];
-  const awaitingReply = data.awaitingReply || [];
+  
+  // Re-classify on the frontend to ensure 100% correct tab grouping
+  const needsAttention = [];
+  const onTrack = [];
+  const awaitingReply = [];
+  
+  openPOs.forEach(po => {
+    const resolved = resolvePoDashboardState(po);
+    if (resolved.status === 'Needs Attention') {
+      needsAttention.push(po);
+    } else if (resolved.status === 'On Track') {
+      onTrack.push(po);
+    } else {
+      awaitingReply.push(po);
+    }
+  });
 
   const getPageData = (list, tabKey) => {
     const total = list.length;
@@ -210,7 +223,8 @@ function Dashboard() {
     }
 
     return sliced.map(po => {
-      const status = getStatus(po);
+      const resolved = resolvePoDashboardState(po);
+      const status = { label: resolved.label, cls: resolved.cls };
       const supplierText = po.supplier_code ? `${po.supplier_name} (${po.supplier_code})` : po.supplier_name;
       const dateValue = tabKey === 'track' ? po.ship_by_date_delivery_1 : po.deliver_by_date_delivery_1;
 
@@ -222,6 +236,11 @@ function Dashboard() {
       if (status.cls === 'p-await') pillCls = "bg-[#EAF0FB] text-[#3A5C9A]";
 
       const pxCls = 'px-4';
+
+      // Last update text for Awaiting Reply:
+      const stage = po.follow_up_stage || 'Stage1';
+      const prefix = stage.toLowerCase().replace('.', '_') + '_';
+      const lastUpdateText = po[prefix + 'delivery_status_text'] || po[prefix + 'supplier_raw_statement'] || 'No supplier response yet';
 
       return (
         <tr key={po.comms_group_id} onClick={() => handleRowClick(po.comms_group_id, status.label)} className="cursor-pointer hover:bg-[#FDFDFD]">
@@ -242,21 +261,21 @@ function Dashboard() {
           </td>
           {showExtraColumn && tabKey === 'attn' && (
             <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top text-body min-w-[220px] max-w-[380px] leading-[1.45] break-words`}>
-              {po.delivery_status_text || latestSupplierUpdate(po) || '--'}
+              {resolved.reason || po.delivery_status_text || '--'}
             </td>
           )}
           {showExtraColumn && tabKey === 'track' && (
             <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top text-body min-w-[200px] max-w-[340px] leading-[1.45] break-words`}>
-              {po.delivery_status_text || latestSupplierUpdate(po) || '--'}
+              {po.delivery_status_text || resolved.reason || '--'}
             </td>
           )}
           {showExtraColumn && tabKey === 'await' && (
             <>
               <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top text-body min-w-[200px] max-w-[340px] leading-[1.45] break-words`}>
-                {latestSupplierUpdate(po)}
+                {lastUpdateText}
               </td>
               <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top text-emerald font-semibold min-w-[150px] max-w-[250px] leading-[1.4] break-words`}>
-                {nextTouchPoint(po)}
+                {resolved.reason}
               </td>
             </>
           )}

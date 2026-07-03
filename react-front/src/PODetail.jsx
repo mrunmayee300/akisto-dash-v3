@@ -292,6 +292,23 @@ function PODetail() {
             <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Transit time (days)</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-transit">{comm.transit_time_days || '--'}</span></div>
             <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Tracking carrier</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-carrier">{li.carrier || '--'}</span></div>
             <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Tracking number</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-tracking">{li.trackingNumber || '--'}</span></div>
+            {comm.promised_revert_date && (
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Promised check date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-promised-revert">{formatDate(comm.promised_revert_date)}</span></div>
+            )}
+            {comm.supplier_colleague_email && (
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Delegated colleague</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-colleague">{comm.supplier_colleague_name ? `${comm.supplier_colleague_name} (${comm.supplier_colleague_email})` : comm.supplier_colleague_email}</span></div>
+            )}
+            {(() => {
+              const stageName = h.followUpStage || 'Stage1';
+              const p = stageName.toLowerCase().replace('.', '_') + '_';
+              const conf = comm[p + 'supplier_reply_confidence'];
+              if (conf) {
+                return (
+                  <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Classification confidence</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-confidence">{conf}</span></div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
       )}
