@@ -33,11 +33,11 @@ const authService = {
     return storedHash === sha256Hash || storedHash === password;
   },
 
-  generateToken: (user) => {
+  generateToken: (user, clientCode) => {
     const payload = {
       userId: user.user_id,
       email: user.email,
-      clientCode: user.client_code,
+      clientCode: clientCode || user.client_code,
       role: user.role,
       userName: user['User Name'] || user.userName || '',
       userRole: user['Role'] || user.userRole || ''
@@ -75,20 +75,18 @@ const authService = {
 
     const clientCode = foundClient.client_code;
 
-    // 2. Get users and find user by email, clientCode, and active status
+    // 2. Get users and find user by email and active status
     const users = await sheetsService.getSheetObjects('Users');
     const foundUser = users.find(u => {
       const uEmail = String(u.email || '').trim().toLowerCase();
       const inputEmail = String(email || '').trim().toLowerCase();
       if (uEmail !== inputEmail) return false;
 
-      const uClient = String(u.client_code || '').trim();
-      const clientMatch = (uClient === clientCode);
-
       const uActive = String(u.active || '').trim().toUpperCase();
       const activeMatch = (uActive === 'TRUE' || uActive === 'YES' || uActive === 'Y' || uActive === '1' || uActive === '');
 
-      return clientMatch && activeMatch;
+      // Allow users to log in under any client company for testing purposes
+      return activeMatch;
     });
 
     if (!foundUser) {
@@ -96,15 +94,14 @@ const authService = {
     }
 
     // 3. Verify password hash
-    const storedHash = u => u.password_hash || u.password || u.password_hash_;
     const isPasswordValid = await authService.verifyPassword(password, foundUser.password_hash || foundUser.password || foundUser.password_hash_);
 
     if (!isPasswordValid) {
       throw new Error('Invalid email, password, or company combination');
     }
 
-    // 4. Generate JWT
-    const token = authService.generateToken(foundUser);
+    // 4. Generate JWT with selected company's clientCode
+    const token = authService.generateToken(foundUser, clientCode);
 
     return {
       success: true,
