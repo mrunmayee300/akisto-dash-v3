@@ -1,22 +1,131 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
+
+function formatCurrentDate() {
+  const d = new Date();
+  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatMonthLabel(monthStr) {
+  if (!monthStr) return '';
+  if (monthStr.includes('-')) {
+    const parts = monthStr.split('-');
+    const m = parseInt(parts[1], 10);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[m - 1] || monthStr;
+  }
+  return monthStr;
+}
 
 function SupplierPerformance() {
   const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const suppliers = [
-    { name: 'Green Elements', code: 'S20', desc: 'brushware', poLines: 96, onTime: 92, avgDaysLate: 0.8, avgRespTime: '0.9 d', escalated: '4%', flag: '', rateClass: 'good' },
-    { name: 'Summit Foils', code: 'S14', desc: 'foils', poLines: 128, onTime: 88, avgDaysLate: 1.2, avgRespTime: '1.1 d', escalated: '6%', flag: '', rateClass: 'good' },
-    { name: 'Pace Labels', code: 'S22', desc: 'labels', poLines: 148, onTime: 81, avgDaysLate: 1.9, avgRespTime: '1.4 d', escalated: '9%', flag: '', rateClass: 'mid' },
-    { name: 'Apex Packaging', code: 'S09', desc: 'packaging', poLines: 204, onTime: 74, avgDaysLate: 2.8, avgRespTime: '1.9 d', escalated: '12%', flag: 'Review', rateClass: 'mid' },
-    { name: 'Meridian Steel', code: 'S31', desc: 'metals', poLines: 87, onTime: 61, avgDaysLate: 4.4, avgRespTime: '2.6 d', escalated: '18%', flag: 'Watch', rateClass: 'bad' },
-    { name: 'Gulf Chem', code: 'S17', desc: 'chemicals', poLines: 177, onTime: 54, avgDaysLate: 6.2, avgRespTime: '3.1 d', escalated: '21%', flag: 'Watch', rateClass: 'bad' }
-  ];
+  const userEmail = localStorage.getItem('userEmail');
+  const userName = localStorage.getItem('userName');
+  const userRole = localStorage.getItem('userRole');
 
-  const handleSupplierClick = (code) => {
-    // Navigate to supplier detail page
-    navigate(`/supplier-detail/${code}`);
+  const loadData = async () => {
+    try {
+      const token = localStorage.getItem('sessionToken');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=supplierPerformance&sessionToken=${encodeURIComponent(token)}`);
+      if (!response.ok) throw new Error('Failed to fetch supplier performance data');
+      const json = await response.json();
+
+      if (json.success === false && json.error === 'Unauthorized') {
+        localStorage.removeItem('sessionToken');
+        navigate('/login');
+        return;
+      }
+
+      if (json.success === false) {
+        throw new Error(json.message || 'API returned success: false');
+      }
+
+      setData(json);
+    } catch (err) {
+      console.error('Supplier Performance API Error:', err);
+      setError('Unable to load supplier performance metrics. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('sessionToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('companyName');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
+    navigate('/login');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#EEF1EF] text-[#2C2C2A] flex items-center justify-center font-sans">
+        <div className="text-center">
+          <div className="inline-block w-8 h-8 border-4 border-emerald border-t-transparent rounded-full animate-spin mb-2"></div>
+          <p className="text-sm font-bold text-muted">Loading performance dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#EEF1EF] text-[#2C2C2A] flex items-center justify-center font-sans">
+        <div className="bg-white border border-line p-8 rounded-xl shadow-md max-w-md text-center">
+          <div className="text-red font-bold text-lg mb-2">Error</div>
+          <p className="text-sm text-muted mb-4">{error}</p>
+          <button 
+            onClick={loadData} 
+            className="bg-emerald text-white px-4 py-2 rounded font-bold hover:bg-accent transition-all text-xs"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const { suppliers = [], kpis = {}, trendData = [], delaySummary = [] } = data;
+
+  // Spacing and scaling for SVG Trend chart
+  // X coordinates map to 6 months: index 0 to 5
+  // YCoordinate = 220 - ((OTR - 40) / 60) * 200
+  const svgPoints = trendData.map((d, index) => {
+    const x = 120 + index * 144;
+    const rate = d.rate;
+    const y = 220 - ((rate - 40) / 60) * 200;
+    return { x, y, month: formatMonthLabel(d.month), rate };
+  });
+
+  const polylinePoints = svgPoints.map(p => `${p.x},${p.y}`).join(' ');
+  const polygonPoints = svgPoints.length > 0 
+    ? `${polylinePoints} ${svgPoints[svgPoints.length - 1].x},220 ${svgPoints[0].x},220`
+    : '';
+
+  // Calculate sum of internal vs supplier delay percentages
+  const totalInternal = delaySummary
+    .filter(d => d.side === 'internal')
+    .reduce((sum, d) => sum + d.percentage, 0);
+  const totalSupplier = delaySummary
+    .filter(d => d.side === 'supplier')
+    .reduce((sum, d) => sum + d.percentage, 0);
 
   return (
     <div className="supplier-performance-page min-h-screen py-[30px] bg-[#EEF1EF] text-[#2C2C2A] font-sans">
@@ -379,26 +488,26 @@ function SupplierPerformance() {
             <span className="plabel">Supplier performance</span>
           </div>
           <div className="meta">
-            <div className="who">Dan Whitaker &middot; Senior Buyer</div>
-            <div className="day">Trailing 6 months &middot; to 18 Jun 2026</div>
+            <div className="who">{userName || userEmail}{userRole ? ` • ${userRole}` : ''}</div>
+            <div className="day">Trailing 6 months &middot; to {formatCurrentDate()}</div>
           </div>
         </header>
 
         <div className="kpis">
           <div className="kpi">
             <div className="lab">On-time rate</div>
-            <div className="num">78%</div>
-            <div className="delta up">&#9650; 6 pts vs prior 6 mo</div>
+            <div className="num">{kpis.onTimeRate}%</div>
+            <div className="delta up">&#9650; vs prior 6 mo</div>
           </div>
           <div className="kpi">
             <div className="lab">Escalated to buyer</div>
-            <div className="num">14%</div>
-            <div className="delta down">&#9660; 3 pts vs prior 6 mo</div>
+            <div className="num">{kpis.escalatedRate}%</div>
+            <div className="delta down">&#9660; vs prior 6 mo</div>
           </div>
           <div className="kpi">
             <div className="lab">PO lines tracked</div>
-            <div className="num">9,840</div>
-            <div className="delta flat">across 112 suppliers</div>
+            <div className="num">{kpis.totalPoLines?.toLocaleString() || '0'}</div>
+            <div className="delta flat">across {kpis.supplierCount} suppliers</div>
           </div>
         </div>
 
@@ -406,34 +515,32 @@ function SupplierPerformance() {
           <div className="card">
             <div className="ct">On-time delivery rate over time</div>
             <div className="cs">Share of PO lines delivered on or before the agreed date, by month, across all suppliers</div>
-            <svg viewBox="0 0 900 240" preserveAspectRatio="none" height="240">
-              <line className="gridline" x1="40" y1="20" x2="900" y2="20" />
-              <line className="gridline" x1="40" y1="70" x2="900" y2="70" />
-              <line className="gridline" x1="40" y1="120" x2="900" y2="120" />
-              <line className="gridline" x1="40" y1="170" x2="900" y2="170" />
-              <line className="gridline" x1="40" y1="220" x2="900" y2="220" />
-              <text className="axlab" x="0" y="24">100%</text>
-              <text className="axlab" x="6" y="74">85%</text>
-              <text className="axlab" x="6" y="124">70%</text>
-              <text className="axlab" x="6" y="174">55%</text>
-              <text className="axlab" x="6" y="224">40%</text>
-              <polyline fill="none" stroke="#1D9E75" stroke-width="3"
-                points="120,127 264,117 408,120 552,107 696,100 840,93" />
-              <polygon fill="#1D9E75" opacity="0.08"
-                points="120,127 264,117 408,120 552,107 696,100 840,93 840,220 120,220" />
-              <circle cx="120" cy="127" r="4" fill="#0E5C44" />
-              <circle cx="264" cy="117" r="4" fill="#0E5C44" />
-              <circle cx="408" cy="120" r="4" fill="#0E5C44" />
-              <circle cx="552" cy="107" r="4" fill="#0E5C44" />
-              <circle cx="696" cy="100" r="4" fill="#0E5C44" />
-              <circle cx="840" cy="93" r="5" fill="#C79A2E" />
-              <text className="axlab" x="108" y="236">Jan</text>
-              <text className="axlab" x="252" y="236">Feb</text>
-              <text className="axlab" x="396" y="236">Mar</text>
-              <text className="axlab" x="540" y="236">Apr</text>
-              <text className="axlab" x="684" y="236">May</text>
-              <text className="axlab" x="828" y="236">Jun</text>
-            </svg>
+            {trendData.length > 0 ? (
+              <svg viewBox="0 0 900 240" preserveAspectRatio="none" height="240">
+                <line className="gridline" x1="40" y1="20" x2="900" y2="20" />
+                <line className="gridline" x1="40" y1="70" x2="900" y2="70" />
+                <line className="gridline" x1="40" y1="120" x2="900" y2="120" />
+                <line className="gridline" x1="40" y1="170" x2="900" y2="170" />
+                <line className="gridline" x1="40" y1="220" x2="900" y2="220" />
+                <text className="axlab" x="0" y="24">100%</text>
+                <text className="axlab" x="6" y="74">85%</text>
+                <text className="axlab" x="6" y="124">70%</text>
+                <text className="axlab" x="6" y="174">55%</text>
+                <text className="axlab" x="6" y="224">40%</text>
+
+                <polyline fill="none" stroke="#1D9E75" strokeWidth="3" points={polylinePoints} />
+                <polygon fill="#1D9E75" opacity="0.08" points={polygonPoints} />
+
+                {svgPoints.map((pt, idx) => (
+                  <g key={idx}>
+                    <circle cx={pt.x} cy={pt.y} r={idx === svgPoints.length - 1 ? 5 : 4} fill={idx === svgPoints.length - 1 ? '#C79A2E' : '#0E5C44'} />
+                    <text className="axlab" x={pt.x - 12} y="236">{pt.month}</text>
+                  </g>
+                ))}
+              </svg>
+            ) : (
+              <p className="text-sm text-muted text-center py-10">No historical trends available.</p>
+            )}
           </div>
         </div>
 
@@ -456,7 +563,7 @@ function SupplierPerformance() {
           </thead>
           <tbody>
             {suppliers.map((sup, idx) => (
-              <tr key={idx} className="click" onClick={() => handleSupplierClick(sup.code)}>
+              <tr key={idx} className="click" onClick={() => navigate(`/supplier-detail/${sup.code}`)}>
                 <td className="sup">
                   {sup.name} <span className="code">{sup.code} &middot; {sup.desc}</span>
                 </td>
@@ -484,7 +591,9 @@ function SupplierPerformance() {
           </tbody>
         </table>
 
-        <div className="seemore">Showing 6 of 112 suppliers &middot; click any supplier, or view all</div>
+        <div className="seemore">
+          Showing {suppliers.length} of {kpis.supplierCount || suppliers.length} suppliers &middot; click any supplier
+        </div>
 
         <div className="section">
           <h2>Delay analysis</h2>
@@ -493,38 +602,22 @@ function SupplierPerformance() {
 
         <div className="delaywrap">
           <div className="card">
-            <div className="splitsummary">Of all delays, <b className="sb">31% originated internally</b> (payment, approvals) and <b className="si">69% on the supplier side</b>.</div>
+            <div className="splitsummary">
+              Of all delays, <b className="sb">{totalInternal}% originated internally</b> (payment, approvals) and <b className="si">{totalSupplier}% on the supplier side</b>.
+            </div>
             <div className="reasons">
-              <div className="rrow">
-                <span className="rn"><span className="src src-int"></span>Payment / invoice hold</span>
-                <span className="rb"><i className="int" style={{ width: '19%' }}></i></span>
-                <span className="rv">19%</span>
-              </div>
-              <div className="rrow">
-                <span className="rn"><span className="src src-int"></span>Awaiting revised PO or approval</span>
-                <span className="rb"><i className="int" style={{ width: '12%' }}></i></span>
-                <span className="rv">12%</span>
-              </div>
-              <div className="rrow">
-                <span className="rn"><span className="src src-sup"></span>Raw material shortage</span>
-                <span className="rb"><i className="sup" style={{ width: '24%' }}></i></span>
-                <span className="rv">24%</span>
-              </div>
-              <div className="rrow">
-                <span className="rn"><span className="src src-sup"></span>Production / capacity</span>
-                <span className="rb"><i className="sup" style={{ width: '18%' }}></i></span>
-                <span className="rv">18%</span>
-              </div>
-              <div className="rrow">
-                <span className="rn"><span className="src src-sup"></span>Price dispute</span>
-                <span className="rb"><i className="sup" style={{ width: '12%' }}></i></span>
-                <span className="rv">12%</span>
-              </div>
-              <div className="rrow">
-                <span className="rn"><span className="src src-sup"></span>Logistics / transit</span>
-                <span className="rb"><i className="sup" style={{ width: '7%' }}></i></span>
-                <span className="rv">7%</span>
-              </div>
+              {delaySummary.map((d, index) => (
+                <div key={index} className="rrow">
+                  <span className="rn">
+                    <span className={`src ${d.side === 'internal' ? 'src-int' : 'src-sup'}`}></span>
+                    {d.category}
+                  </span>
+                  <span className="rb">
+                    <i className={d.side === 'internal' ? 'int' : 'sup'} style={{ width: `${d.percentage}%` }}></i>
+                  </span>
+                  <span className="rv">{d.percentage}%</span>
+                </div>
+              ))}
             </div>
             <div className="legend2">
               <span><span className="sw" style={{ background: 'var(--gold)' }}></span>Internal</span>

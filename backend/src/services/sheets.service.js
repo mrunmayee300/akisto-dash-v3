@@ -282,13 +282,7 @@ const sheetsService = {
       const ranges = missingSheets.map(name => {
         const resolvedName = resolveSheetName(name);
         
-        let cols = 'A1:Z'; // default fallback range
-        if (name === 'PO consolidated data') cols = 'A1:V';
-        else if (name === 'Communication Logs') cols = 'A1:R';
-        else if (name === 'Material and Supplier Master Data' || name === 'Material and Supplier Master Da') cols = 'A1:N';
-        else if (name === 'Users') cols = 'A1:J';
-        else if (name === 'Client info' || name === 'Client information') cols = 'A1:H';
-        
+        let cols = 'A1:ZZ'; // default fallback range to capture all columns including GT/GU etc.
         return `${resolvedName}!${cols}`;
       });
 

@@ -12,6 +12,7 @@ const supplierRoutes = require('./routes/supplier.routes');
 const authController = require('./controllers/auth.controller');
 const dashboardController = require('./controllers/dashboard.controller');
 const poController = require('./controllers/po.controller');
+const supplierController = require('./controllers/supplier.controller');
 const authMiddleware = require('./middleware/auth');
 const clientFilterMiddleware = require('./middleware/clientFilter');
 
@@ -102,6 +103,12 @@ app.all(['/', '/api'], (req, res, next) => {
       }
       if (action === 'poDetails') {
         return poController.getPODetails(req, res);
+      }
+      if (action === 'supplierPerformance') {
+        return supplierController.getSuppliers(req, res);
+      }
+      if (action === 'supplierDetail') {
+        return supplierController.getSupplierByCode(req, res);
       }
       return res.status(400).json({
         success: false,
