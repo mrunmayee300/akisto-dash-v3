@@ -336,7 +336,7 @@ When the supplier provides a complete answer:
 
 **Dashboard shows during thread_in_progress:**
 - Bucket: **Awaiting Reply**
-- Sub-badge: `↩ Replied — clarifying`
+- Sub-badge: `  Replied — clarifying`
 - "What's happening": "Supplier partially responded — awaiting complete info"
 
 #### Option B — Rely on Claude's multi-email analysis (Simpler)

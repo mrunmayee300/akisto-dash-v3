@@ -128,9 +128,14 @@ const poController = {
     }
 
     try {
-      const poRows = await sheetsService.getSheetObjects('PO consolidated data');
-      const supplierRows = await sheetsService.getSheetObjects('Material and Supplier Master Data');
-      const commRows = await sheetsService.getSheetObjects('Communication Logs');
+      const sheetsData = await sheetsService.getMultipleSheetsObjects([
+        'PO consolidated data',
+        'Material and Supplier Master Data',
+        'Communication Logs'
+      ]);
+      const poRows = sheetsData['PO consolidated data'];
+      const supplierRows = sheetsData['Material and Supplier Master Data'];
+      const commRows = sheetsData['Communication Logs'];
 
       const poGroup = poRows.filter(row => {
         return normalize(row.comms_group_id) === normalize(commsGroupId) &&
@@ -204,8 +209,8 @@ const poController = {
         communication: comm
       };
 
-      // Cache PO details for 30 seconds
-      cacheService.set(cacheKey, output, 30);
+      // Cache PO details for 300 seconds
+      cacheService.set(cacheKey, output, 300);
 
       return res.json(output);
     } catch (error) {

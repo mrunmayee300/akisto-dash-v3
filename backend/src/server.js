@@ -111,6 +111,17 @@ app.all(['/', '/api'], (req, res, next) => {
   });
 });
 
+// Cache Flush Endpoint
+app.post('/api/cache/flush', (req, res) => {
+  const cacheService = require('./services/cache.service');
+  cacheService.flush();
+  console.log('[Cache Flush] Memory cache flushed successfully.');
+  return res.json({
+    success: true,
+    message: 'Cache flushed successfully'
+  });
+});
+
 // Standard RESTful Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);

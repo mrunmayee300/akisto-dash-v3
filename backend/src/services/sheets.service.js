@@ -163,77 +163,141 @@ const getObjects = (rows) => {
   return data;
 };
 
+const getRawMockData = (sheetName) => {
+  let mockData = [];
+  if (sheetName === 'PO consolidated data') mockData = mockPOs;
+  else if (sheetName === 'Communication Logs') mockData = mockCommLogs;
+  else if (sheetName.startsWith('Material and Supplier Master')) mockData = mockSuppliers;
+  else if (sheetName === 'Users') mockData = mockUsers;
+  else if (sheetName.startsWith('Client info') || sheetName.startsWith('Client information')) mockData = mockClients;
+
+  if (mockData.length > 0) {
+    const headers = Object.keys(mockData[0]);
+    const rows = [headers];
+    mockData.forEach(item => {
+      rows.push(headers.map(h => item[h]));
+    });
+    return rows;
+  }
+  return [];
+};
+
 const sheetsService = {
-  getRawData: async (sheetName) => {
-    const cacheKey = `raw_sheet:${sheetName}`;
-    const cachedData = cacheService.get(cacheKey);
-    if (cachedData) return cachedData;
+  getMultipleSheets: async (sheetNames) => {
+    const results = {};
+    const missingSheets = [];
+
+    // 1. Check cache first
+    sheetNames.forEach(name => {
+      const cacheKey = `raw_sheet:${name}`;
+      const cachedData = cacheService.get(cacheKey);
+      if (cachedData) {
+        results[name] = cachedData;
+      } else {
+        missingSheets.push(name);
+      }
+    });
+
+    if (missingSheets.length === 0) {
+      return results;
+    }
 
     const auth = getGoogleAuth();
     if (!auth || !spreadsheetId) {
-      console.info(`Using mock data for sheet: ${sheetName}`);
-      let mockData = [];
-      if (sheetName === 'PO consolidated data') mockData = mockPOs;
-      else if (sheetName === 'Communication Logs') mockData = mockCommLogs;
-      else if (sheetName.startsWith('Material and Supplier Master')) mockData = mockSuppliers;
-      else if (sheetName === 'Users') mockData = mockUsers;
-      else if (sheetName.startsWith('Client info') || sheetName.startsWith('Client information')) mockData = mockClients;
-
-      // Convert mock data objects back to rows format for consistency
-      if (mockData.length > 0) {
-        const headers = Object.keys(mockData[0]);
-        const rows = [headers];
-        mockData.forEach(item => {
-          rows.push(headers.map(h => item[h]));
-        });
-        cacheService.set(cacheKey, rows, 30); // Cache mock data for 30s
-        return rows;
-      }
-      return [];
+      console.info(`Using mock data for sheets: ${missingSheets.join(', ')}`);
+      missingSheets.forEach(name => {
+        const rows = getRawMockData(name);
+        const cacheKey = `raw_sheet:${name}`;
+        cacheService.set(cacheKey, rows, 300); // Cache mock data for 300s
+        results[name] = rows;
+      });
+      return results;
     }
 
     try {
       const sheets = google.sheets({ version: 'v4', auth });
       
-      // Try exact sheet name, if it fails, try common variations (e.g. truncated names)
-      let response;
-      try {
-        response = await sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${sheetName}!A1:ZZ`,
-        });
-      } catch (err) {
-        // If Google Sheets API is disabled or throws a 403, propagate it up
-        if (err.status === 403 || (err.errors && err.errors[0] && err.errors[0].reason === 'accessNotConfigured')) {
-          throw err;
-        }
-
-        console.warn(`Exact sheet name "${sheetName}" not found, attempting variations...`);
-        let fallbackName = sheetName;
-        if (sheetName === 'Material and Supplier Master Data') {
+      // Determine exact ranges to minimize payload size and avoid A1:ZZ query latency
+      const ranges = missingSheets.map(name => {
+        let fallbackName = name;
+        if (name === 'Material and Supplier Master Data') {
           fallbackName = 'Material and Supplier Master Da';
-        } else if (sheetName === 'Client info') {
+        } else if (name === 'Client info') {
           fallbackName = 'Client information';
         }
         
-        response = await sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${fallbackName}!A1:ZZ`,
-        });
-      }
+        let cols = 'A1:Z'; // default fallback range
+        if (name === 'PO consolidated data') cols = 'A1:V';
+        else if (name === 'Communication Logs') cols = 'A1:R';
+        else if (name === 'Material and Supplier Master Data') cols = 'A1:N';
+        else if (name === 'Users') cols = 'A1:J';
+        else if (name === 'Client info' || name === 'Client information') cols = 'A1:H';
+        
+        return `${fallbackName}!${cols}`;
+      });
 
-      const rows = response.data.values || [];
-      cacheService.set(cacheKey, rows, 60); // Cache raw sheet data for 60s
-      return rows;
+      // Use batchGet to fetch all missing sheets in a single roundtrip
+      const response = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId,
+        ranges,
+      });
+
+      const valueRanges = response.data.valueRanges || [];
+      missingSheets.forEach((name, index) => {
+        const rows = valueRanges[index] ? (valueRanges[index].values || []) : [];
+        const cacheKey = `raw_sheet:${name}`;
+        cacheService.set(cacheKey, rows, 300); // Cache raw sheet data for 300s
+        results[name] = rows;
+      });
+
+      return results;
     } catch (error) {
-      console.error(`Error reading sheet "${sheetName}" from Google Sheets API:`, error);
-      throw error;
+      console.error(`Error batch reading sheets from Google Sheets API:`, error);
+      console.warn('Attempting sequential fallback read...');
+      for (const name of missingSheets) {
+        try {
+          const auth = getGoogleAuth();
+          const sheets = google.sheets({ version: 'v4', auth });
+          let fallbackName = name;
+          if (name === 'Material and Supplier Master Data') {
+            fallbackName = 'Material and Supplier Master Da';
+          } else if (name === 'Client info') {
+            fallbackName = 'Client information';
+          }
+          const res = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${fallbackName}!A1:Z`,
+          });
+          const rows = res.data.values || [];
+          const cacheKey = `raw_sheet:${name}`;
+          cacheService.set(cacheKey, rows, 300);
+          results[name] = rows;
+        } catch (fallbackError) {
+          console.error(`Fallback read failed for sheet ${name}:`, fallbackError);
+          results[name] = [];
+        }
+      }
+      return results;
     }
   },
 
+  getMultipleSheetsObjects: async (sheetNames) => {
+    const rawDataMap = await sheetsService.getMultipleSheets(sheetNames);
+    const results = {};
+    sheetNames.forEach(name => {
+      results[name] = getObjects(rawDataMap[name] || []);
+    });
+    return results;
+  },
+
+  getRawData: async (sheetName) => {
+    const dataMap = await sheetsService.getMultipleSheets([sheetName]);
+    return dataMap[sheetName] || [];
+  },
+
   getSheetObjects: async (sheetName) => {
-    const rows = await sheetsService.getRawData(sheetName);
-    return getObjects(rows);
+    const rawDataMap = await sheetsService.getMultipleSheets([sheetName]);
+    return getObjects(rawDataMap[sheetName] || []);
   }
 };
 

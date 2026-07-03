@@ -44,3 +44,6 @@ lerna-debug.log*
 # Only allow backend and react-front folders
 !/backend/
 !/react-front/
+
+/updates/
+backend/count_by_client.js

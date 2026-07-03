@@ -19,6 +19,96 @@ const latestClassification = (row) => {
   );
 };
 
+const isOnTrack = (row) => {
+  const followUpStage = normalize(row.follow_up_stage);
+  const status = normalize(row.follow_up_status);
+  
+  const stage = followUpStage || 'Stage1';
+  const prefix = stage.toLowerCase().replace('.', '_') + '_';
+  const classification = normalize(row[prefix + 'delivery_status_classification']);
+  const classificationLower = classification.toLowerCase();
+  
+  const needsHumanReview = normalize(row.needs_human_review).toLowerCase() === 'yes';
+  const humanReviewStatus = normalize(row.human_review_status).toLowerCase() === 'pending';
+  const isEscalated = status.toLowerCase() === 'escalation_sent';
+  const isLowConfidence = normalize(row[prefix + 'supplier_reply_confidence']).toLowerCase() === 'low';
+
+  if (needsHumanReview || humanReviewStatus || isEscalated || isLowConfidence) {
+    return false;
+  }
+
+  // Passive listening stage 1.5/2.5 checks
+  if (['Stage1.5', 'Stage2.5', 'stage1.5', 'stage2.5'].indexOf(stage) !== -1) {
+    const hasReply = normalize(row[prefix + 'reply_timestamp']) !== '' || 
+                     normalize(row[prefix + 'supplier_reply_status']).toLowerCase() === 'received';
+    if (!hasReply) {
+      return true; // Quiet monitoring - counts as On Track before reply
+    }
+    // After reply received: must be confirmed on-time
+    const confirmedClassifications = ['on time', 'on time tbc', 'shipped tbc'];
+    return confirmedClassifications.indexOf(classificationLower) !== -1;
+  }
+
+  // Active stages check: must be confirmed on-time
+  const confirmedClassifications = ['on time', 'on time tbc', 'shipped tbc'];
+  return confirmedClassifications.indexOf(classificationLower) !== -1;
+};
+
+const getPoStatusBucket = (row) => {
+  const stage = row.follow_up_stage || 'Stage1';
+  const prefix = stage.toLowerCase().replace('.', '_') + '_';
+  const classification = normalize(row[prefix + 'delivery_status_classification']);
+  const classificationLower = classification.toLowerCase();
+  const status = normalize(row.follow_up_status);
+  const statusLower = status.toLowerCase();
+
+  const needsHumanReview = normalize(row.needs_human_review).toLowerCase() === 'yes';
+  const humanReviewStatus = normalize(row.human_review_status).toLowerCase() === 'pending';
+  const isEscalated = statusLower === 'escalation_sent';
+  const isLowConfidence = normalize(row[prefix + 'supplier_reply_confidence']).toLowerCase() === 'low';
+  
+  // 1. Needs Attention Bucket
+  const isNeedsAttention = needsHumanReview || humanReviewStatus || isEscalated || 
+                           classificationLower.includes('delay') || 
+                           classificationLower.includes('late') ||
+                           isLowConfidence;
+
+  if (isNeedsAttention) {
+    let subStatus = 'Needs Review';
+    if (classificationLower.includes('delay') || classificationLower.includes('late')) {
+      subStatus = 'Delayed';
+    } else if (isEscalated) {
+      subStatus = 'No Response';
+    }
+    return { bucket: 'needsAttention', subStatus };
+  }
+
+  // 2. On Track Bucket
+  const isOnTrackState = isOnTrack(row);
+  if (isOnTrackState) {
+    const isPassiveStage = ['Stage1.5', 'Stage2.5', 'stage1.5', 'stage2.5'].indexOf(stage) !== -1;
+    return { bucket: 'onTrack', subStatus: isPassiveStage ? 'Monitoring' : 'Confirmed' };
+  }
+
+  // 3. Awaiting Reply Bucket
+  let subStatus = 'Chasing Response';
+  const activeChasing = ['outreach_sent', 'reminder1_sent', 'reminder2_sent', 'reminder3_sent'].indexOf(statusLower) !== -1;
+  const isClarification = status === 'Clarification_Sent';
+  const isColleagueDelegated = classification === 'awaiting_reply' && normalize(row.supplier_colleague_email) !== '';
+  const isPromisedRevert = classification === 'awaiting_reply' && 
+                           (normalize(row.promised_revert_date) !== '' || normalize(row[prefix + 'promised_revert_date']) !== '');
+  
+  if (isClarification) {
+    subStatus = 'Clarification Sent';
+  } else if (isColleagueDelegated) {
+    subStatus = 'Delegated to Colleague';
+  } else if (isPromisedRevert) {
+    subStatus = 'Promised Check Date';
+  }
+
+  return { bucket: 'awaitingReply', subStatus };
+};
+
 const dashboardController = {
   getDashboardData: async (req, res) => {
     const clientCode = req.clientCode;
@@ -60,20 +150,12 @@ const dashboardController = {
 
         openPOs.push(mergedRow);
 
-        const classification = latestClassification(mergedRow).toLowerCase();
+        const { bucket, subStatus } = getPoStatusBucket(mergedRow);
+        mergedRow.sub_status = subStatus;
 
-        if (
-          classification === 'on time' ||
-          classification.includes('tbc') ||
-          classification.includes('soft') ||
-          classification.includes('warning')
-        ) {
+        if (bucket === 'onTrack') {
           onTrack.push(mergedRow);
-        } else if (
-          classification.includes('delay') ||
-          classification.includes('late') ||
-          classification.includes('risk')
-        ) {
+        } else if (bucket === 'needsAttention') {
           needsAttention.push(mergedRow);
         } else {
           awaitingReply.push(mergedRow);
@@ -132,20 +214,11 @@ const dashboardController = {
       filteredPOs.forEach(po => {
         const comm = commMap[po.po_line_key] || {};
         const mergedRow = { ...po, ...comm };
-        const classification = latestClassification(mergedRow).toLowerCase();
+        const { bucket } = getPoStatusBucket(mergedRow);
 
-        if (
-          classification === 'on time' ||
-          classification.includes('tbc') ||
-          classification.includes('soft') ||
-          classification.includes('warning')
-        ) {
+        if (bucket === 'onTrack') {
           onTrackCount++;
-        } else if (
-          classification.includes('delay') ||
-          classification.includes('late') ||
-          classification.includes('risk')
-        ) {
+        } else if (bucket === 'needsAttention') {
           needsAttentionCount++;
         } else {
           awaitingReplyCount++;

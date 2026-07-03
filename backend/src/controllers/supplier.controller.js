@@ -36,7 +36,7 @@ const supplierController = {
         buyerEmail: supplier.client_buyer_email
       }));
 
-      cacheService.set(cacheKey, suppliers, 60); // Cache suppliers for 60s
+      cacheService.set(cacheKey, suppliers, 300); // Cache suppliers for 300s
       return res.json(suppliers);
     } catch (error) {
       console.error('Error loading suppliers:', error);
@@ -88,7 +88,7 @@ const supplierController = {
         buyerEmail: foundSupplier.client_buyer_email
       };
 
-      cacheService.set(cacheKey, supplier, 60);
+      cacheService.set(cacheKey, supplier, 300); // Cache supplier details for 300s
       return res.json(supplier);
     } catch (error) {
       console.error(`Error loading supplier ${supplierCode}:`, error);
