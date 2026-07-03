@@ -214,26 +214,82 @@ const sheetsService = {
       return results;
     }
 
+    // 2. Try fetching spreadsheet metadata to resolve exact sheet names dynamically
+    let availableSheets = null;
+    const metaCacheKey = `spreadsheet_sheets_list:${spreadsheetId}`;
+    availableSheets = cacheService.get(metaCacheKey);
+
+    if (!availableSheets) {
+      try {
+        const sheets = google.sheets({ version: 'v4', auth });
+        const meta = await sheets.spreadsheets.get({ spreadsheetId });
+        availableSheets = meta.data.sheets.map(s => s.properties.title);
+        cacheService.set(metaCacheKey, availableSheets, 3600); // Cache sheet titles list for 1 hour
+      } catch (metaErr) {
+        console.warn('Failed to fetch spreadsheet metadata, will use fallback mapping:', metaErr.message);
+        
+        // If metadata fetch fails due to permission issues (403), we handle it early
+        const isAuthError = metaErr.status === 403 || metaErr.code === 403 || 
+                            (metaErr.message && metaErr.message.toLowerCase().includes('permission')) ||
+                            (metaErr.message && metaErr.message.toLowerCase().includes('api key'));
+        if (isAuthError) {
+          console.warn('Google Sheets API permission error on metadata fetch. Falling back to mock data.');
+          missingSheets.forEach(name => {
+            const rows = getRawMockData(name);
+            const cacheKey = `raw_sheet:${name}`;
+            cacheService.set(cacheKey, rows, 300);
+            results[name] = rows;
+          });
+          return results;
+        }
+      }
+    }
+
+    const resolveSheetName = (name) => {
+      if (availableSheets && Array.isArray(availableSheets)) {
+        // Precise match
+        if (availableSheets.includes(name)) return name;
+
+        // Case-insensitive match
+        const caseMatch = availableSheets.find(s => s.toLowerCase() === name.toLowerCase());
+        if (caseMatch) return caseMatch;
+
+        // Common variations
+        if (name === 'Client info' || name === 'Client information') {
+          const match = availableSheets.find(s => s === 'Client info' || s === 'Client information' || s.startsWith('Client info') || s.startsWith('Client information'));
+          if (match) return match;
+        }
+        if (name === 'Material and Supplier Master Data' || name === 'Material and Supplier Master Da') {
+          const match = availableSheets.find(s => s === 'Material and Supplier Master Data' || s === 'Material and Supplier Master Da' || s.startsWith('Material and Supplier Master'));
+          if (match) return match;
+        }
+      }
+
+      // Hardcoded fallback logic if metadata fetch failed or wasn't found
+      if (name === 'Material and Supplier Master Data') {
+        return 'Material and Supplier Master Da';
+      }
+      if (name === 'Client info') {
+        return 'Client information';
+      }
+      return name;
+    };
+
     try {
       const sheets = google.sheets({ version: 'v4', auth });
       
-      // Determine exact ranges to minimize payload size and avoid A1:ZZ query latency
+      // Determine exact ranges based on dynamically resolved sheet names
       const ranges = missingSheets.map(name => {
-        let fallbackName = name;
-        if (name === 'Material and Supplier Master Data') {
-          fallbackName = 'Material and Supplier Master Da';
-        } else if (name === 'Client info') {
-          fallbackName = 'Client information';
-        }
+        const resolvedName = resolveSheetName(name);
         
         let cols = 'A1:Z'; // default fallback range
         if (name === 'PO consolidated data') cols = 'A1:V';
         else if (name === 'Communication Logs') cols = 'A1:R';
-        else if (name === 'Material and Supplier Master Data') cols = 'A1:N';
+        else if (name === 'Material and Supplier Master Data' || name === 'Material and Supplier Master Da') cols = 'A1:N';
         else if (name === 'Users') cols = 'A1:J';
         else if (name === 'Client info' || name === 'Client information') cols = 'A1:H';
         
-        return `${fallbackName}!${cols}`;
+        return `${resolvedName}!${cols}`;
       });
 
       // Use batchGet to fetch all missing sheets in a single roundtrip
@@ -253,20 +309,29 @@ const sheetsService = {
       return results;
     } catch (error) {
       console.error(`Error batch reading sheets from Google Sheets API:`, error);
+
+      // Handle auth/permission error by falling back to mock data
+      const isAuthError = error.status === 403 || error.code === 403 || 
+                          (error.message && error.message.toLowerCase().includes('permission')) ||
+                          (error.message && error.message.toLowerCase().includes('api key'));
+      if (isAuthError) {
+        console.warn('Google Sheets API permission error on batchGet. Falling back to mock data.');
+        missingSheets.forEach(name => {
+          const rows = getRawMockData(name);
+          const cacheKey = `raw_sheet:${name}`;
+          cacheService.set(cacheKey, rows, 300);
+          results[name] = rows;
+        });
+        return results;
+      }
+
       console.warn('Attempting sequential fallback read...');
       for (const name of missingSheets) {
         try {
-          const auth = getGoogleAuth();
-          const sheets = google.sheets({ version: 'v4', auth });
-          let fallbackName = name;
-          if (name === 'Material and Supplier Master Data') {
-            fallbackName = 'Material and Supplier Master Da';
-          } else if (name === 'Client info') {
-            fallbackName = 'Client information';
-          }
+          const resolvedName = resolveSheetName(name);
           const res = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: `${fallbackName}!A1:Z`,
+            range: `${resolvedName}!A1:Z`,
           });
           const rows = res.data.values || [];
           const cacheKey = `raw_sheet:${name}`;
@@ -274,7 +339,15 @@ const sheetsService = {
           results[name] = rows;
         } catch (fallbackError) {
           console.error(`Fallback read failed for sheet ${name}:`, fallbackError);
-          results[name] = [];
+          // If fallback fails due to auth/permission, try mock data as ultimate safety net
+          const isFallbackAuthError = fallbackError.status === 403 || fallbackError.code === 403 ||
+                                      (fallbackError.message && fallbackError.message.toLowerCase().includes('permission'));
+          if (isFallbackAuthError) {
+            const rows = getRawMockData(name);
+            results[name] = rows;
+          } else {
+            results[name] = [];
+          }
         }
       }
       return results;
