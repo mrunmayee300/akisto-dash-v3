@@ -24,8 +24,6 @@ function SupplierPerformance() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 5;
 
   const userEmail = localStorage.getItem('userEmail');
   const userName = localStorage.getItem('userName');
@@ -105,73 +103,6 @@ function SupplierPerformance() {
   }
 
   const { suppliers = [], kpis = {}, trendData = [], delaySummary = [] } = data;
-
-  const totalSuppliers = suppliers.length;
-  const maxPage = Math.max(1, Math.ceil(totalSuppliers / PAGE_SIZE));
-  const pageToUse = Math.min(currentPage, maxPage);
-  const startIdx = (pageToUse - 1) * PAGE_SIZE;
-  const paginatedSuppliers = suppliers.slice(startIdx, startIdx + PAGE_SIZE);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [data]);
-
-  const getShowingText = () => {
-    const shown = Math.min(pageToUse * PAGE_SIZE, totalSuppliers);
-    return `Showing ${shown} of ${totalSuppliers}`;
-  };
-
-  const handlePageClick = (p) => {
-    setCurrentPage(p);
-  };
-
-  const renderReactPager = (total) => {
-    const max = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    const current = pageToUse;
-
-    const pageList = [];
-    const window = 1;
-    pageList.push(1);
-    if (current - window > 2) pageList.push('...');
-    for (let p = Math.max(2, current - window); p <= Math.min(max - 1, current + window); p++) {
-      pageList.push(p);
-    }
-    if (current + window < max - 1) pageList.push('...');
-    if (max > 1) pageList.push(max);
-
-    return (
-      <>
-        <button 
-          disabled={current <= 1} 
-          onClick={() => handlePageClick(Math.max(1, current - 1))} 
-          className="font-inherit text-[13px] font-bold text-muted bg-white border border-line rounded-[7px] min-w-[28px] w-7 h-7 px-[7px] cursor-pointer leading-none disabled:opacity-40 disabled:cursor-default hover:not-disabled:border-accent hover:not-disabled:text-accent"
-        >
-          &lt;
-        </button>
-        {pageList.map((p, idx) => {
-          if (p === '...') {
-            return <span key={`gap-${idx}`} className="text-[13px] text-muted px-[3px] select-none">...</span>;
-          }
-          return (
-            <button 
-              key={p} 
-              className={`font-inherit text-[13px] font-bold text-muted bg-white border border-line rounded-[7px] min-w-[28px] w-7 h-7 px-[7px] cursor-pointer leading-none disabled:opacity-40 disabled:cursor-default hover:not-disabled:border-accent hover:not-disabled:text-accent ${p === current ? '!bg-emerald !border-emerald !text-white' : ''}`} 
-              onClick={() => handlePageClick(p)}
-            >
-              {p}
-            </button>
-          );
-        })}
-        <button 
-          disabled={current >= max} 
-          onClick={() => handlePageClick(Math.min(max, current + 1))} 
-          className="font-inherit text-[13px] font-bold text-muted bg-white border border-line rounded-[7px] min-w-[28px] w-7 h-7 px-[7px] cursor-pointer leading-none disabled:opacity-40 disabled:cursor-default hover:not-disabled:border-accent hover:not-disabled:text-accent"
-        >
-          &gt;
-        </button>
-      </>
-    );
-  };
 
   // Spacing and scaling for SVG Trend chart
   // X coordinates map to 6 months: index 0 to 5
@@ -631,7 +562,7 @@ function SupplierPerformance() {
             </tr>
           </thead>
           <tbody>
-            {paginatedSuppliers.map((sup, idx) => (
+            {suppliers.map((sup, idx) => (
               <tr key={idx} className="click" onClick={() => navigate(`/supplier-detail/${sup.code}`)}>
                 <td className="sup">
                   {sup.name} <span className="code">{sup.code} &middot; {sup.desc}</span>
@@ -660,12 +591,8 @@ function SupplierPerformance() {
           </tbody>
         </table>
 
-        <div className="p-3.5 px-7 pb-[18px] flex items-center justify-between flex-wrap gap-y-2.5 border-t border-line">
-          <div className="flex items-center gap-3.5"><span className="text-[14px] text-accent font-bold">{getShowingText()}</span></div>
-          <div className="flex items-center gap-1" id="pagerSuppliers">
-            {renderReactPager(totalSuppliers)}
-          </div>
-          <span className="text-[13px] text-muted flex items-center gap-[7px]"><span className="w-[7px] h-[7px] rounded-full bg-bright inline-block"></span>Live</span>
+        <div className="seemore">
+          Showing {suppliers.length} of {kpis.supplierCount || suppliers.length} suppliers &middot; click any supplier
         </div>
 
         <div className="section">
