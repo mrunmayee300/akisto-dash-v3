@@ -36,10 +36,8 @@ lerna-debug.log*
 # Ignore non-project folders and reference files in the workspace root
 /dashed/
 /dashed - reference/
-/apps_script.js
 /*.xlsx
 /*.html
-/README.md
 
 # Only allow backend and react-front folders
 !/backend/
