@@ -128,16 +128,15 @@ function SupplierPerformance() {
     .reduce((sum, d) => sum + d.percentage, 0);
 
   return (
-    <div className="supplier-performance-page min-h-screen py-[30px] bg-[#EEF1EF] text-[#2C2C2A] font-sans">
+    <div className="supplier-performance-page w-screen min-h-screen bg-white text-[#2C2C2A] font-sans">
       <style>{`
         .supplier-performance-page .app-container {
-          width: 1360px;
-          margin: 0 auto;
+          width: 100%;
+          min-height: 100vh;
           background: #fff;
-          border: 1px solid var(--line);
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
         }
         .supplier-performance-page header {
           display: flex;
