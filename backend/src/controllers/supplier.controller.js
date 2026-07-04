@@ -8,6 +8,21 @@ const normalize = (value) => {
   return String(value).trim();
 };
 
+const formatMonth = (monthVal) => {
+  if (!monthVal) return '';
+  const str = String(monthVal).trim();
+  if (/^\d{4}-\d{2}$/.test(str)) {
+    return str;
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+  return str;
+};
+
 const supplierController = {
   getSuppliers: async (req, res) => {
     const clientCode = req.clientCode;
@@ -22,12 +37,12 @@ const supplierController = {
       const sheetsData = await sheetsService.getMultipleSheetsObjects([
         'Supplier Stats',
         'Supplier Monthly Stats',
-        'Delay Summary'
+        'Delay Event Logs'
       ]);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
       const supplierMonthlyStatsRows = sheetsData['Supplier Monthly Stats'] || [];
-      const delaySummaryRows = sheetsData['Delay Summary'] || [];
+      const delayEventLogsRows = sheetsData['Delay Event Logs'] || [];
 
       // Filter Supplier Stats by client_code
       const filteredSuppliers = supplierStatsRows.filter(
@@ -87,23 +102,30 @@ const supplierController = {
       const trendData = supplierMonthlyStatsRows
         .filter(row => normalize(row.client_code) === normalize(clientCode) && normalize(row.supplier_code) === 'GLOBAL')
         .map(row => ({
-          month: row.month,
+          month: formatMonth(row.month),
           rate: Math.round(parseFloat(row.on_time_rate || 0) * 100)
         }));
 
       trendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
 
-      // Filter Delay Summary (GLOBAL causes)
-      const delaySummary = delaySummaryRows
-        .filter(row => normalize(row.client_code) === normalize(clientCode) && normalize(row.supplier_code) === 'GLOBAL')
-        .map(row => ({
-          category: row.delay_reason_category,
-          side: row.side,
-          count: parseInt(row.delay_count || 0, 10),
-          percentage: Math.round(parseFloat(row.percentage || 0) * 100)
-        }));
-
-      delaySummary.sort((a, b) => b.percentage - a.percentage);
+      // Filter Delay Summary dynamically (GLOBAL causes)
+      const filteredDelays = delayEventLogsRows.filter(
+        row => normalize(row.client_code) === normalize(clientCode)
+      );
+      const totalDelays = filteredDelays.length;
+      const delayCounts = {};
+      const delaySides = {};
+      filteredDelays.forEach(row => {
+        const cat = row.delay_reason_category || 'Unknown';
+        delayCounts[cat] = (delayCounts[cat] || 0) + 1;
+        delaySides[cat] = row.delay_origin || 'supplier';
+      });
+      const delaySummary = Object.keys(delayCounts).map(cat => ({
+        category: cat,
+        side: delaySides[cat],
+        count: delayCounts[cat],
+        percentage: totalDelays > 0 ? Math.round((delayCounts[cat] / totalDelays) * 100) : 0
+      })).sort((a, b) => b.percentage - a.percentage);
 
       const responseData = {
         success: true,
@@ -146,13 +168,13 @@ const supplierController = {
       const sheetsData = await sheetsService.getMultipleSheetsObjects([
         'Supplier Stats',
         'Supplier Monthly Stats',
-        'Delay Summary',
+        'Delay Event Logs',
         'Communication Logs'
       ]);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
       const supplierMonthlyStatsRows = sheetsData['Supplier Monthly Stats'] || [];
-      const delaySummaryRows = sheetsData['Delay Summary'] || [];
+      const delayEventLogsRows = sheetsData['Delay Event Logs'] || [];
       const communicationLogs = sheetsData['Communication Logs'] || [];
 
       // Find Supplier Stats entry
@@ -193,24 +215,31 @@ const supplierController = {
         .filter(row => normalize(row.client_code) === normalize(clientCode) && 
                        normalize(row.supplier_code) === normalize(supplierCode))
         .map(row => ({
-          month: row.month,
+          month: formatMonth(row.month),
           rate: Math.round(parseFloat(row.on_time_rate || 0) * 100)
         }));
 
       trendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
 
-      // Delay Summary
-      const delaySummary = delaySummaryRows
-        .filter(row => normalize(row.client_code) === normalize(clientCode) && 
-                       normalize(row.supplier_code) === normalize(supplierCode))
-        .map(row => ({
-          category: row.delay_reason_category,
-          side: row.side,
-          count: parseInt(row.delay_count || 0, 10),
-          percentage: Math.round(parseFloat(row.percentage || 0) * 100)
-        }));
-
-      delaySummary.sort((a, b) => b.percentage - a.percentage);
+      // Delay Summary dynamically (supplier-specific causes)
+      const filteredDelays = delayEventLogsRows.filter(
+        row => normalize(row.client_code) === normalize(clientCode) &&
+               normalize(row.supplier_code) === normalize(supplierCode)
+      );
+      const totalDelays = filteredDelays.length;
+      const delayCounts = {};
+      const delaySides = {};
+      filteredDelays.forEach(row => {
+        const cat = row.delay_reason_category || 'Unknown';
+        delayCounts[cat] = (delayCounts[cat] || 0) + 1;
+        delaySides[cat] = row.delay_origin || 'supplier';
+      });
+      const delaySummary = Object.keys(delayCounts).map(cat => ({
+        category: cat,
+        side: delaySides[cat],
+        count: delayCounts[cat],
+        percentage: totalDelays > 0 ? Math.round((delayCounts[cat] / totalDelays) * 100) : 0
+      })).sort((a, b) => b.percentage - a.percentage);
 
       // Recent Deliveries
       // Filter logs by client_code, supplier_code, and status === 'Closed'

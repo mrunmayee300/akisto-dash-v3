@@ -24,6 +24,8 @@ function SupplierPerformance() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [supplierPage, setSupplierPage] = useState(1);
+  const SUPPLIER_PAGE_SIZE = 5;
 
   const userEmail = localStorage.getItem('userEmail');
   const userName = localStorage.getItem('userName');
@@ -103,6 +105,8 @@ function SupplierPerformance() {
   }
 
   const { suppliers = [], kpis = {}, trendData = [], delaySummary = [] } = data;
+  const totalSupplierPages = Math.ceil(suppliers.length / SUPPLIER_PAGE_SIZE);
+  const displayedSuppliers = suppliers.slice((supplierPage - 1) * SUPPLIER_PAGE_SIZE, supplierPage * SUPPLIER_PAGE_SIZE);
 
   // Spacing and scaling for SVG Trend chart
   // X coordinates map to 6 months: index 0 to 5
@@ -561,7 +565,7 @@ function SupplierPerformance() {
             </tr>
           </thead>
           <tbody>
-            {suppliers.map((sup, idx) => (
+            {displayedSuppliers.map((sup, idx) => (
               <tr key={idx} className="click" onClick={() => navigate(`/supplier-detail/${sup.code}`)}>
                 <td className="sup">
                   {sup.name} <span className="code">{sup.code} &middot; {sup.desc}</span>
@@ -590,8 +594,59 @@ function SupplierPerformance() {
           </tbody>
         </table>
 
-        <div className="seemore">
-          Showing {suppliers.length} of {kpis.supplierCount || suppliers.length} suppliers &middot; click any supplier
+        <div className="seemore" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <span>
+            Showing {displayedSuppliers.length > 0 ? (supplierPage - 1) * SUPPLIER_PAGE_SIZE + 1 : 0}-{Math.min(supplierPage * SUPPLIER_PAGE_SIZE, suppliers.length)} of {suppliers.length} suppliers &middot; click any supplier
+          </span>
+          {totalSupplierPages > 1 && (
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }} id="supplier-pager">
+              <button 
+                disabled={supplierPage <= 1} 
+                onClick={() => setSupplierPage(p => Math.max(1, p - 1))}
+                style={{
+                  background: '#fff',
+                  border: '1px solid var(--line)',
+                  borderRadius: '7px',
+                  width: '28px',
+                  height: '28px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--muted)',
+                  opacity: supplierPage <= 1 ? 0.4 : 1
+                }}
+                id="supplier-prev-btn"
+              >
+                &lt;
+              </button>
+              <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 'bold', margin: '0 8px' }}>
+                Page {supplierPage} of {totalSupplierPages}
+              </span>
+              <button 
+                disabled={supplierPage >= totalSupplierPages} 
+                onClick={() => setSupplierPage(p => Math.min(totalSupplierPages, p + 1))}
+                style={{
+                  background: '#fff',
+                  border: '1px solid var(--line)',
+                  borderRadius: '7px',
+                  width: '28px',
+                  height: '28px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--muted)',
+                  opacity: supplierPage >= totalSupplierPages ? 0.4 : 1
+                }}
+                id="supplier-next-btn"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="section">
