@@ -120,16 +120,15 @@ function SupplierDetail() {
     : '';
 
   return (
-    <div className="supplier-detail-page min-h-screen py-[30px] bg-[#EEF1EF] text-[#2C2C2A] font-sans">
+    <div className="supplier-detail-page w-screen min-h-screen bg-white text-[#2C2C2A] font-sans">
       <style>{`
         .supplier-detail-page .app-container {
-          width: 1360px;
-          margin: 0 auto;
+          width: 100%;
+          min-height: 100vh;
           background: #fff;
-          border: 1px solid var(--line);
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
         }
         .supplier-detail-page .back {
           padding: 14px 28px 0;
@@ -473,7 +472,12 @@ function SupplierDetail() {
             <div className="ct">On-time rate over time</div>
             <div className="cs">This supplier's monthly on-time rate over the trailing 6 months</div>
             {trendData.length > 0 ? (
-              <svg viewBox="0 0 900 260" height="260" style={{ maxWidth: '760px', margin: '0 auto' }}>
+              <svg viewBox="0 0 900 260" className="w-full">
+                <line className="gridline" x1="40" y1="28" x2="900" y2="28" />
+                <line className="gridline" x1="40" y1="92" x2="900" y2="92" />
+                <line className="gridline" x1="40" y1="156" x2="900" y2="156" />
+                <line className="gridline" x1="40" y1="220" x2="900" y2="220" />
+
                 <text className="axlab" x="2" y="28">100%</text>
                 <text className="axlab" x="8" y="92">75%</text>
                 <text className="axlab" x="8" y="156">50%</text>

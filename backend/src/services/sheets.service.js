@@ -296,7 +296,7 @@ const sheetsService = {
       missingSheets.forEach((name, index) => {
         const rows = valueRanges[index] ? (valueRanges[index].values || []) : [];
         const cacheKey = `raw_sheet:${name}`;
-        cacheService.set(cacheKey, rows, 300); // Cache raw sheet data for 300s
+        cacheService.set(cacheKey, rows, 5); // Cache raw sheet data for 5s
         results[name] = rows;
       });
 
@@ -329,7 +329,7 @@ const sheetsService = {
           });
           const rows = res.data.values || [];
           const cacheKey = `raw_sheet:${name}`;
-          cacheService.set(cacheKey, rows, 300);
+          cacheService.set(cacheKey, rows, 5);
           results[name] = rows;
         } catch (fallbackError) {
           console.error(`Fallback read failed for sheet ${name}:`, fallbackError);

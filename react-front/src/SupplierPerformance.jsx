@@ -491,7 +491,7 @@ function SupplierPerformance() {
             <span className="plabel">Supplier performance</span>
           </div>
           <div className="meta">
-            <div className="who">{userName || userEmail}{userRole ? ` • ${userRole}` : ''}</div>
+            <div className="who">{userName && userRole ? `${userName} . ${userRole}` : userName || userEmail}</div>
             <div className="day">Trailing 6 months &middot; to {formatCurrentDate()}</div>
           </div>
         </header>

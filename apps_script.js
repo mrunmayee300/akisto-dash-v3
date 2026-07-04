@@ -102,6 +102,8 @@ function doGet(e) {
           token: token,
           email: email,
           role: foundUser.role,
+          userName: foundUser['User Name'] || foundUser.userName || '',
+          userRole: foundUser['Role'] || foundUser.userRole || '',
           companyName: foundClient.client_company_name || foundClient.company_name || foundClient.client_company_name_full
         }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -600,7 +602,7 @@ function doGet(e) {
     try {
       var jsonStr = JSON.stringify(data);
       if (jsonStr.length < 90000) { // Keep safely under 100KB cache limit
-        cache.put(cacheKey, jsonStr, 30); // Cache for 30 seconds
+        cache.put(cacheKey, jsonStr, 5); // Cache for 5 seconds
       }
     } catch (err) {
       // Fail silently if caching is not possible

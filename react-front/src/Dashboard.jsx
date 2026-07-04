@@ -306,7 +306,7 @@ function Dashboard() {
         </div>
         <div className="text-right">
           <div className="text-[15px] font-bold text-body">
-            {userName || userEmail}{userRole ? ` • ${userRole}` : ''}
+            {userName && userRole ? `${userName} . ${userRole}` : userName || userEmail}
           </div>
           <div className="text-[13px] text-muted mt-0.5 flex items-center justify-end gap-2.5">
             <span id="current-date">{currentDateStr}</span>
