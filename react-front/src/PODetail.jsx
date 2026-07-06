@@ -247,7 +247,8 @@ function PODetail() {
   if (statusPill.class === 'p-await') pillCls = "bg-[#EAF0FB] text-[#3A5C9A]";
 
   return (
-    <div className="w-full max-w-[800px] mx-auto bg-white border border-line rounded-[16px] overflow-hidden shadow-[0_12px_40px_rgba(11,61,46,0.12)]" id="detail-panel">
+    <div className="mx-[96px] py-12">
+      <div className="w-full max-w-[800px] mx-auto bg-white border border-line rounded-[16px] overflow-hidden shadow-[0_12px_40px_rgba(11,61,46,0.12)]" id="detail-panel">
       <div className="pt-[20px] px-[26px] pb-[18px] border-b border-line bg-[#FCFDFC]">
         <div className="flex items-start justify-between">
           <div className="text-[18px] font-extrabold text-emerald tracking-[-0.3px]">
@@ -324,6 +325,7 @@ function PODetail() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

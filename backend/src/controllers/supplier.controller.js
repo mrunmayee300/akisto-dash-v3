@@ -26,7 +26,8 @@ const formatMonth = (monthVal) => {
 const supplierController = {
   getSuppliers: async (req, res) => {
     const clientCode = req.clientCode;
-    const cacheKey = cacheService.generateKey('suppliers_performance', clientCode);
+    const userEmail = req.user && req.user.email || '';
+    const cacheKey = cacheService.generateKey('suppliers_performance', clientCode, userEmail);
     const cachedData = cacheService.get(cacheKey);
 
     if (cachedData) {
@@ -37,17 +38,50 @@ const supplierController = {
       const sheetsData = await sheetsService.getMultipleSheetsObjects([
         'Supplier Stats',
         'Supplier Monthly Stats',
-        'Delay Event Logs'
+        'Delay Event Logs',
+        'Client info'
       ]);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
       const supplierMonthlyStatsRows = sheetsData['Supplier Monthly Stats'] || [];
       const delayEventLogsRows = sheetsData['Delay Event Logs'] || [];
+      const clientInfoRows = sheetsData['Client info'] || [];
 
-      // Filter Supplier Stats by client_code
-      const filteredSuppliers = supplierStatsRows.filter(
+      // Resolve buyer name from Client info or req.user
+      const loggedInEmail = String(userEmail).trim().toLowerCase();
+      const loggedInName = String(req.user && req.user.userName || '').trim().toLowerCase();
+
+      const clientBuyerRow = clientInfoRows.find(c => 
+        normalize(c.client_code) === normalize(clientCode) && 
+        (String(c.buyer_email || c.ai_agent_buyer_email || '').trim().toLowerCase() === loggedInEmail ||
+         String(c.buyer_name || c.ai_agent_buyer_name || '').trim().toLowerCase() === loggedInName)
+      );
+
+      let buyerNameFilter = '';
+      if (clientBuyerRow) {
+        buyerNameFilter = clientBuyerRow.buyer_name || clientBuyerRow.ai_agent_buyer_name || '';
+      }
+
+      let filteredSuppliers = supplierStatsRows.filter(
         s => normalize(s.client_code) === normalize(clientCode)
       );
+
+      // Apply buyer filtering
+      if (buyerNameFilter) {
+        const checkFiltered = filteredSuppliers.filter(
+          s => normalize(s.buyer_name).toLowerCase() === buyerNameFilter.toLowerCase()
+        );
+        if (checkFiltered.length > 0) {
+          filteredSuppliers = checkFiltered;
+        }
+      } else if (loggedInName) {
+        const checkFiltered = filteredSuppliers.filter(
+          s => normalize(s.buyer_name).toLowerCase() === loggedInName
+        );
+        if (checkFiltered.length > 0) {
+          filteredSuppliers = checkFiltered;
+        }
+      }
 
       // Map rows for the Reliability Table
       const suppliers = filteredSuppliers.map(s => {
@@ -98,28 +132,62 @@ const supplierController = {
         supplierCount: supplierCount
       };
 
-      // Filter Trend Data (GLOBAL trend line)
-      const trendData = supplierMonthlyStatsRows
-        .filter(row => normalize(row.client_code) === normalize(clientCode) && normalize(row.supplier_code) === 'GLOBAL')
-        .map(row => ({
-          month: formatMonth(row.month),
-          rate: Math.round(parseFloat(row.on_time_rate || 0) * 100)
-        }));
+      // Filter Trend Data (Dynamic buyer-scoped monthly OTR)
+      const assignedSupplierCodes = new Set(filteredSuppliers.map(s => normalize(s.supplier_code)));
+      const monthlyAggregates = {};
+      
+      supplierMonthlyStatsRows.forEach(row => {
+        const sCode = normalize(row.supplier_code);
+        const cCode = normalize(row.client_code);
+        if (cCode === normalize(clientCode) && assignedSupplierCodes.has(sCode)) {
+          const month = formatMonth(row.month);
+          if (!monthlyAggregates[month]) {
+            monthlyAggregates[month] = { onTime: 0, total: 0 };
+          }
+          monthlyAggregates[month].onTime += parseInt(row.on_time_lines || 0, 10);
+          monthlyAggregates[month].total += parseInt(row.total_po_lines || 0, 10);
+        }
+      });
+
+      let trendData = Object.keys(monthlyAggregates).map(month => {
+        const agg = monthlyAggregates[month];
+        return {
+          month,
+          rate: agg.total > 0 ? Math.round((agg.onTime / agg.total) * 100) : 100
+        };
+      });
+
+      // Fallback to GLOBAL trend line if buyer-specific trend is empty
+      if (trendData.length === 0) {
+        trendData = supplierMonthlyStatsRows
+          .filter(row => normalize(row.client_code) === normalize(clientCode) && normalize(row.supplier_code) === 'GLOBAL')
+          .map(row => ({
+            month: formatMonth(row.month),
+            rate: Math.round(parseFloat(row.on_time_rate || 0) * 100)
+          }));
+      }
 
       trendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
 
-      // Filter Delay Summary dynamically (GLOBAL causes)
+      // Filter Delay Summary dynamically (buyer-scoped causes)
       const filteredDelays = delayEventLogsRows.filter(
+        row => normalize(row.client_code) === normalize(clientCode) && 
+               assignedSupplierCodes.has(normalize(row.supplier_code))
+      );
+      
+      const delaysToUse = filteredDelays.length > 0 ? filteredDelays : delayEventLogsRows.filter(
         row => normalize(row.client_code) === normalize(clientCode)
       );
-      const totalDelays = filteredDelays.length;
+
+      const totalDelays = delaysToUse.length;
       const delayCounts = {};
       const delaySides = {};
-      filteredDelays.forEach(row => {
+      delaysToUse.forEach(row => {
         const cat = row.delay_reason_category || 'Unknown';
         delayCounts[cat] = (delayCounts[cat] || 0) + 1;
         delaySides[cat] = row.delay_origin || 'supplier';
       });
+      
       const delaySummary = Object.keys(delayCounts).map(cat => ({
         category: cat,
         side: delaySides[cat],
@@ -210,7 +278,7 @@ const supplierController = {
         escalatedRate: Math.round(parseFloat(foundSupplier.escalated_rate || 0) * 100) + '%'
       };
 
-      // Trend Data
+      // Trend Data for Selected Supplier
       const trendData = supplierMonthlyStatsRows
         .filter(row => normalize(row.client_code) === normalize(clientCode) && 
                        normalize(row.supplier_code) === normalize(supplierCode))
@@ -220,6 +288,44 @@ const supplierController = {
         }));
 
       trendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
+
+      // Benchmark Trend Data: average OTR of all suppliers assigned to the same buyer
+      const buyerName = foundSupplier.buyer_name || '';
+      let buyerSupplierCodes = new Set([normalize(supplierCode)]);
+      if (buyerName) {
+        const buyerSuppliers = supplierStatsRows.filter(
+          s => normalize(s.client_code) === normalize(clientCode) &&
+               normalize(s.buyer_name).toLowerCase() === normalize(buyerName).toLowerCase()
+        );
+        buyerSupplierCodes = new Set(buyerSuppliers.map(s => normalize(s.supplier_code)));
+      }
+
+      const monthlyBenchmarkAggregates = {};
+      supplierMonthlyStatsRows.forEach(row => {
+        const sCode = normalize(row.supplier_code);
+        const cCode = normalize(row.client_code);
+        if (cCode === normalize(clientCode) && buyerSupplierCodes.has(sCode)) {
+          const month = formatMonth(row.month);
+          if (!monthlyBenchmarkAggregates[month]) {
+            monthlyBenchmarkAggregates[month] = { onTime: 0, total: 0 };
+          }
+          monthlyBenchmarkAggregates[month].onTime += parseInt(row.on_time_lines || 0, 10);
+          monthlyBenchmarkAggregates[month].total += parseInt(row.total_po_lines || 0, 10);
+        }
+      });
+
+      let benchmarkTrendData = Object.keys(monthlyBenchmarkAggregates).map(month => {
+        const agg = monthlyBenchmarkAggregates[month];
+        return {
+          month,
+          rate: agg.total > 0 ? Math.round((agg.onTime / agg.total) * 100) : 100
+        };
+      });
+
+      if (benchmarkTrendData.length === 0) {
+        benchmarkTrendData = [...trendData];
+      }
+      benchmarkTrendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
 
       // Delay Summary dynamically (supplier-specific causes)
       const filteredDelays = delayEventLogsRows.filter(
@@ -278,6 +384,7 @@ const supplierController = {
         supplierMeta,
         kpis,
         trendData,
+        benchmarkTrendData,
         delaySummary,
         recentDeliveries
       };

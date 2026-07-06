@@ -97,30 +97,40 @@ function SupplierDetail() {
     );
   }
 
-  const { supplierMeta = {}, kpis = {}, trendData = [], delaySummary = [], recentDeliveries = [] } = data;
+  const { supplierMeta = {}, kpis = {}, trendData = [], benchmarkTrendData = [], delaySummary = [], recentDeliveries = [] } = data;
 
   const isWatch = parseInt(kpis.onTimeRate || 0) < 60;
   const strokeColor = isWatch ? '#B23B2E' : '#0E5C44';
   const fillOpacityColor = isWatch ? '#B23B2E' : '#1D9E75';
 
-  // SVG Trend Chart Spacing
+  // SVG Trend Chart Spacing (scaled from 40% to 100%)
   // X Coordinate = 120 + index * 144
-  // Y Coordinate = 220 - ((OTR - 25) / 75) * 192 (Y=28 is 100%, Y=220 is 25%)
+  // Y Coordinate = 220 - ((OTR - 40) / 60) * 200 (Y=20 is 100%, Y=220 is 40%)
   const svgPoints = trendData.map((d, index) => {
     const x = 120 + index * 144;
     const rate = d.rate;
-    const boundedRate = Math.max(25, Math.min(100, rate));
-    const y = 220 - ((boundedRate - 25) / 75) * 192;
+    const boundedRate = Math.max(40, Math.min(100, rate));
+    const y = 220 - ((boundedRate - 40) / 60) * 200;
     return { x, y, month: formatMonthLabel(d.month) };
   });
 
   const polylinePoints = svgPoints.map(p => `${p.x},${p.y}`).join(' ');
   const polygonPoints = svgPoints.length > 0
-    ? `${polylinePoints} ${svgPoints[svgPoints.length - 1].x},232 ${svgPoints[0].x},232`
+    ? `${polylinePoints} ${svgPoints[svgPoints.length - 1].x},220 ${svgPoints[0].x},220`
     : '';
 
+  const svgBenchmarkPoints = benchmarkTrendData.map((d, index) => {
+    const x = 120 + index * 144;
+    const rate = d.rate;
+    const boundedRate = Math.max(40, Math.min(100, rate));
+    const y = 220 - ((boundedRate - 40) / 60) * 200;
+    return { x, y };
+  });
+
+  const benchmarkPolylinePoints = svgBenchmarkPoints.map(p => `${p.x},${p.y}`).join(' ');
+
   return (
-    <div className="supplier-detail-page w-screen min-h-screen bg-white text-[#2C2C2A] font-sans">
+    <div className="supplier-detail-page min-h-screen bg-white text-[#2C2C2A] font-sans mx-[96px]">
       <style>{`
         .supplier-detail-page .app-container {
           width: 100%;
@@ -472,27 +482,47 @@ function SupplierDetail() {
             <div className="ct">On-time rate over time</div>
             <div className="cs">This supplier's monthly on-time rate over the trailing 6 months</div>
             {trendData.length > 0 ? (
-              <svg viewBox="0 0 900 260" className="w-full">
-                <line className="gridline" x1="40" y1="28" x2="900" y2="28" />
-                <line className="gridline" x1="40" y1="92" x2="900" y2="92" />
-                <line className="gridline" x1="40" y1="156" x2="900" y2="156" />
-                <line className="gridline" x1="40" y1="220" x2="900" y2="220" />
+              <>
+                <svg viewBox="0 0 900 240" className="w-full">
+                  <line className="gridline" x1="40" y1="20" x2="900" y2="20" />
+                  <line className="gridline" x1="40" y1="70" x2="900" y2="70" />
+                  <line className="gridline" x1="40" y1="120" x2="900" y2="120" />
+                  <line className="gridline" x1="40" y1="170" x2="900" y2="170" />
+                  <line className="gridline" x1="40" y1="220" x2="900" y2="220" />
 
-                <text className="axlab" x="2" y="28">100%</text>
-                <text className="axlab" x="8" y="92">75%</text>
-                <text className="axlab" x="8" y="156">50%</text>
-                <text className="axlab" x="8" y="220">25%</text>
-                
-                <polyline fill="none" stroke={strokeColor} strokeWidth="3" points={polylinePoints} />
-                <polygon fill={fillOpacityColor} opacity="0.07" points={polygonPoints} />
+                  <text className="axlab" x="0" y="24">100%</text>
+                  <text className="axlab" x="6" y="74">85%</text>
+                  <text className="axlab" x="6" y="124">70%</text>
+                  <text className="axlab" x="6" y="174">55%</text>
+                  <text className="axlab" x="6" y="224">40%</text>
+                  
+                  {/* Benchmark line */}
+                  {benchmarkTrendData.length > 0 && (
+                    <polyline fill="none" stroke="#8A8A85" strokeWidth="2" strokeDasharray="5,5" points={benchmarkPolylinePoints} />
+                  )}
 
-                {svgPoints.map((pt, idx) => (
-                  <g key={idx}>
-                    <circle cx={pt.x} cy={pt.y} r={idx === svgPoints.length - 1 ? 5 : 4} fill={idx === svgPoints.length - 1 ? strokeColor : '#8A6516'} />
-                    <text className="axlab" x={pt.x - 12} y="252">{pt.month}</text>
-                  </g>
-                ))}
-              </svg>
+                  {/* Supplier line */}
+                  <polyline fill="none" stroke={strokeColor} strokeWidth="3" points={polylinePoints} />
+                  <polygon fill={fillOpacityColor} opacity="0.07" points={polygonPoints} />
+
+                  {svgPoints.map((pt, idx) => (
+                    <g key={idx}>
+                      <circle cx={pt.x} cy={pt.y} r={idx === svgPoints.length - 1 ? 5 : 4} fill={idx === svgPoints.length - 1 ? strokeColor : '#8A6516'} />
+                      <text className="axlab" x={pt.x - 12} y="236">{pt.month}</text>
+                    </g>
+                  ))}
+                </svg>
+                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '12px', color: 'var(--muted)', justifyContent: 'center' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <span style={{ display: 'inline-block', width: '12px', height: '12px', background: strokeColor, marginRight: '6px', borderRadius: '2px' }}></span>
+                    Supplier Performance
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <span style={{ display: 'inline-block', width: '12px', height: '2px', borderTop: '2px dashed #8A8A85', marginRight: '6px' }}></span>
+                    Buyer Average Benchmark
+                  </span>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted text-center py-10">No historical trends available for this supplier.</p>
             )}
@@ -576,7 +606,14 @@ function SupplierDetail() {
                   onClick={() => item.commsGroupId && navigate(`/detail/${item.commsGroupId}`)}
                 >
                   <td className="po">{item.po}</td>
-                  <td>{item.materialName} {item.materialCode && <span className="text-muted font-normal">&middot; {item.materialCode}</span>}</td>
+                  <td>
+                    <div style={{ fontWeight: '600', color: 'var(--body)' }}>{item.materialName}</div>
+                    {item.materialCode && (
+                      <div style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '1.5px' }}>
+                        {item.materialCode}
+                      </div>
+                    )}
+                  </td>
                   <td className="num">{formatShortDate(item.needBy)}</td>
                   <td className="num">{formatShortDate(item.delivered)}</td>
                   <td className="num">{item.daysLate > 0 ? `+${item.daysLate}` : item.daysLate}</td>

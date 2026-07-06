@@ -292,7 +292,7 @@ function Dashboard() {
   };
 
   return (
-    <div className="w-screen min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col mx-[96px]">
       <header className="flex items-center justify-between p-[18px] px-7 border-b border-line">
         <div className="flex items-center gap-[13px]">
           <span className="text-[23px] font-extrabold text-emerald tracking-[-0.5px]">akisto<span className="text-gold">.</span></span>

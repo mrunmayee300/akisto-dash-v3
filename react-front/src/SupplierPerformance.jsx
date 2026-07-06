@@ -132,7 +132,7 @@ function SupplierPerformance() {
     .reduce((sum, d) => sum + d.percentage, 0);
 
   return (
-    <div className="supplier-performance-page w-screen min-h-screen bg-white text-[#2C2C2A] font-sans">
+    <div className="supplier-performance-page min-h-screen bg-white text-[#2C2C2A] font-sans mx-[96px]">
       <style>{`
         .supplier-performance-page .app-container {
           width: 100%;
