@@ -40,7 +40,7 @@ const supplierController = {
         'Supplier Monthly Stats',
         'Delay Event Logs',
         'Client info'
-      ]);
+      ], clientCode);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
       const supplierMonthlyStatsRows = sheetsData['Supplier Monthly Stats'] || [];
@@ -246,7 +246,7 @@ const supplierController = {
         'Supplier Monthly Stats',
         'Delay Event Logs',
         'Communication Logs'
-      ]);
+      ], clientCode);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
       const supplierMonthlyStatsRows = sheetsData['Supplier Monthly Stats'] || [];

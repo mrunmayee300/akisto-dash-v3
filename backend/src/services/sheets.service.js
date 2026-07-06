@@ -335,11 +335,29 @@ const mockDelayEventLogs = [
   { event_id: 'DEL_06', po_line_key: 'C1_S14_1', client_code: 'C1', supplier_code: 'S14', buyer_name: 'Dan Whitaker', buyer_email: 'dan@company.com', timestamp: '2026-06-16T08:00:00Z', delay_origin: 'supplier', delay_reason_category: 'In-transit delay', delay_evidence: 'Truck mechanical failure', delay_confidence: 'high' }
 ];
 
-const getObjects = (rows) => {
+const getObjects = (rows, clientCode = null) => {
   if (!rows || rows.length === 0) return [];
   const headers = rows[0].map(h => String(h).trim());
+  
+  // Find index of client_code column
+  let clientCodeIndex = -1;
+  if (clientCode) {
+    clientCodeIndex = headers.findIndex(h => h.toLowerCase() === 'client_code');
+  }
+
   const data = [];
+  const normClientCode = clientCode ? String(clientCode).trim().toLowerCase() : null;
+
   for (let i = 1; i < rows.length; i++) {
+    // If clientCode filter is active, skip rows that belong to other clients
+    if (clientCodeIndex !== -1 && rows[i][clientCodeIndex] !== undefined) {
+      const rowVal = String(rows[i][clientCodeIndex]).trim().toLowerCase();
+      // If row has a client code, and it does not match, skip it
+      if (rowVal && rowVal !== normClientCode) {
+        continue;
+      }
+    }
+
     const row = {};
     headers.forEach((header, index) => {
       row[header] = rows[i][index] !== undefined ? rows[i][index] : '';
@@ -473,7 +491,7 @@ const sheetsService = {
           const sheets = google.sheets({ version: 'v4', auth });
           const ranges = sheetsToFetch.map(name => {
             const resolvedName = resolveSheetName(name);
-            let cols = 'A1:ZZ'; 
+            let cols = 'A1:IZ'; 
             return `${resolvedName}!${cols}`;
           });
 
@@ -552,11 +570,11 @@ const sheetsService = {
     return results;
   },
 
-  getMultipleSheetsObjects: async (sheetNames) => {
+  getMultipleSheetsObjects: async (sheetNames, clientCode = null) => {
     const rawDataMap = await sheetsService.getMultipleSheets(sheetNames);
     const results = {};
     sheetNames.forEach(name => {
-      results[name] = getObjects(rawDataMap[name] || []);
+      results[name] = getObjects(rawDataMap[name] || [], clientCode);
     });
     return results;
   },
@@ -566,9 +584,9 @@ const sheetsService = {
     return dataMap[sheetName] || [];
   },
 
-  getSheetObjects: async (sheetName) => {
+  getSheetObjects: async (sheetName, clientCode = null) => {
     const rawDataMap = await sheetsService.getMultipleSheets([sheetName]);
-    return getObjects(rawDataMap[sheetName] || []);
+    return getObjects(rawDataMap[sheetName] || [], clientCode);
   }
 };
 

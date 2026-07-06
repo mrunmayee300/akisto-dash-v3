@@ -120,8 +120,8 @@ const dashboardController = {
     }
 
     try {
-      const poData = await sheetsService.getSheetObjects('PO consolidated data');
-      const commData = await sheetsService.getSheetObjects('Communication Logs');
+      const poData = await sheetsService.getSheetObjects('PO consolidated data', clientCode);
+      const commData = await sheetsService.getSheetObjects('Communication Logs', clientCode);
 
       // Filter POs by clientCode
       let filteredPOs = poData;
@@ -193,8 +193,8 @@ const dashboardController = {
     }
 
     try {
-      const poData = await sheetsService.getSheetObjects('PO consolidated data');
-      const commData = await sheetsService.getSheetObjects('Communication Logs');
+      const poData = await sheetsService.getSheetObjects('PO consolidated data', clientCode);
+      const commData = await sheetsService.getSheetObjects('Communication Logs', clientCode);
 
       let filteredPOs = poData;
       if (clientCode) {
