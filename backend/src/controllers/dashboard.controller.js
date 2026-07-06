@@ -170,8 +170,8 @@ const dashboardController = {
         generatedAt: new Date().toISOString()
       };
 
-      // Cache dashboard data for 5 seconds
-      cacheService.set(cacheKey, output, 5);
+      // Cache dashboard data for 60 seconds
+      cacheService.set(cacheKey, output, 60);
 
       return res.json(output);
     } catch (error) {
@@ -233,7 +233,7 @@ const dashboardController = {
         generatedAt: new Date().toISOString()
       };
 
-      cacheService.set(cacheKey, summary, 5);
+      cacheService.set(cacheKey, summary, 60);
       return res.json(summary);
     } catch (error) {
       console.error('Error loading dashboard summary:', error);

@@ -211,7 +211,7 @@ const supplierController = {
         delaySummary
       };
 
-      cacheService.set(cacheKey, responseData, 5); // Cache for 5s
+      cacheService.set(cacheKey, responseData, 60); // Cache for 60s
       return res.json(responseData);
     } catch (error) {
       console.error('Error loading suppliers:', error);
@@ -404,7 +404,7 @@ const supplierController = {
         recentDeliveries
       };
 
-      cacheService.set(cacheKey, responseData, 5); // Cache for 5s
+      cacheService.set(cacheKey, responseData, 60); // Cache for 60s
       return res.json(responseData);
     } catch (error) {
       console.error(`Error loading supplier ${supplierCode}:`, error);
