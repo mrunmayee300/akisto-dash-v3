@@ -63,7 +63,7 @@ function SupplierPerformance() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000);
+    const interval = setInterval(loadData, 30000); // Poll every 30 seconds
     return () => clearInterval(interval);
   }, []);
 

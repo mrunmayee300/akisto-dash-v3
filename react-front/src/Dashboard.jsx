@@ -86,7 +86,7 @@ function Dashboard() {
 
   useEffect(() => {
     loadDashboard();
-    const interval = setInterval(loadDashboard, 5000);
+    const interval = setInterval(loadDashboard, 30000); // Poll every 30 seconds
 
     const timeInterval = setInterval(() => {
       setCurrentDateStr(formatCurrentDate());
