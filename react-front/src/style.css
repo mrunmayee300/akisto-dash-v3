@@ -22,7 +22,7 @@
 @layer base {
   body {
     font-family: 'Aptos', 'Segoe UI', -apple-system, sans-serif;
-    background-color: var(--canvas);
+    background-color: #ffffff;
     color: var(--body);
     padding: 0;
     margin: 0;
