@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Akisto Detail Panel - Build Spec</title>
+<style>
+  :root{--emerald:#0E5C44;--accent:#127A5A;--muted:#6B6F73;--line:#E7EAE8;--body:#2C2C2A;--pale:#DDF0E7;--canvas:#EEF1EF;
+    --gold:#C79A2E;--darkgold:#8A6516;--goldfill:#FBF4E2;--red:#B23B2E;--redfill:#F7E7E3;--bright:#1D9E75;--darkE:#0B3D2E;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Aptos','Segoe UI',-apple-system,sans-serif;background:var(--canvas);color:var(--body);padding:30px 18px;line-height:1.5;}
+  .wrap{max-width:1080px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .hd{padding:26px 30px 20px;border-bottom:1px solid var(--line);}
+  h1{font-size:22px;color:var(--emerald);margin-bottom:6px;}
+  .hd p{font-size:14px;color:var(--muted);}
+  h2{font-size:16px;color:#fff;background:var(--emerald);padding:10px 30px;margin-top:28px;}
+  h2:first-of-type{margin-top:0;}
+  h3{font-size:14px;color:var(--emerald);font-weight:800;padding:18px 30px 2px;}
+  p.body,ul.body{font-size:13.5px;color:var(--body);padding:6px 30px;}
+  ul.body{padding-left:50px;}
+  ul.body li{margin-bottom:5px;}
+  ol.body{padding:6px 30px 6px 52px;font-size:13.5px;}
+  ol.body li{margin-bottom:5px;}
+  .legend{margin:10px 30px;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .legend table{width:100%;border-collapse:collapse;}
+  .legend td{padding:9px 14px;border-bottom:1px solid #F2F4F2;font-size:13px;vertical-align:top;}
+  .legend tr:last-child td{border-bottom:none;}
+  .cat{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+  .c1{background:var(--pale);color:var(--emerald);}.c2{background:#E7EEFB;color:#37589C;}
+  .c3{background:var(--goldfill);color:var(--darkgold);}.c4{background:var(--redfill);color:var(--red);}
+  .tblwrap{padding:6px 30px 8px;overflow-x:auto;}
+  table.t{width:100%;border-collapse:collapse;}
+  table.t th{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);font-weight:700;text-align:left;padding:9px 12px;border-bottom:1.5px solid var(--line);background:#FAFBFA;}
+  table.t td{padding:9px 12px;border-bottom:1px solid #F2F4F2;font-size:12.5px;vertical-align:top;line-height:1.4;}
+  table.t td.lab{font-weight:700;color:var(--body);}
+  table.t td.var{font-family:monospace;font-size:11px;color:var(--emerald);}
+  table.t td.sheet{color:var(--muted);font-size:11px;}
+  table.t td.cond{font-weight:700;color:var(--darkE);white-space:nowrap;}
+  .pillp{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+  .p-delayed{background:var(--redfill);color:var(--red);}.p-risk{background:var(--goldfill);color:var(--darkgold);}
+  .p-ontime{background:var(--pale);color:var(--emerald);}.p-tbc{background:#EEF1EF;color:var(--muted);}
+  .p-await{background:#EAF0FB;color:#3A5C9A;}.p-review{background:#F1E9F5;color:#6B3FA0;}
+  .callout{margin:12px 30px;padding:12px 16px;border-radius:10px;font-size:13px;}
+  .co-warn{background:#FBF8EC;border:1px solid #EBDDB0;color:var(--darkgold);}
+  .co-block{background:var(--redfill);border:1px solid #E3B5AE;color:var(--red);}
+  .co-judge{background:#F1E9F5;border:1px solid #D6C2E6;color:#6B3FA0;}
+  .co-info{background:#EAF3EF;border:1px solid #BFE0CF;color:var(--emerald);}
+  code{font-family:monospace;font-size:11.5px;background:#F2F4F2;padding:1px 5px;border-radius:4px;color:var(--darkE);}
+  pre{margin:8px 30px;padding:12px 14px;background:#0B1F18;color:#CFE8DC;border-radius:8px;font-size:11px;overflow-x:auto;line-height:1.5;}
+  .foot{padding:18px 30px 26px;font-size:12.5px;color:var(--muted);}
+  .rule{font-size:13.5px;color:var(--body);padding:5px 30px;}
+  .rule b{color:var(--emerald);}
+  .worked{margin:10px 30px;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .worked .wh{background:#FAFBFA;padding:8px 14px;font-size:12px;font-weight:800;color:var(--emerald);border-bottom:1px solid var(--line);}
+  .worked .wb{padding:12px 14px;font-size:12.5px;}
+  .worked .wb b{color:var(--darkE);}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1>PO line item detail panel &mdash; build spec</h1>
+    <p>Self-contained build kit. Pair with the three reference mocks: <b>detail_delayed</b>, <b>detail_ontrack</b>, <b>detail_awaiting</b>. Open those alongside this doc &mdash; they are the visual source of truth; this doc is the data and logic source of truth.</p>
+  </div>
+
+  <h2>0. How to use this document</h2>
+  <ul class="body">
+    <li><b>The mocks show what it looks like. This doc says what data drives it and how the conditional cases behave.</b> Build the static look from the mocks, wire the data and logic from here.</li>
+    <li><b>Where you see a <span class="cat c4" style="margin:0 2px;">CAT 4</span> or a &ldquo;Prabhas&rdquo; flag,</b> that part genuinely isn&rsquo;t defined yet. Build everything around it; don&rsquo;t guess the missing logic.</li>
+    <li><b>Where the doc says &ldquo;use judgment,&rdquo;</b> it reflects how Prabhas has been doing it by hand. Follow that as the default. If a real case doesn&rsquo;t fit, make a reasonable call and note it &mdash; don&rsquo;t stall.</li>
+    <li><b>When you are genuinely unsure and it&rsquo;s not covered here, ask Prabhas.</b> A 30-second question beats a wrong build. But try the doc and the mocks first.</li>
+    <li>You may upload this doc + the three mocks to a GenAI assistant to scaffold the build. It will get you most of the way on the UI and display logic. The data pipeline (sheet joins, the n8n wiring, the four CAT-4/Prabhas items) still needs your own work.</li>
+  </ul>
+
+  <h2>1. Two separate jobs &mdash; don&rsquo;t conflate them</h2>
+  <p class="body">There are two workstreams. This spec is <b>only the second one</b>.</p>
+  <ul class="body">
+    <li><b>Job A &mdash; data layer (mostly separate work).</b> Prepares and maps clean rows into the sheets: the classification logic, the transit-time lookup table, ship-by computation, the three-sheet joins, the timezone source per client. By the time the panel reads a row, these are <b>already done and sitting in the sheet as plain values.</b></li>
+    <li><b>Job B &mdash; this panel (your build).</b> Reads the prepared rows and renders them. The panel does almost no computation. The only true panel-side transforms are <b>timezone display formatting</b> and <b>quantity + unit concatenation</b>. Everything else is bind-as-is or a conditional render rule.</li>
+  </ul>
+  <div class="callout co-info">Assume the data layer hands you clean, pre-computed rows. If a value you need isn&rsquo;t in the sheet yet (e.g. tracking, classification), that&rsquo;s a Job A gap &mdash; flag it, don&rsquo;t try to compute it inside the panel.</div>
+
+  <h2>2. Readiness legend</h2>
+  <div class="legend"><table>
+    <tr><td><span class="cat c1">CAT 1</span></td><td><b>Exists in the sheet, bind as-is.</b> Most fields.</td></tr>
+    <tr><td><span class="cat c2">CAT 2</span></td><td><b>Panel-side transform.</b> Only two: timezone display, quantity+unit. Logic given below.</td></tr>
+    <tr><td><span class="cat c3">CAT 3</span></td><td><b>Captured in code, not yet written to the sheet.</b> Job A must add the column; ask Prabhas which n8n node parses it.</td></tr>
+    <tr><td><span class="cat c4">CAT 4</span></td><td><b>Net-new, Prabhas-defined.</b> Don&rsquo;t build the logic; build around it.</td></tr>
+  </table></div>
+
+  <h2>3. The sheets and the join</h2>
+  <p class="body">Three sheets, tab-separated. They join on the line-item key <code>po_line_key</code> (format <code>C1_300656_1</code> = client_PO_lineitem). The supplier sheet joins via <code>supplier_code</code> / email key. Real sample rows:</p>
+  <pre>STATE sheet (state-machine):
+po_line_key   client  comms_group  po_number  supplier_code  supplier_name      po_line_item  material_code  material_name                       follow_up_stage  follow_up_status
+C1_300656_1   C1      G171         300656     S16            Personal Brushes   1             FCONS01106     Brush with Branding with Poly Bag   Stage3           Reminder1_Sent
+   ...plus per-stage fields: stage{n}_outreach_sent/_timestamp, stage{n}_reminder_mail{1-3}_sent/_timestamp,
+   stage{n}_reminder_call{1-3}_sent/_timestamp/_answered/_call_outcome, stage{n}_delivery_status_classification/_text,
+   stage{n}_supplier_raw_statement, stage{n}_5_* (window replies), needs_human_review
+
+PO sheet (order master):
+po_line_key   po_number  supplier_code  material_code  material_name   quantity     unit_of_measure  issue_date  deliver_by_date_delivery_1  ship_by_date_delivery_1  delivery_location  po_status
+C1_300656_1   300656     S16            FCONS01106     Brush...        1,186,711    (blank)          6/11/2026   6/20/2026                   2026-06-16               Dagshai, HP        Open
+
+SUPPLIER sheet (supplier master, joins on supplier_code):
+supplier_code  supplier_name_full   supplier_name      primary_contact_names  primary_emails                          primary_phones  transit_time_days  supplier_source_location  working_days
+S16            Personal Brushes...  Personal Brushes   Paresh Shrivastava     paresh.shrivastava@personalbrushes.com  (blank)         (blank)            (blank)                   Mon-Sat</pre>
+
+  <h2>4. The classification system (drives pills, tags, routing, escalation)</h2>
+  <p class="body"><span class="cat c4" style="margin:0 2px;">CAT 4</span> The logic that turns a reply into one of these six values is Prabhas-defined. Once defined it outputs exactly one value; everything below keys off it.</p>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Classification</th><th>Pill</th><th>Dashboard view</th><th>Escalation?</th><th>Meaning</th></tr>
+    <tr><td class="cond">On time</td><td><span class="pillp p-ontime">On time</span></td><td>On track</td><td>No</td><td>Confirmed on/before agreed date</td></tr>
+    <tr><td class="cond">On time &middot; TBC</td><td><span class="pillp p-tbc">On time &middot; TBC</span></td><td>On track</td><td>No</td><td>Confirmed on time but no date, or soft/warning confirmation</td></tr>
+    <tr><td class="cond">At risk</td><td><span class="pillp p-risk">At risk</span></td><td>Needs attention</td><td>Yes</td><td>Possible slip, not yet confirmed delay</td></tr>
+    <tr><td class="cond">Delayed</td><td><span class="pillp p-delayed">Delayed</span></td><td>Needs attention</td><td>Yes</td><td>Confirmed past date, or hard blocker (payment, price dispute)</td></tr>
+    <tr><td class="cond">Needs review</td><td><span class="pillp p-review">Needs review</span></td><td>Needs attention</td><td>Yes</td><td>Ambiguous/partial reply incl. <b>partial dispatch</b> (some qty shipped, balance out)</td></tr>
+    <tr><td class="cond">Awaiting reply</td><td><span class="pillp p-await">Awaiting reply</span></td><td>Awaiting reply</td><td>No</td><td>No substantive reply yet, within window</td></tr>
+  </table></div>
+  <div class="callout co-warn"><b>&ldquo;Needs review&rdquo; is new.</b> Today Needs attention only has Delayed + At risk. Add &ldquo;Needs review&rdquo; (purple) as the third. Partial dispatch routes here until proper handling is built.</div>
+
+  <h2>5. Pinned summary &mdash; mapping</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>UI label</th><th>Variable</th><th>Sheet</th><th>Cat</th><th>Note</th></tr>
+    <tr><td class="lab">PO number</td><td class="var">po_number</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>&ldquo;PO# 300656&rdquo;</td></tr>
+    <tr><td class="lab">Line item</td><td class="var">po_line_item</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>&ldquo;line item 1&rdquo;</td></tr>
+    <tr><td class="lab">Supplier name</td><td class="var">supplier_name</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>Separate field here</td></tr>
+    <tr><td class="lab">Supplier code</td><td class="var">supplier_code</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Material code</td><td class="var">material_code</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Material name</td><td class="var">material_name</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Quantity</td><td class="var">quantity + unit_of_measure</td><td class="sheet">po</td><td><span class="cat c2">2</span></td><td><b>Transform:</b> show &ldquo;{quantity} {unit}&rdquo;. If unit is blank, show just the number. e.g. 1,186,711</td></tr>
+    <tr><td class="lab">PO status</td><td class="var">po_status</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>Open / Closed</td></tr>
+    <tr><td class="lab">Status pill</td><td class="var">delivery_status_classification</td><td class="sheet">state</td><td><span class="cat c4">4</span></td><td>Maps via section 4 to one of six pills</td></tr>
+    <tr><td class="lab">Delivery status sentence</td><td class="var">delivery_status_text</td><td class="sheet">state</td><td><span class="cat c1">1</span></td><td>Latest classified text</td></tr>
+  </table></div>
+
+  <h2>6. Communication trail &mdash; mapping</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>UI element</th><th>Variable</th><th>Sheet</th><th>Cat</th><th>Note</th></tr>
+    <tr><td class="lab">PO issued (anchor)</td><td class="var">issue_date</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>Top anchor, above first stage</td></tr>
+    <tr><td class="lab">Stage headers</td><td class="var">(fixed)</td><td class="sheet">&ndash;</td><td><span class="cat c1">1</span></td><td>1=PO confirmation, 2=Order progress, 3=Dispatch</td></tr>
+    <tr><td class="lab">Email sent</td><td class="var">stage{n}_outreach_sent/_timestamp; stage{n}_reminder_mail{1-3}_sent/_timestamp</td><td class="sheet">state</td><td><span class="cat c1">1</span></td><td>One milestone per email that fired. Badge: Email</td></tr>
+    <tr><td class="lab">Call placed</td><td class="var">stage{n}_reminder_call{1-3}_sent/_timestamp/_answered/_call_outcome</td><td class="sheet">state</td><td><span class="cat c1">1</span></td><td>One milestone per call. Badge: Call</td></tr>
+    <tr><td class="lab">Timestamps</td><td class="var">..._timestamp</td><td class="sheet">state</td><td><span class="cat c2">2</span></td><td><b>Transform:</b> stored UTC &rarr; display in client tz. Format &ldquo;14 Jun 2026 &middot; 4:38 PM IST&rdquo;. IST = UTC+5:30. <b>Demo: EST = UTC&minus;5/&minus;4.</b> Client tz set by Prabhas at onboarding</td></tr>
+    <tr><td class="lab">Reply classification tag</td><td class="var">stage{n}_delivery_status_classification (+ _5_)</td><td class="sheet">state</td><td><span class="cat c4">4</span></td><td>Small dot+word in reply box</td></tr>
+    <tr><td class="lab">Reply status (short)</td><td class="var">stage{n}_delivery_status_text (+ _5_)</td><td class="sheet">state</td><td><span class="cat c1">1</span></td><td>Prominent line</td></tr>
+    <tr><td class="lab">Reply response (long)</td><td class="var">stage{n}_supplier_raw_statement (+ _5_)</td><td class="sheet">state</td><td><span class="cat c1">1</span></td><td>Quieter, indented. Label &ldquo;Supplier&rsquo;s response&rdquo;</td></tr>
+    <tr><td class="lab">Flagged for buyer review</td><td class="var">needs_human_review</td><td class="sheet">state</td><td><span class="cat c1">1</span></td><td>Conditional, section 9</td></tr>
+    <tr><td class="lab">Shipment dispatched (terminal)</td><td class="var">dispatch confirmation + tracking</td><td class="sheet">state</td><td><span class="cat c3">3</span></td><td>On track only. Section 10</td></tr>
+    <tr><td class="lab">Next touch point</td><td class="var">follow_up_stage + follow_up_status + bands</td><td class="sheet">state</td><td><span class="cat c4">4</span></td><td>Computed by Job A. Grey dot. Section 11</td></tr>
+  </table></div>
+
+  <h2>7. The trail render loop (follow these steps in order)</h2>
+  <ol class="body">
+    <li>Read the row for this <code>po_line_key</code> (joined across the three sheets).</li>
+    <li>Place <b>PO issued</b> at the top (issue_date).</li>
+    <li>For each stage in order 1, 2, 3: if <b>any</b> milestone in that stage fired, draw the stage header (PO confirmation / Order progress / Dispatch). If the stage never started, skip it entirely.</li>
+    <li>Within a stage, gather every fired email send, every fired call, and every reply (including the stage&rsquo;s <code>_5_</code> window reply). Sort by timestamp.</li>
+    <li>Render each milestone: email send (with &ldquo;No reply received&rdquo; if none), or call (reply nested inside if answered), or a standalone &ldquo;Supplier reply received&rdquo; for an unprompted <code>_5_</code> window reply.</li>
+    <li>After any reply, check its classification: if Delayed / At risk / Needs review, append a <b>Flagged for buyer review</b> milestone. If On time / On time-TBC, don&rsquo;t.</li>
+    <li>After the last stage: if the line is terminal (escalated with no next step, dispatched, or PO closed) render <b>no</b> next touch point. Otherwise render the <b>Next touch point</b> (grey dot).</li>
+  </ol>
+
+  <h2>8. CONDITIONAL: reply rendering (by channel)</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Condition</th><th>Render rule</th></tr>
+    <tr><td class="cond">Reply by email</td><td>Separate milestone from the prompting email. Show send, then &ldquo;Supplier replied &middot; [time]&rdquo;, then reply box</td></tr>
+    <tr><td class="cond">Reply by call</td><td>Nested inside the call milestone. &ldquo;...call placed&rdquo; + &ldquo;Supplier responded on the call&rdquo; + reply box</td></tr>
+    <tr><td class="cond">Unprompted reply (1.5 / 2.5 window)</td><td>Standalone &ldquo;Supplier reply received&rdquo; milestone, under the header of the stage it followed (1.5&rarr;PO confirmation, 2.5&rarr;Order progress). Window number never shown</td></tr>
+    <tr><td class="cond">Two replies in one stage</td><td>Both render as separate milestones in time order. Keep both. Differing tags show the trajectory</td></tr>
+    <tr><td class="cond">Every reply, regardless of channel</td><td>Shows the same three things: classification tag, short status, long response</td></tr>
+  </table></div>
+
+  <h2>9. CONDITIONAL: escalation milestone</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Classification of the reply above</th><th>Render rule</th></tr>
+    <tr><td class="cond">Delayed / At risk / Needs review</td><td>Render &ldquo;Flagged for buyer review&rdquo; (Escalated badge) right after. Plain, no reason text</td></tr>
+    <tr><td class="cond">On time / On time-TBC</td><td>No escalation milestone</td></tr>
+    <tr><td class="cond">Escalated + all follow-ups exhausted</td><td>Escalation is the <b>terminal</b> milestone. No next touch point after it</td></tr>
+  </table></div>
+  <div class="callout co-warn"><b>Resolution capture is a known gap.</b> Trail ends at &ldquo;Flagged for buyer review.&rdquo; How the buyer&rsquo;s resolution gets captured isn&rsquo;t built. Don&rsquo;t build it; leave the flag as the end of that branch.</div>
+
+  <h2>10. CONDITIONAL: dispatch + tracking (On track)</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Condition</th><th>Render rule</th></tr>
+    <tr><td class="cond">Dispatch confirmed</td><td>Render &ldquo;Shipment dispatched&rdquo; terminal milestone in Dispatch stage, with timestamp + tracking note</td></tr>
+    <tr><td class="cond">Carrier AND number present</td><td>Tracking = <b>captured</b>. Show both in Other order details</td></tr>
+    <tr><td class="cond">Only one present</td><td>Tracking = <b>partial</b>. Show the present one, dash the missing. Note &ldquo;tracking partial&rdquo;</td></tr>
+    <tr><td class="cond">Neither present</td><td>Tracking = <b>not captured</b>. Both dash. No tracking note</td></tr>
+    <tr><td class="cond">Partially dispatched (qty shipped + balance out)</td><td>Not On track. Classify <b>Needs review</b> &rarr; Needs attention</td></tr>
+  </table></div>
+  <div class="callout co-warn"><b>Tracking carrier + number are <span class="cat c3" style="margin:0 2px;">CAT 3</span></b> &mdash; parsed in code but not written to the sheet yet, no column names exist. <b>Ask Prabhas which n8n node parses the carrier/number</b> so Job A can add the columns.</div>
+
+  <h2>11. CONDITIONAL: next touch point</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Condition</th><th>Render rule</th></tr>
+    <tr><td class="cond">Active with a computable next step</td><td>Render &ldquo;Next touch point&rdquo; (grey dot) + next action + date</td></tr>
+    <tr><td class="cond">Escalated, follow-ups exhausted</td><td>No next touch point (escalation terminal)</td></tr>
+    <tr><td class="cond">Dispatched / resolved</td><td>No next touch point (dispatch terminal)</td></tr>
+    <tr><td class="cond">PO closed</td><td>No next touch point</td></tr>
+  </table></div>
+  <div class="callout co-warn"><b><span class="cat c4" style="margin:0 2px;">CAT 4</span> The next-step computation is Job A.</b> Derived from stage + status + bands table. The panel just displays whatever Job A computes. Algorithm to be defined by Prabhas.</div>
+
+  <h2>12. Other order details &mdash; mapping</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>UI label</th><th>Variable</th><th>Sheet</th><th>Cat</th><th>Note</th></tr>
+    <tr><td class="lab">PO issue date</td><td class="var">issue_date</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Deliver-by date</td><td class="var">deliver_by_date_delivery_1</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Ship-by date</td><td class="var">ship_by_date_delivery_1</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>Pre-computed by Job A (deliver-by minus transit). Bind as-is</td></tr>
+    <tr><td class="lab">Delivery location</td><td class="var">delivery_location</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Transit time (days)</td><td class="var">transit_time_days</td><td class="sheet">supplier</td><td><span class="cat c1">1</span></td><td>Pre-populated by Job A (origin-state lookup table). Bind as-is. If blank, show dash</td></tr>
+    <tr><td class="lab">Tracking carrier</td><td class="var">(no column yet)</td><td class="sheet">&ndash;</td><td><span class="cat c3">3</span></td><td>On track only. States in section 10</td></tr>
+    <tr><td class="lab">Tracking number</td><td class="var">(no column yet)</td><td class="sheet">&ndash;</td><td><span class="cat c3">3</span></td><td>On track only. States in section 10</td></tr>
+  </table></div>
+  <p class="body">Removed (internal/unused): ship-by days + band, communicated delivery date, production date, quantity delivered, actual delivery date, fulfilment status, variance.</p>
+
+  <h2>13. Supplier details &mdash; mapping</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>UI label</th><th>Variable</th><th>Sheet</th><th>Cat</th><th>Note</th></tr>
+    <tr><td class="lab">Contact name</td><td class="var">primary_contact_names</td><td class="sheet">supplier</td><td><span class="cat c1">1</span></td><td>If blank, show dash</td></tr>
+    <tr><td class="lab">Email</td><td class="var">primary_emails</td><td class="sheet">supplier</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Phone</td><td class="var">primary_phones</td><td class="sheet">supplier</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Source location</td><td class="var">supplier_source_location</td><td class="sheet">supplier</td><td><span class="cat c1">1</span></td><td></td></tr>
+    <tr><td class="lab">Working days</td><td class="var">working_days</td><td class="sheet">supplier</td><td><span class="cat c1">1</span></td><td></td></tr>
+  </table></div>
+  <p class="body">Dropped: supplier_name_full, supplier_code (in summary), transit_time_days (moved to Other order details), all inactive supplier variables.</p>
+
+  <h2>14. Global display conventions</h2>
+  <ul class="body">
+    <li><b>Empty = dash (&ndash;)</b>, same color as filled values. Never &ldquo;not recorded&rdquo;/blank. Exception: timeline never renders not-fired events.</li>
+    <li><b>Partial value</b> (e.g. one tracking field): show what&rsquo;s present, dash the missing. Don&rsquo;t hide the whole element.</li>
+    <li><b>Customer-facing labels only.</b> Variable names never appear in the UI.</li>
+    <li><b>Dots green</b> for events that happened; Next touch point dot grey. Channel shown by badge, not dot color.</li>
+    <li><b>Status color</b> (red/gold/green/purple) only in pills and reply tags, never as a box background.</li>
+    <li><b>Font hierarchy:</b> milestone titles largest in the trail; dates/secondary clearly smaller.</li>
+  </ul>
+
+  <h2>15. Worked example (real row &rarr; rendered panel)</h2>
+  <div class="worked">
+    <div class="wh">INPUT: po_line_key C1_300656_1 (Delayed example)</div>
+    <div class="wb">
+      <b>From PO sheet:</b> po_number 300656, line 1, supplier_code S16, material FCONS01106 &ldquo;Brush with Branding with Poly Bag&rdquo;, quantity 1,186,711, unit blank, issue 6/11/2026, deliver-by 6/20/2026, ship-by 2026-06-16, location Dagshai HP, status Open.<br>
+      <b>From supplier sheet (join S16):</b> contact Paresh Shrivastava, email paresh.shrivastava@personalbrushes.com, phone blank, transit blank, source blank, working days Mon-Sat.<br>
+      <b>From state sheet:</b> follow_up_stage Stage3, status Reminder1_Sent, plus the fired stage milestones and their timestamps, classification + text + raw statement on each reply, needs_human_review = Yes on the delayed reply.
+    </div>
+  </div>
+  <div class="worked">
+    <div class="wh">OUTPUT: rendered panel</div>
+    <div class="wb">
+      <b>Summary:</b> &ldquo;PO# 300656 &middot; line item 1&rdquo;; fields Personal Brushes / S16 / FCONS01106 / Brush... / <b>1,186,711</b> (unit blank &rarr; number only) / Open; pill <span class="pillp p-delayed">Delayed</span>; sentence from delivery_status_text.<br>
+      <b>Trail:</b> PO issued 11 Jun. Stage headers for every stage that fired. Emails and calls as milestones in time order; replies with tag + short + long; a &ldquo;Flagged for buyer review&rdquo; after the Delayed reply; ends with Next touch point (grey) since not yet terminal.<br>
+      <b>Other order details:</b> dates bound as-is; transit blank &rarr; dash; tracking dashes (not dispatched).<br>
+      <b>Supplier details:</b> contact + email shown; phone / source dash; working days Mon-Sat.
+    </div>
+  </div>
+
+  <h2>16. Blocked on Prabhas (the only real unknowns)</h2>
+  <div class="callout co-block">
+    Everything else is fully specified. Build it all; get these four from Prabhas before wiring the logic they govern.
+    <ol style="margin:8px 0 0 18px;">
+      <li><b>Classification logic (CAT 4)</b> &mdash; turns a reply into one of six values. Biggest dependency: pills, tags, routing, escalation all key off it.</li>
+      <li><b>Next-touch-point algorithm (CAT 4, Job A)</b> &mdash; compute next action + date from stage + status + bands.</li>
+      <li><b>Timezone per client</b> &mdash; UTC stored; display target set at onboarding. Biotique IST; EST for US demo.</li>
+      <li><b>Tracking node (CAT 3)</b> &mdash; which n8n node parses carrier + number, so Job A can persist them.</li>
+    </ol>
+  </div>
+  <div class="callout co-judge"><b>Judgment, not a blocker:</b> where the doc says &ldquo;use judgment&rdquo; (e.g. an unusual reply that doesn&rsquo;t fit a stage, a missing contact name), follow how the mocks and Prabhas&rsquo;s pattern handle it, make a reasonable call, note it, and move on. Ask Prabhas only when genuinely stuck.</div>
+
+  <div class="foot">Reference mocks: detail_delayed (full trail + escalation), detail_ontrack (dispatch + tracking states), detail_awaiting (chase, no reply). The dashboard four-view page is a separate spec.</div>
+
+</div>
+</body></html>

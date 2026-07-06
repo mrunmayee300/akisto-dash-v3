@@ -85,7 +85,11 @@ const supplierController = {
 
       // Map rows for the Reliability Table
       const suppliers = filteredSuppliers.map(s => {
-        const onTimeRate = parseFloat(s.on_time_rate || 0);
+        const rawOnTime = parseFloat(s.on_time_rate || 0);
+        const isWholeNumber = rawOnTime > 1.5;
+        const onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+        const escalatedRate = isWholeNumber ? (parseFloat(s.escalated_rate || 0) / 100) : parseFloat(s.escalated_rate || 0);
+
         let rateClass = 'good';
         if (onTimeRate < 0.6) {
           rateClass = 'bad';
@@ -101,7 +105,7 @@ const supplierController = {
           onTime: Math.round(onTimeRate * 100),
           avgDaysLate: parseFloat(s.avg_days_late || 0).toFixed(1),
           avgRespTime: parseFloat(s.avg_response_time_days || 0).toFixed(1) + ' d',
-          escalated: Math.round(parseFloat(s.escalated_rate || 0) * 100) + '%',
+          escalated: Math.round(escalatedRate * 100) + '%',
           flag: s.performance_flag || '',
           rateClass: rateClass
         };
@@ -161,10 +165,14 @@ const supplierController = {
       if (trendData.length === 0) {
         trendData = supplierMonthlyStatsRows
           .filter(row => normalize(row.client_code) === normalize(clientCode) && normalize(row.supplier_code) === 'GLOBAL')
-          .map(row => ({
-            month: formatMonth(row.month),
-            rate: Math.round(parseFloat(row.on_time_rate || 0) * 100)
-          }));
+          .map(row => {
+            const rawRate = parseFloat(row.on_time_rate || 0);
+            const rate = rawRate > 1.5 ? (rawRate / 100) : rawRate;
+            return {
+              month: formatMonth(row.month),
+              rate: Math.round(rate * 100)
+            };
+          });
       }
 
       trendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
@@ -258,7 +266,10 @@ const supplierController = {
         });
       }
 
-      const onTimeRate = parseFloat(foundSupplier.on_time_rate || 0);
+      const rawOnTime = parseFloat(foundSupplier.on_time_rate || 0);
+      const isWholeNumber = rawOnTime > 1.5;
+      const onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+      const escalatedRate = isWholeNumber ? (parseFloat(foundSupplier.escalated_rate || 0) / 100) : parseFloat(foundSupplier.escalated_rate || 0);
 
       const supplierMeta = {
         name: foundSupplier.supplier_name || foundSupplier.supplier_name_full || 'Unknown Supplier',
@@ -275,17 +286,21 @@ const supplierController = {
         onTimeRate: Math.round(onTimeRate * 100) + '%',
         avgDaysLate: parseFloat(foundSupplier.avg_days_late || 0).toFixed(1),
         avgRespTime: parseFloat(foundSupplier.avg_response_time_days || 0).toFixed(1) + ' d',
-        escalatedRate: Math.round(parseFloat(foundSupplier.escalated_rate || 0) * 100) + '%'
+        escalatedRate: Math.round(escalatedRate * 100) + '%'
       };
 
       // Trend Data for Selected Supplier
       const trendData = supplierMonthlyStatsRows
         .filter(row => normalize(row.client_code) === normalize(clientCode) && 
                        normalize(row.supplier_code) === normalize(supplierCode))
-        .map(row => ({
-          month: formatMonth(row.month),
-          rate: Math.round(parseFloat(row.on_time_rate || 0) * 100)
-        }));
+        .map(row => {
+          const rawRate = parseFloat(row.on_time_rate || 0);
+          const rate = rawRate > 1.5 ? (rawRate / 100) : rawRate;
+          return {
+            month: formatMonth(row.month),
+            rate: Math.round(rate * 100)
+          };
+        });
 
       trendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
 

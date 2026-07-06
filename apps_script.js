@@ -154,7 +154,11 @@ function doGet(e) {
       });
 
       var suppliers = filteredStats.map(function(s) {
-        var onTimeRate = parseFloat(s.on_time_rate || 0);
+        var rawOnTime = parseFloat(s.on_time_rate || 0);
+        var isWholeNumber = rawOnTime > 1.5;
+        var onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+        var escalatedRate = isWholeNumber ? (parseFloat(s.escalated_rate || 0) / 100) : parseFloat(s.escalated_rate || 0);
+
         var rateClass = onTimeRate < 0.6 ? 'bad' : (onTimeRate < 0.8 ? 'mid' : 'good');
         return {
           name: s.supplier_name || s.supplier_name_full || 'Unknown Supplier',
@@ -164,7 +168,7 @@ function doGet(e) {
           onTime: Math.round(onTimeRate * 100),
           avgDaysLate: parseFloat(s.avg_days_late || 0).toFixed(1),
           avgRespTime: parseFloat(s.avg_response_time_days || 0).toFixed(1) + ' d',
-          escalated: Math.round(parseFloat(s.escalated_rate || 0) * 100) + '%',
+          escalated: Math.round(escalatedRate * 100) + '%',
           flag: s.performance_flag || '',
           rateClass: rateClass
         };
@@ -200,9 +204,11 @@ function doGet(e) {
           return normalize(row.client_code) === normalize(clientCode) && normalize(row.supplier_code) === 'GLOBAL';
         })
         .map(function(row) {
+          var rawRate = parseFloat(row.on_time_rate || 0);
+          var rate = rawRate > 1.5 ? (rawRate / 100) : rawRate;
           return {
             month: formatMonth(row.month),
-            rate: Math.round(parseFloat(row.on_time_rate || 0) * 100)
+            rate: Math.round(rate * 100)
           };
         });
       trendData.sort(function(a, b) { return normalize(a.month).localeCompare(normalize(b.month)); });
@@ -273,12 +279,16 @@ function doGet(e) {
           .setMimeType(ContentService.MimeType.JSON);
       }
 
-      var onTimeRate = parseFloat(foundStats.on_time_rate || 0);
+      var rawOnTime = parseFloat(foundStats.on_time_rate || 0);
+      var isWholeNumber = rawOnTime > 1.5;
+      var onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+      var escalatedRate = isWholeNumber ? (parseFloat(foundStats.escalated_rate || 0) / 100) : parseFloat(foundStats.escalated_rate || 0);
+
       var kpis = {
         onTimeRate: Math.round(onTimeRate * 100) + '%',
         avgDaysLate: parseFloat(foundStats.avg_days_late || 0).toFixed(1),
         avgRespTime: parseFloat(foundStats.avg_response_time_days || 0).toFixed(1) + ' d',
-        escalatedRate: Math.round(parseFloat(foundStats.escalated_rate || 0) * 100) + '%'
+        escalatedRate: Math.round(escalatedRate * 100) + '%'
       };
 
       var formatMonth = function(monthVal) {
@@ -302,9 +312,11 @@ function doGet(e) {
           return normalize(row.client_code) === normalize(clientCode) && normalize(row.supplier_code) === normalize(supplierCode);
         })
         .map(function(row) {
+          var rawRate = parseFloat(row.on_time_rate || 0);
+          var rate = rawRate > 1.5 ? (rawRate / 100) : rawRate;
           return {
             month: formatMonth(row.month),
-            rate: Math.round(parseFloat(row.on_time_rate || 0) * 100)
+            rate: Math.round(rate * 100)
           };
         });
       trendData.sort(function(a, b) { return normalize(a.month).localeCompare(normalize(b.month)); });

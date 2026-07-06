@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Akisto Supplier Performance</title>
+<style>
+  :root{
+    --darkE:#0B3D2E;--emerald:#0E5C44;--accent:#127A5A;--bright:#1D9E75;--pale:#DDF0E7;
+    --gold:#C79A2E;--darkgold:#8A6516;--goldfill:#FBF4E2;
+    --red:#B23B2E;--redfill:#F7E7E3;--purple:#6B3FA0;--purplefill:#F1E9F5;
+    --body:#2C2C2A;--muted:#6B6F73;--line:#E7EAE8;--canvas:#EEF1EF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Aptos','Segoe UI',-apple-system,sans-serif;background:var(--canvas);color:var(--body);padding:30px;}
+  .app{width:1360px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--line);}
+  .brand{display:flex;align-items:center;gap:13px;}
+  .logo{font-size:23px;font-weight:800;color:var(--emerald);letter-spacing:-0.5px;}
+  .logo .dot{color:var(--gold);}
+  .plabel{font-size:14.5px;color:var(--muted);font-weight:600;border-left:1px solid var(--line);padding-left:13px;}
+  .meta{text-align:right;}
+  .meta .who{font-size:15px;font-weight:700;color:var(--body);}
+  .meta .day{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  .section{padding:22px 28px 6px;}
+  .section h2{font-size:16px;font-weight:800;color:var(--emerald);}
+  .section .sub{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;padding:16px 28px 6px;}
+  .kpi{border:1px solid var(--line);border-radius:11px;padding:14px 16px;}
+  .kpi .lab{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+  .kpi .num{font-size:31px;font-weight:800;color:var(--body);margin-top:4px;letter-spacing:-1px;}
+  .kpi .delta{font-size:12.5px;font-weight:700;margin-top:2px;}
+  .kpi .delta.up{color:var(--accent);}.kpi .delta.down{color:var(--red);}
+  .kpi .delta.flat{color:var(--muted);}
+
+  .chartwrap{padding:8px 28px 12px;}
+  .card{border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+  .card .ct{font-size:14px;font-weight:800;color:var(--body);margin-bottom:2px;}
+  .card .cs{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+  svg{display:block;width:100%;overflow:visible;}
+  .axlab{font-size:10.5px;fill:var(--muted);}
+  .gridline{stroke:#EEF1EF;stroke-width:1;}
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);font-weight:700;text-align:left;padding:10px 28px;border-bottom:1px solid var(--line);}
+  thead th.r{text-align:right;}
+  tbody td{padding:13px 28px;border-bottom:1px solid #F2F4F2;font-size:14px;vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr.click{cursor:pointer;}
+  tbody tr.click:hover{background:#FAFBFA;}
+  .sup{font-weight:700;color:var(--body);}
+  .sup .code{color:var(--muted);font-weight:600;font-size:12.5px;}
+  .num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;}
+  .rate{display:inline-flex;align-items:center;gap:8px;justify-content:flex-end;}
+  .ratebar{width:54px;height:7px;border-radius:4px;background:#EEF1EF;overflow:hidden;}
+  .ratebar i{display:block;height:100%;border-radius:4px;}
+  .rate.good i{background:var(--bright);}.rate.mid i{background:var(--gold);}.rate.bad i{background:var(--red);}
+  .rate .pct{min-width:38px;text-align:right;}
+  .flag{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.4px;}
+  .f-watch{background:var(--redfill);color:var(--red);}
+  .f-review{background:var(--goldfill);color:var(--darkgold);}
+  .seemore{padding:13px 28px 4px;font-size:13px;color:var(--accent);font-weight:700;}
+
+  .delaywrap{padding:8px 28px 18px;}
+  .delaywrap .card{border:none;border-radius:0;padding:0;}
+  .splitsummary{font-size:13px;color:var(--body);font-weight:600;margin-bottom:14px;}
+  .splitsummary b{font-weight:800;}
+  .splitsummary .si{color:var(--accent);}
+  .splitsummary .sb{color:var(--darkgold);}
+  .reasons{display:flex;flex-direction:column;gap:12px;}
+  .rrow{display:flex;align-items:center;gap:14px;}
+  .rrow .rn{font-size:13px;color:var(--body);font-weight:600;width:210px;flex-shrink:0;display:flex;align-items:center;gap:8px;}
+  .rrow .rn .src{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+  .src-sup{background:var(--accent);}.src-int{background:var(--gold);}
+  .rrow .rb{flex:1;height:20px;background:#EEF1EF;border-radius:5px;overflow:hidden;}
+  .rrow .rb i{display:block;height:100%;border-radius:5px;}
+  .rrow .rb i.sup{background:var(--accent);}.rrow .rb i.int{background:var(--gold);}
+  .rrow .rv{font-size:12.5px;font-weight:800;color:var(--body);width:34px;text-align:right;}
+  .legend2{display:flex;gap:18px;margin-top:16px;font-size:12px;color:var(--muted);}
+  .legend2 span{display:inline-flex;align-items:center;gap:6px;}
+  .legend2 .sw{width:11px;height:11px;border-radius:3px;}
+</style></head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <span class="logo">akisto<span class="dot">.</span></span>
+      <span class="plabel">Supplier performance</span>
+    </div>
+    <div class="meta">
+      <div class="who">Dan Whitaker &middot; Senior Buyer</div>
+      <div class="day">Trailing 6 months &middot; to 18 Jun 2026</div>
+    </div>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lab">On-time rate</div><div class="num">78%</div><div class="delta up">&#9650; 6 pts vs prior 6 mo</div></div>
+    <div class="kpi"><div class="lab">Escalated to buyer</div><div class="num">14%</div><div class="delta down">&#9660; 3 pts vs prior 6 mo</div></div>
+    <div class="kpi"><div class="lab">PO lines tracked</div><div class="num">9,840</div><div class="delta flat">across 112 suppliers</div></div>
+  </div>
+
+  <div class="chartwrap">
+    <div class="card">
+      <div class="ct">On-time delivery rate over time</div>
+      <div class="cs">Share of PO lines delivered on or before the agreed date, by month, across all suppliers</div>
+      <svg viewBox="0 0 900 240" preserveAspectRatio="none" height="240">
+        <line class="gridline" x1="40" y1="20" x2="900" y2="20"/>
+        <line class="gridline" x1="40" y1="70" x2="900" y2="70"/>
+        <line class="gridline" x1="40" y1="120" x2="900" y2="120"/>
+        <line class="gridline" x1="40" y1="170" x2="900" y2="170"/>
+        <line class="gridline" x1="40" y1="220" x2="900" y2="220"/>
+        <text class="axlab" x="0" y="24">100%</text>
+        <text class="axlab" x="6" y="74">85%</text>
+        <text class="axlab" x="6" y="124">70%</text>
+        <text class="axlab" x="6" y="174">55%</text>
+        <text class="axlab" x="6" y="224">40%</text>
+        <polyline fill="none" stroke="#1D9E75" stroke-width="3"
+          points="120,127 264,117 408,120 552,107 696,100 840,93"/>
+        <polygon fill="#1D9E75" opacity="0.08"
+          points="120,127 264,117 408,120 552,107 696,100 840,93 840,220 120,220"/>
+        <circle cx="120" cy="127" r="4" fill="#0E5C44"/>
+        <circle cx="264" cy="117" r="4" fill="#0E5C44"/>
+        <circle cx="408" cy="120" r="4" fill="#0E5C44"/>
+        <circle cx="552" cy="107" r="4" fill="#0E5C44"/>
+        <circle cx="696" cy="100" r="4" fill="#0E5C44"/>
+        <circle cx="840" cy="93" r="5" fill="#C79A2E"/>
+        <text class="axlab" x="108" y="236">Jan</text>
+        <text class="axlab" x="252" y="236">Feb</text>
+        <text class="axlab" x="396" y="236">Mar</text>
+        <text class="axlab" x="540" y="236">Apr</text>
+        <text class="axlab" x="684" y="236">May</text>
+        <text class="axlab" x="828" y="236">Jun</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="section"><h2>Supplier reliability</h2><div class="sub">Ranked by on-time rate over the trailing 6 months, strongest first. Click a supplier for their full history.</div></div>
+  <table>
+    <thead>
+      <tr>
+        <th>Supplier</th>
+        <th class="r">PO lines ordered</th>
+        <th class="r">On-time rate</th>
+        <th class="r">Avg days late</th>
+        <th class="r">Avg response time</th>
+        <th class="r">Escalated</th>
+        <th>Flag</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="click">
+        <td class="sup">Green Elements <span class="code">S20 &middot; brushware</span></td>
+        <td class="num">96</td>
+        <td><span class="rate good"><span class="ratebar"><i style="width:92%"></i></span><span class="pct">92%</span></span></td>
+        <td class="num">0.8</td><td class="num">0.9 d</td><td class="num">4%</td><td></td>
+      </tr>
+      <tr class="click">
+        <td class="sup">Summit Foils <span class="code">S14 &middot; foils</span></td>
+        <td class="num">128</td>
+        <td><span class="rate good"><span class="ratebar"><i style="width:88%"></i></span><span class="pct">88%</span></span></td>
+        <td class="num">1.2</td><td class="num">1.1 d</td><td class="num">6%</td><td></td>
+      </tr>
+      <tr class="click">
+        <td class="sup">Pace Labels <span class="code">S22 &middot; labels</span></td>
+        <td class="num">148</td>
+        <td><span class="rate mid"><span class="ratebar"><i style="width:81%"></i></span><span class="pct">81%</span></span></td>
+        <td class="num">1.9</td><td class="num">1.4 d</td><td class="num">9%</td><td></td>
+      </tr>
+      <tr class="click">
+        <td class="sup">Apex Packaging <span class="code">S09 &middot; packaging</span></td>
+        <td class="num">204</td>
+        <td><span class="rate mid"><span class="ratebar"><i style="width:74%"></i></span><span class="pct">74%</span></span></td>
+        <td class="num">2.8</td><td class="num">1.9 d</td><td class="num">12%</td><td><span class="flag f-review">Review</span></td>
+      </tr>
+      <tr class="click">
+        <td class="sup">Meridian Steel <span class="code">S31 &middot; metals</span></td>
+        <td class="num">87</td>
+        <td><span class="rate bad"><span class="ratebar"><i style="width:61%"></i></span><span class="pct">61%</span></span></td>
+        <td class="num">4.4</td><td class="num">2.6 d</td><td class="num">18%</td><td><span class="flag f-watch">Watch</span></td>
+      </tr>
+      <tr class="click">
+        <td class="sup">Gulf Chem <span class="code">S17 &middot; chemicals</span></td>
+        <td class="num">177</td>
+        <td><span class="rate bad"><span class="ratebar"><i style="width:54%"></i></span><span class="pct">54%</span></span></td>
+        <td class="num">6.2</td><td class="num">3.1 d</td><td class="num">21%</td><td><span class="flag f-watch">Watch</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="seemore">Showing 6 of 112 suppliers &middot; click any supplier, or view all</div>
+
+  <div class="section"><h2>Delay analysis</h2><div class="sub">Root cause of every delayed PO line over the trailing 6 months, by where the delay originated</div></div>
+  <div class="delaywrap">
+    <div class="card">
+      <div class="splitsummary">Of all delays, <b class="sb">31% originated internally</b> (payment, approvals) and <b class="si">69% on the supplier side</b>.</div>
+      <div class="reasons">
+        <div class="rrow"><span class="rn"><span class="src src-int"></span>Payment / invoice hold</span><span class="rb"><i class="int" style="width:19%"></i></span><span class="rv">19%</span></div>
+        <div class="rrow"><span class="rn"><span class="src src-int"></span>Awaiting revised PO or approval</span><span class="rb"><i class="int" style="width:12%"></i></span><span class="rv">12%</span></div>
+        <div class="rrow"><span class="rn"><span class="src src-sup"></span>Raw material shortage</span><span class="rb"><i class="sup" style="width:24%"></i></span><span class="rv">24%</span></div>
+        <div class="rrow"><span class="rn"><span class="src src-sup"></span>Production / capacity</span><span class="rb"><i class="sup" style="width:18%"></i></span><span class="rv">18%</span></div>
+        <div class="rrow"><span class="rn"><span class="src src-sup"></span>Price dispute</span><span class="rb"><i class="sup" style="width:12%"></i></span><span class="rv">12%</span></div>
+        <div class="rrow"><span class="rn"><span class="src src-sup"></span>Logistics / transit</span><span class="rb"><i class="sup" style="width:7%"></i></span><span class="rv">7%</span></div>
+      </div>
+      <div class="legend2">
+        <span><span class="sw" style="background:var(--gold)"></span>Internal</span>
+        <span><span class="sw" style="background:var(--accent)"></span>Supplier</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body></html>
