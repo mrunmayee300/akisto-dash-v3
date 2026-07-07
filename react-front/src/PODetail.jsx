@@ -29,14 +29,81 @@ function TrailComponent({ data }) {
       </div>
 
       {stages.map(stageName => {
-        const hasEvents = comm[`${stageName}_outreach_timestamp`] ||
-                          comm[`${stageName}_reminder_mail1_timestamp`] ||
-                          comm[`${stageName}_reminder_mail2_timestamp`] ||
-                          comm[`${stageName}_reminder_mail3_timestamp`] ||
-                          comm[`${stageName}_reply_timestamp`] ||
-                          comm[`${stageName}_internal_escalation_timestamp`];
+        // Collect all events for this stage
+        const stageEvents = [];
 
-        if (!hasEvents) return null;
+        if (comm[`${stageName}_outreach_timestamp`]) {
+          stageEvents.push({
+            type: 'outreach',
+            timestamp: comm[`${stageName}_outreach_timestamp`],
+            title: 'Initial check-in email sent',
+            channel: 'Email'
+          });
+        }
+
+        [1, 2, 3].forEach(i => {
+          const mailKey = `${stageName}_reminder_mail${i}_timestamp`;
+          if (comm[mailKey]) {
+            const label = i === 1 ? 'First' : i === 2 ? 'Second' : 'Third';
+            stageEvents.push({
+              type: 'reminder_email',
+              index: i,
+              timestamp: comm[mailKey],
+              title: `${label} reminder email sent`,
+              channel: 'Email'
+            });
+          }
+        });
+
+        [1, 2, 3].forEach(i => {
+          const callKey = `${stageName}_reminder_call${i}_timestamp`;
+          if (comm[callKey]) {
+            const label = i === 1 ? 'First' : i === 2 ? 'Second' : 'Third';
+            const answered = comm[`${stageName}_reminder_call${i}_answered`];
+            const outcome = comm[`${stageName}_reminder_call${i}_call_outcome`];
+            const isAnswered = answered === 'Yes';
+            stageEvents.push({
+              type: 'reminder_call',
+              index: i,
+              timestamp: comm[callKey],
+              title: `${label} reminder call placed`,
+              channel: 'Call',
+              answered: answered,
+              outcome: outcome,
+              classification: comm[`${stageName}_reminder_call${i}_delivery_status_classification`],
+              statusText: comm[`${stageName}_reminder_call${i}_delivery_status_text`],
+              statement: comm[`${stageName}_reminder_call${i}_supplier_raw_statement`]
+            });
+          }
+        });
+
+        const replyMode = (comm[`${stageName}_mode_of_reply_received`] || '').toLowerCase();
+        if (comm[`${stageName}_reply_timestamp`] && replyMode !== 'call') {
+          stageEvents.push({
+            type: 'reply',
+            timestamp: comm[`${stageName}_reply_timestamp`],
+            title: 'Supplier reply received',
+            channel: 'Email',
+            classification: comm[`${stageName}_delivery_status_classification`],
+            statusText: comm[`${stageName}_delivery_status_text`],
+            statement: comm[`${stageName}_supplier_raw_statement`]
+          });
+        }
+
+        if (comm[`${stageName}_internal_escalation_sent`] === 'Yes' || comm[`${stageName}_internal_escalation_timestamp`]) {
+          const escTs = comm[`${stageName}_internal_escalation_timestamp`] || comm[`${stageName}_reply_timestamp`] || '--';
+          stageEvents.push({
+            type: 'escalation',
+            timestamp: escTs,
+            title: 'Flagged for buyer review',
+            channel: 'Escalated'
+          });
+        }
+
+        if (stageEvents.length === 0) return null;
+
+        // Sort events within the stage chronologically
+        stageEvents.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
         return (
           <React.Fragment key={stageName}>
@@ -45,97 +112,131 @@ function TrailComponent({ data }) {
               <span className="flex-1 h-[1px] bg-line"></span>
             </div>
             <div className="flex flex-col pl-[2px]">
-              {comm[`${stageName}_outreach_timestamp`] && (
-                <div className="flex gap-[13px] pb-[22px] relative group">
-                  <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
-                  <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
-                  <div className="flex-1">
-                    <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
-                      Initial check-in email sent <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-[#EAF3EF] text-accent">Email</span>
-                    </div>
-                    <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(comm[`${stageName}_outreach_timestamp`])}</div>
-                    {!comm[`${stageName}_reply_timestamp`] && <div className="text-[12px] text-muted italic mt-[5px]">No reply received</div>}
-                  </div>
-                </div>
-              )}
-
-              {[1, 2, 3].map(i => {
-                const key = `${stageName}_reminder_mail${i}_timestamp`;
-                const label = i === 1 ? 'First' : i === 2 ? 'Second' : 'Third';
-                return comm[key] && (
-                  <div className="flex gap-[13px] pb-[22px] relative group" key={key}>
-                    <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
-                    <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
-                    <div className="flex-1">
-                      <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
-                        {label} reminder email sent <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-[#EAF3EF] text-accent">Email</span>
+              {stageEvents.map((event, idx) => {
+                if (event.type === 'outreach') {
+                  return (
+                    <div className="flex gap-[13px] pb-[22px] relative group" key="outreach">
+                      <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
+                      <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
+                      <div className="flex-1">
+                        <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
+                          Initial check-in email sent <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-[#EAF3EF] text-accent">Email</span>
+                        </div>
+                        <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(event.timestamp)}</div>
+                        {!comm[`${stageName}_reply_timestamp`] && <div className="text-[12px] text-muted italic mt-[5px]">No reply received</div>}
                       </div>
-                      <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(comm[key])}</div>
-                      {!comm[`${stageName}_reply_timestamp`] && <div className="text-[12px] text-muted italic mt-[5px]">No reply received</div>}
                     </div>
-                  </div>
-                );
+                  );
+                }
+
+                if (event.type === 'reminder_email') {
+                  return (
+                    <div className="flex gap-[13px] pb-[22px] relative group" key={`mail-${event.index}`}>
+                      <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
+                      <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
+                      <div className="flex-1">
+                        <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
+                          {event.title} <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-[#EAF3EF] text-accent">Email</span>
+                        </div>
+                        <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(event.timestamp)}</div>
+                        {!comm[`${stageName}_reply_timestamp`] && <div className="text-[12px] text-muted italic mt-[5px]">No reply received</div>}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (event.type === 'reminder_call') {
+                  const isAnswered = event.answered === 'Yes';
+                  return (
+                    <div className="flex gap-[13px] pb-[22px] relative group" key={`call-${event.index}`}>
+                      <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
+                      <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
+                      <div className="flex-1">
+                        <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
+                          {event.title} <span className={`text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] ${isAnswered ? 'bg-[#EAF3EF] text-accent' : 'bg-redfill text-red'}`}>Call</span>
+                        </div>
+                        <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(event.timestamp)}</div>
+                        
+                        {isAnswered ? (
+                          <div className="text-[13px] text-[#0E5C44] font-bold mt-[5px]">Supplier responded on the call</div>
+                        ) : (
+                          <div className="text-[13px] text-red font-semibold mt-[5px]">
+                            No reply received{event.outcome ? ` (${event.outcome.replace(/_/g, ' ')})` : ''}
+                          </div>
+                        )}
+
+                        {isAnswered && (
+                          <div className="bg-[#F6F7F6] border border-line rounded-[9px] py-[12px] px-[14px] mt-[9px] max-w-[540px]">
+                            <div className={`inline-flex items-center gap-[6px] text-[11.5px] font-extrabold mb-[9px] ${event.classification?.toLowerCase().includes('delay') ? 'text-red' : event.classification?.toLowerCase().includes('risk') ? 'text-darkgold' : 'text-emerald'}`}>
+                              <span className={`w-2 h-2 rounded-full inline-block ${event.classification?.toLowerCase().includes('delay') ? 'bg-red' : event.classification?.toLowerCase().includes('risk') ? 'bg-gold' : 'bg-bright'}`}></span>
+                              {event.classification || 'On track'}
+                            </div>
+                            <div className="text-[13px] text-body font-bold leading-[1.4]">{event.statusText || '--'}</div>
+                            {event.statement && (
+                              <div className="mt-[9px] pl-[11px] border-l-2 border-line">
+                                <div className="text-[10.5px] text-muted font-bold uppercase tracking-[0.4px] mb-[2px]">Call transcript snippet</div>
+                                <div className="text-[13px] text-muted leading-[1.45] italic">"{event.statement}"</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (event.type === 'reply') {
+                  return (
+                    <div className="flex gap-[13px] pb-[22px] relative group" key="reply">
+                      <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
+                      <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
+                      <div className="flex-1">
+                        <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
+                          {event.title} <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-[#EAF3EF] text-accent">Email</span>
+                        </div>
+                        <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(event.timestamp)}</div>
+                        <div className="bg-[#F6F7F6] border border-line rounded-[9px] py-[12px] px-[14px] mt-[9px] max-w-[540px]">
+                          <div className={`inline-flex items-center gap-[6px] text-[11.5px] font-extrabold mb-[9px] ${event.classification?.toLowerCase().includes('delay') ? 'text-red' : event.classification?.toLowerCase().includes('risk') ? 'text-darkgold' : 'text-emerald'}`}>
+                            <span className={`w-2 h-2 rounded-full inline-block ${event.classification?.toLowerCase().includes('delay') ? 'bg-red' : event.classification?.toLowerCase().includes('risk') ? 'bg-gold' : 'bg-bright'}`}></span>
+                            {event.classification || 'On track'}
+                          </div>
+                          <div className="text-[13px] text-body font-bold leading-[1.4]">{event.statusText || '--'}</div>
+                          {event.statement && (
+                            <div className="mt-[9px] pl-[11px] border-l-2 border-line">
+                              <div className="text-[10.5px] text-muted font-bold uppercase tracking-[0.4px] mb-[2px]">Supplier's response</div>
+                              <div className="text-[13px] text-muted leading-[1.45] italic">"{event.statement}"</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (event.type === 'escalation') {
+                  return (
+                    <div className="flex gap-[13px] pb-[22px] relative group" key="escalation">
+                      <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
+                      <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
+                      <div className="flex-1">
+                        <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
+                          Flagged for buyer review <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-redfill text-red">Escalated</span>
+                        </div>
+                        <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(event.timestamp)}</div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return null;
               })}
-
-              {comm[`${stageName}_reply_timestamp`] && (() => {
-                const classification = (comm[`${stageName}_delivery_status_classification`] || '').toLowerCase();
-                let clsType = 'ontime';
-                if (classification.includes('risk')) {
-                  clsType = 'risk';
-                }
-                if (classification.includes('delay')) {
-                  clsType = 'delayed';
-                }
-                
-                const classLabel = comm[`${stageName}_delivery_status_classification`] || 'On track';
-                const statusText = comm[`${stageName}_delivery_status_text`] || '--';
-                const statement = comm[`${stageName}_supplier_raw_statement`] || '--';
-
-                return (
-                  <div className="flex gap-[13px] pb-[22px] relative group">
-                    <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
-                    <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
-                    <div className="flex-1">
-                      <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
-                        Supplier reply received <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-[#EAF3EF] text-accent">Email</span>
-                      </div>
-                      <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(comm[`${stageName}_reply_timestamp`])}</div>
-                      <div className="text-[12px] text-muted font-medium mt-[12px] mb-[9px]">Supplier replied · {formatTimestamp(comm[`${stageName}_reply_timestamp`])}</div>
-                      <div className="bg-[#F6F7F6] border border-line rounded-[9px] py-[12px] px-[14px] mt-[9px] max-w-[540px]">
-                        <div className={`inline-flex items-center gap-[6px] text-[11.5px] font-extrabold mb-[9px] ${clsType === 'delayed' ? 'text-red' : clsType === 'risk' ? 'text-darkgold' : 'text-emerald'}`}>
-                          <span className={`w-2 h-2 rounded-full inline-block ${clsType === 'delayed' ? 'bg-red' : clsType === 'risk' ? 'bg-gold' : 'bg-bright'}`}></span>
-                          {classLabel}
-                        </div>
-                        <div className="text-[13px] text-body font-bold leading-[1.4]">{statusText}</div>
-                        <div className="mt-[9px] pl-[11px] border-l-2 border-line">
-                          <div className="text-[10.5px] text-muted font-bold uppercase tracking-[0.4px] mb-[2px]">Supplier's response</div>
-                          <div className="text-[13px] text-muted leading-[1.45] italic">{statement}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {(comm[`${stageName}_internal_escalation_sent`] === 'Yes' || comm[`${stageName}_internal_escalation_timestamp`]) && (() => {
-                const escTs = comm[`${stageName}_internal_escalation_timestamp`] || comm[`${stageName}_reply_timestamp`] || '--';
-                return (
-                  <div className="flex gap-[13px] pb-[22px] relative group">
-                    <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
-                    <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
-                    <div className="flex-1">
-                      <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
-                        Flagged for buyer review <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-redfill text-red">Escalated</span>
-                      </div>
-                      <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(escTs)}</div>
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           </React.Fragment>
         );
       })}
+    </div>
+  );
+}
 
       {data.nextAction && data.nextAction !== 'Waiting' && data.nextAction !== '--' && (
         <React.Fragment>

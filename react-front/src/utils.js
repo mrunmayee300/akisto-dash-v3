@@ -215,44 +215,7 @@ export function latestStatusText(po) {
 }
 
 export function determineNextAction(po) {
-  const stage = (po.follow_up_stage || '').trim().toLowerCase().replace('.', '_');
-
-  if (!stage) {
-    return 'Send Outreach';
-  }
-
-  const prefix = `${stage}_`;
-
-  const isSent = (val) => {
-    if (val === null || val === undefined) return false;
-    return String(val).trim() !== '';
-  };
-
-  if (!isSent(po[`${prefix}outreach_sent`])) {
-    return 'Send Outreach';
-  }
-
-  if (!isSent(po[`${prefix}reminder_mail1_sent`])) {
-    return 'Reminder Email 1';
-  }
-
-  if (!isSent(po[`${prefix}reminder_mail2_sent`])) {
-    return 'Reminder Email 2';
-  }
-
-  if (!isSent(po[`${prefix}reminder_mail3_sent`])) {
-    return 'Reminder Email 3';
-  }
-
-  if (!isSent(po[`${prefix}reminder_call1_sent`])) {
-    return 'Reminder Call 1';
-  }
-
-  if (!isSent(po[`${prefix}internal_escalation_sent`])) {
-    return 'Escalate To Buyer';
-  }
-
-  return 'Waiting';
+  return po.next_action || '--';
 }
 
 

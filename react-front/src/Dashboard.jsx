@@ -237,13 +237,8 @@ function Dashboard() {
 
       const pxCls = 'px-4';
 
-      // Last update text for Awaiting Reply:
-      const lastUpdateText = po.stage3_delivery_status_text || po.stage3_supplier_raw_statement ||
-                             po.stage2_5_delivery_status_text || po.stage2_5_supplier_raw_statement ||
-                             po.stage2_delivery_status_text || po.stage2_supplier_raw_statement ||
-                             po.stage1_5_delivery_status_text || po.stage1_5_supplier_raw_statement ||
-                             po.stage1_delivery_status_text || po.stage1_supplier_raw_statement ||
-                             'No supplier response yet';
+      // Last update text for Awaiting Reply (uses backend-calculated latest_update_text):
+      const lastUpdateText = po.latest_update_text || 'No supplier response yet';
 
       return (
         <tr key={po.comms_group_id} onClick={() => handleRowClick(po.comms_group_id, status.label)} className="cursor-pointer hover:bg-[#FDFDFD]">
