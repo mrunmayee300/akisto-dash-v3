@@ -71,35 +71,7 @@ function SupplierPerformance() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#EEF1EF] text-[#2C2C2A] flex items-center justify-center font-sans">
-        <div className="text-center">
-          <div className="inline-block w-8 h-8 border-4 border-emerald border-t-transparent rounded-full animate-spin mb-2"></div>
-          <p className="text-sm font-bold text-muted">Loading performance dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#EEF1EF] text-[#2C2C2A] flex items-center justify-center font-sans">
-        <div className="bg-white border border-line p-8 rounded-xl shadow-md max-w-md text-center">
-          <div className="text-red font-bold text-lg mb-2">Error</div>
-          <p className="text-sm text-muted mb-4">{error}</p>
-          <button 
-            onClick={loadData} 
-            className="bg-emerald text-white px-4 py-2 rounded font-bold hover:bg-accent transition-all text-xs"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const { suppliers = [], kpis = {}, trendData = [], delaySummary = [] } = data;
+  const { suppliers = [], kpis = {}, trendData = [], delaySummary = [] } = data || {};
 
   const filteredSuppliers = useMemo(() => {
     return suppliers.filter(sup => {
@@ -153,6 +125,36 @@ function SupplierPerformance() {
       return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [filteredSuppliers, sortBy]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#EEF1EF] text-[#2C2C2A] flex items-center justify-center font-sans">
+        <div className="text-center">
+          <div className="inline-block w-8 h-8 border-4 border-emerald border-t-transparent rounded-full animate-spin mb-2"></div>
+          <p className="text-sm font-bold text-muted">Loading performance dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#EEF1EF] text-[#2C2C2A] flex items-center justify-center font-sans">
+        <div className="bg-white border border-line p-8 rounded-xl shadow-md max-w-md text-center">
+          <div className="text-red font-bold text-lg mb-2">Error</div>
+          <p className="text-sm text-muted mb-4">{error}</p>
+          <button 
+            onClick={loadData} 
+            className="bg-emerald text-white px-4 py-2 rounded font-bold hover:bg-accent transition-all text-xs"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
 
   const totalSupplierPages = Math.ceil(sortedSuppliers.length / SUPPLIER_PAGE_SIZE);
   const displayedSuppliers = sortedSuppliers.slice((supplierPage - 1) * SUPPLIER_PAGE_SIZE, supplierPage * SUPPLIER_PAGE_SIZE);

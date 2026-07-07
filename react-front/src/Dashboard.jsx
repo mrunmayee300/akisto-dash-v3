@@ -117,28 +117,9 @@ function Dashboard() {
     navigate('/login');
   };
 
-  if (loading) {
-    return (
-      <div id="loading-state" className="text-center py-[100px] px-5 text-[16px] font-semibold text-muted">
-        Loading dashboard...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div id="error-state" className="text-center py-[100px] px-5 text-[16px] font-semibold text-red">
-        {error}<br />Please try again.
-      </div>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
   // Sort the full list once into a stable ordering based on PO number and line item, with comms_group_id as tie-breaker
   const sortedOpenPOs = useMemo(() => {
+    if (!data || !data.openPOs) return [];
     return [...(data.openPOs || [])].sort((a, b) => {
       const poA = String(a.po_number || '').trim();
       const poB = String(b.po_number || '').trim();
@@ -177,6 +158,28 @@ function Dashboard() {
 
     return { needsAttention: attn, onTrack: track, awaitingReply: awaitRep };
   }, [openPOs]);
+
+  if (loading) {
+    return (
+      <div id="loading-state" className="text-center py-[100px] px-5 text-[16px] font-semibold text-muted">
+        Loading dashboard...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div id="error-state" className="text-center py-[100px] px-5 text-[16px] font-semibold text-red">
+        {error}<br />Please try again.
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+
 
   const getPageData = (list, tabKey) => {
     const total = list.length;
