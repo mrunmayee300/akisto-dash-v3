@@ -8,28 +8,48 @@ const normalize = (value) => {
   return String(value).trim();
 };
 
-const getLatestUpdateText = (comm) => {
-  const stage = comm.follow_up_stage || 'Stage1';
-  const prefix = stage.toLowerCase().replace('.', '_') + '_';
+const getLatestSupplierReply = (comm) => {
+  const replies = [];
+  const stages = ['stage1', 'stage1_5', 'stage2', 'stage2_5', 'stage3'];
 
-  // Check call 3, call 2, call 1 in this stage
-  for (let i = 3; i >= 1; i--) {
-    const timestamp = comm[`${prefix}reminder_call${i}_timestamp`];
-    const answered = comm[`${prefix}reminder_call${i}_answered`];
-    const outcome = comm[`${prefix}reminder_call${i}_call_outcome`];
-    if (timestamp) {
-      if (answered === 'No') {
-        const label = i === 1 ? 'First' : i === 2 ? 'Second' : 'Third';
-        const displayOutcome = outcome ? outcome.replace(/_/g, ' ') : 'no answer';
-        return `${label} reminder call unanswered (${displayOutcome})`;
+  stages.forEach(stage => {
+    // 1. Email reply
+    const replyTimestamp = comm[`${stage}_reply_timestamp`];
+    if (replyTimestamp && String(replyTimestamp).trim() !== '') {
+      const ts = new Date(replyTimestamp);
+      if (!isNaN(ts.getTime())) {
+        replies.push({
+          timestamp: ts,
+          rawTimestamp: replyTimestamp,
+          text: comm[`${stage}_delivery_status_text`] || comm[`${stage}_supplier_raw_statement`] || 'Reply received'
+        });
       }
     }
+
+    // 2. Answered calls
+    for (let i = 1; i <= 3; i++) {
+      const callTimestamp = comm[`${stage}_reminder_call${i}_timestamp`];
+      const answered = comm[`${stage}_reminder_call${i}_answered`];
+      if (callTimestamp && String(callTimestamp).trim() !== '' && String(answered).trim().toLowerCase() === 'yes') {
+        const ts = new Date(callTimestamp);
+        if (!isNaN(ts.getTime())) {
+          replies.push({
+            timestamp: ts,
+            rawTimestamp: callTimestamp,
+            text: comm[`${stage}_reminder_call${i}_delivery_status_text`] || comm[`${stage}_reminder_call${i}_supplier_raw_statement`] || 'Responded on call'
+          });
+        }
+      }
+    }
+  });
+
+  if (replies.length === 0) {
+    return null;
   }
 
-  // Fallback to stage status text or supplier statement
-  return comm[`${prefix}delivery_status_text`] ||
-         comm[`${prefix}supplier_raw_statement`] ||
-         'No status available';
+  // Sort by timestamp descending
+  replies.sort((a, b) => b.timestamp - a.timestamp);
+  return replies[0];
 };
 
 const buildTimeline = (comm) => {
@@ -240,7 +260,10 @@ const poController = {
 
       const output = {
         success: true,
-        deliveryStatusText: getLatestUpdateText(comm),
+        deliveryStatusText: (() => {
+          const latest = getLatestSupplierReply(comm);
+          return latest ? latest.text : 'No status available';
+        })(),
 
         header: {
           poNumber: representative.po_number,

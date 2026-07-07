@@ -262,9 +262,6 @@ function Dashboard() {
 
       const pxCls = 'px-4';
 
-      // Last update text for Awaiting Reply (uses backend-calculated latest_update_text):
-      const lastUpdateText = po.latest_update_text || 'No supplier response yet';
-
       return (
         <tr key={po.comms_group_id} onClick={() => handleRowClick(po.comms_group_id, status.label)} className="cursor-pointer hover:bg-[#FDFDFD]">
           <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top font-extrabold text-emerald whitespace-nowrap min-w-[80px]`}>{po.po_number || '--'}</td>
@@ -294,8 +291,19 @@ function Dashboard() {
           )}
           {showExtraColumn && tabKey === 'await' && (
             <>
-              <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top text-body min-w-[200px] max-w-[340px] leading-[1.45] break-words`}>
-                {lastUpdateText}
+              <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[13.5px] align-top text-body min-w-[200px] max-w-[340px] leading-[1.4] break-words`}>
+                {po.latest_update_text ? (
+                  <div className="flex flex-col gap-[3px]">
+                    <div className="font-semibold">{po.latest_update_text}</div>
+                    {po.latest_update_timestamp && (
+                      <div className="text-[11px] text-muted font-medium">
+                        {formatTimestamp(po.latest_update_timestamp)}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-muted italic">No supplier response yet</span>
+                )}
               </td>
               <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top text-emerald font-semibold min-w-[150px] max-w-[250px] leading-[1.4] break-words`}>
                 {determineNextAction(po)}
