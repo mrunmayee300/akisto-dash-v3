@@ -101,26 +101,37 @@ export function resolvePoDashboardState(po) {
 
   // 1. Needs Attention Bucket
   if (isNeedsAttention) {
+    let subStatus = 'Needs Review';
+    if (classificationLower === 'unclear') {
+      subStatus = 'Unclear Response';
+    } else if (isLowConfidence) {
+      subStatus = 'Low Confidence';
+    } else if (classificationLower.includes('delay') || classificationLower.includes('late')) {
+      subStatus = 'Delayed';
+    } else if (isEscalated) {
+      subStatus = 'No Response';
+    }
+
     let label = 'Needs review';
     let cls = 'p-review';
-    let subStatus = 'Human Review Pending';
     let reason = po[prefix + 'delivery_status_text'] || 'Flagged for reviewer audit.';
 
-    if (classificationLower.includes('delay') || classificationLower.includes('late')) {
+    if (subStatus === 'Unclear Response') {
+      label = 'Unclear response';
+      cls = 'p-unclear';
+      reason = po[prefix + 'delivery_status_text'] || 'AI clarification attempts failed or unclear response received.';
+    } else if (subStatus === 'Low Confidence') {
+      label = 'Low confidence';
+      cls = 'p-low-confidence';
+      reason = po[prefix + 'delivery_status_text'] || 'AI classification confidence is Low; review required.';
+    } else if (subStatus === 'Delayed') {
       label = 'Delayed';
       cls = 'p-delayed';
-      subStatus = 'Delayed';
       reason = po[prefix + 'delivery_status_text'] || 'Delivery delayed.';
-    } else if (isEscalated) {
+    } else if (subStatus === 'No Response') {
       label = 'No Response';
       cls = 'p-delayed';
-      subStatus = 'No Response (Escalated)';
-      reason = 'Automated chasing sequence exhausted.';
-    } else if (isLowConfidence) {
-      label = 'Needs review';
-      cls = 'p-review';
-      subStatus = 'Low Confidence';
-      reason = po[prefix + 'delivery_status_text'] || 'AI classification confidence is Low; review required.';
+      reason = 'No reply despite repeated follow-up emails and calls.';
     }
 
     return {
@@ -178,7 +189,7 @@ export function resolvePoDashboardState(po) {
   let cls = 'p-await';
 
   if (status === 'Clarification_Sent') {
-    subStatus = 'Clarification Sent';
+    subStatus = 'Clarification in progress';
     reason = 'Waiting for clarification';
     label = 'Awaiting Clarification';
   } else if (classificationLower === 'awaiting_reply') {

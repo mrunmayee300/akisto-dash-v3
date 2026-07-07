@@ -75,7 +75,11 @@ const getPoStatusBucket = (row) => {
 
   if (isNeedsAttention) {
     let subStatus = 'Needs Review';
-    if (classificationLower.includes('delay') || classificationLower.includes('late')) {
+    if (classificationLower === 'unclear') {
+      subStatus = 'Unclear Response';
+    } else if (isLowConfidence) {
+      subStatus = 'Low Confidence';
+    } else if (classificationLower.includes('delay') || classificationLower.includes('late')) {
       subStatus = 'Delayed';
     } else if (isEscalated) {
       subStatus = 'No Response';
@@ -99,7 +103,7 @@ const getPoStatusBucket = (row) => {
                            (normalize(row.promised_revert_date) !== '' || normalize(row[prefix + 'promised_revert_date']) !== '');
   
   if (isClarification) {
-    subStatus = 'Clarification Sent';
+    subStatus = 'Clarification in progress';
   } else if (isColleagueDelegated) {
     subStatus = 'Delegated to Colleague';
   } else if (isPromisedRevert) {

@@ -475,30 +475,34 @@ function doGet(e) {
       var isAwaitingReply = !isNeedsAttention && !isOnTrackState && 
                             (activeChasing || isClarification || isColleagueDelegated || isPromisedRevert || isPassiveUnclear);
 
-      // Determine Sub-status
-      var itemSubStatus = null;
-      if (isNeedsAttention) {
-        if (classificationLower.indexOf('delay') !== -1 || classificationLower.indexOf('late') !== -1) {
-          itemSubStatus = 'Delayed';
-        } else if (isEscalated) {
-          itemSubStatus = 'No Response';
-        } else {
-          itemSubStatus = 'Needs Review';
-        }
-        needsAttention.push(row);
-      } else if (isOnTrackState) {
-        itemSubStatus = isPassiveStage ? 'Monitoring' : 'Confirmed';
-        onTrack.push(row);
-      } else if (isAwaitingReply) {
-        if (isClarification) {
-          itemSubStatus = 'Clarification Sent';
-        } else if (isColleagueDelegated) {
-          itemSubStatus = 'Delegated to Colleague';
-        } else if (isPromisedRevert) {
-          itemSubStatus = 'Promised Check Date';
-        } else {
-          itemSubStatus = 'Chasing Response';
-        }
+       // Determine Sub-status
+       var itemSubStatus = null;
+       if (isNeedsAttention) {
+         if (classificationLower === 'unclear') {
+           itemSubStatus = 'Unclear Response';
+         } else if (isLowConfidence) {
+           itemSubStatus = 'Low Confidence';
+         } else if (classificationLower.indexOf('delay') !== -1 || classificationLower.indexOf('late') !== -1) {
+           itemSubStatus = 'Delayed';
+         } else if (isEscalated) {
+           itemSubStatus = 'No Response';
+         } else {
+           itemSubStatus = 'Needs Review';
+         }
+         needsAttention.push(row);
+       } else if (isOnTrackState) {
+         itemSubStatus = isPassiveStage ? 'Monitoring' : 'Confirmed';
+         onTrack.push(row);
+       } else if (isAwaitingReply) {
+         if (isClarification) {
+           itemSubStatus = 'Clarification in progress';
+         } else if (isColleagueDelegated) {
+           itemSubStatus = 'Delegated to Colleague';
+         } else if (isPromisedRevert) {
+           itemSubStatus = 'Promised Check Date';
+         } else {
+           itemSubStatus = 'Chasing Response';
+         }
         awaitingReply.push(row);
       } else {
         // Default fallback to Awaiting Reply

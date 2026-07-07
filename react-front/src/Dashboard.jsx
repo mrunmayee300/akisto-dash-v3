@@ -251,11 +251,13 @@ function Dashboard() {
       const dateValue = tabKey === 'track' ? po.ship_by_date_delivery_1 : po.deliver_by_date_delivery_1;
 
       // Status pill colors
-      let pillCls = "bg-[#EEF1EF] text-muted";
+      let pillCls = "bg-[#F1F5F9] text-[#475569]"; // Slate gray for fallback / Needs review
       if (status.cls === 'p-delayed') pillCls = "bg-redfill text-red";
       if (status.cls === 'p-risk') pillCls = "bg-goldfill text-darkgold";
       if (status.cls === 'p-ontime') pillCls = "bg-pale text-emerald";
       if (status.cls === 'p-await') pillCls = "bg-[#EAF0FB] text-[#3A5C9A]";
+      if (status.cls === 'p-unclear') pillCls = "bg-[#F3E8FF] text-[#7E22CE]"; // Lavender / Purple
+      if (status.cls === 'p-low-confidence') pillCls = "bg-[#FFEDD5] text-[#C2410C]"; // Orange
 
       const pxCls = 'px-4';
 
