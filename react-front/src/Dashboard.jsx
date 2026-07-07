@@ -137,7 +137,19 @@ function Dashboard() {
     return null;
   }
 
-  const openPOs = data.openPOs || [];
+  // Sort the full list once into a stable ordering based on PO number and line item
+  const sortedOpenPOs = [...(data.openPOs || [])].sort((a, b) => {
+    const poA = String(a.po_number || '').trim();
+    const poB = String(b.po_number || '').trim();
+    const poCompare = poA.localeCompare(poB, undefined, { numeric: true, sensitivity: 'base' });
+    if (poCompare !== 0) return poCompare;
+
+    const lineA = String(a.po_line_item || '').trim();
+    const lineB = String(b.po_line_item || '').trim();
+    return lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
+  });
+
+  const openPOs = sortedOpenPOs;
   
   // Re-classify on the frontend to ensure 100% correct tab grouping
   const needsAttention = [];
@@ -294,9 +306,11 @@ function Dashboard() {
 
   const getShowingText = (list, tabKey) => {
     const total = list.length;
+    if (total === 0) return 'Showing 0 of 0';
     const { currentPage } = getPageData(list, tabKey);
-    const shown = Math.min(currentPage * PAGE_SIZE, total);
-    return `Showing ${shown} of ${total}`;
+    const start = (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, total);
+    return `Showing ${start}–${end} of ${total}`;
   };
 
   return (

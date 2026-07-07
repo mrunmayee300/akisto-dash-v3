@@ -8,4 +8,3 @@ router.get('/', authMiddleware, clientFilterMiddleware, poController.getPODetail
 router.get('/:commsGroupId', authMiddleware, clientFilterMiddleware, poController.getPODetails);
 
 module.exports = router;
-pm

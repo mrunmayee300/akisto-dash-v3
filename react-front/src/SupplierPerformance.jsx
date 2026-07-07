@@ -124,27 +124,30 @@ function SupplierPerformance() {
   });
 
   const sortedSuppliers = [...filteredSuppliers].sort((a, b) => {
+    let diff = 0;
     if (sortBy === 'rate_desc') {
-      return (b.onTime || 0) - (a.onTime || 0);
-    }
-    if (sortBy === 'rate_asc') {
-      return (a.onTime || 0) - (b.onTime || 0);
-    }
-    if (sortBy === 'lines_desc') {
-      return (b.poLines || 0) - (a.poLines || 0);
-    }
-    if (sortBy === 'late_desc') {
-      return parseFloat(b.avgDaysLate || 0) - parseFloat(a.avgDaysLate || 0);
-    }
-    if (sortBy === 'esc_desc') {
+      diff = (b.onTime || 0) - (a.onTime || 0);
+    } else if (sortBy === 'rate_asc') {
+      diff = (a.onTime || 0) - (b.onTime || 0);
+    } else if (sortBy === 'lines_desc') {
+      diff = (b.poLines || 0) - (a.poLines || 0);
+    } else if (sortBy === 'late_desc') {
+      diff = parseFloat(b.avgDaysLate || 0) - parseFloat(a.avgDaysLate || 0);
+    } else if (sortBy === 'esc_desc') {
       const parseEsc = val => {
         if (typeof val === 'number') return val;
         if (typeof val === 'string') return parseFloat(val.replace('%', '')) || 0;
         return 0;
       };
-      return parseEsc(b.escalated) - parseEsc(a.escalated);
+      diff = parseEsc(b.escalated) - parseEsc(a.escalated);
     }
-    return 0;
+    
+    if (diff !== 0) return diff;
+    
+    // Stable tie-breaker: sort alphabetically by name
+    const nameA = String(a.name || '').trim();
+    const nameB = String(b.name || '').trim();
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
   });
 
   const totalSupplierPages = Math.ceil(sortedSuppliers.length / SUPPLIER_PAGE_SIZE);
