@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatDate, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint, resolvePoDashboardState, latestStatusText } from './utils';
+import { formatDate, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint, resolvePoDashboardState, latestStatusText, determineNextAction } from './utils';
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 const PAGE_SIZE = 10;
@@ -278,7 +278,7 @@ function Dashboard() {
                 {lastUpdateText}
               </td>
               <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top text-emerald font-semibold min-w-[150px] max-w-[250px] leading-[1.4] break-words`}>
-                {resolved.reason}
+                {determineNextAction(po)}
               </td>
             </>
           )}
