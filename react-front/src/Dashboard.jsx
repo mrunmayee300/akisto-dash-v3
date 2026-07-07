@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate, formatTimestamp, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint, resolvePoDashboardState, latestStatusText, determineNextAction } from './utils';
 
@@ -41,15 +41,29 @@ function formatCurrentDate() {
 }
 
 function Dashboard() {
-  const [activeTab, setActiveTab] = useState('open');
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem('dashboardActiveTab') || 'open';
+  });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [pages, setPages] = useState({
-    open: 1,
-    attn: 1,
-    track: 1,
-    await: 1
+  const [pages, setPages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('dashboardPages');
+      return saved ? JSON.parse(saved) : {
+        open: 1,
+        attn: 1,
+        track: 1,
+        await: 1
+      };
+    } catch (e) {
+      return {
+        open: 1,
+        attn: 1,
+        track: 1,
+        await: 1
+      };
+    }
   });
   const [currentDateStr, setCurrentDateStr] = useState(formatCurrentDate());
 
@@ -78,6 +92,13 @@ function Dashboard() {
         localStorage.removeItem('companyName');
         localStorage.removeItem('userName');
         localStorage.removeItem('userRole');
+        sessionStorage.removeItem('dashboardActiveTab');
+        sessionStorage.removeItem('dashboardPages');
+        sessionStorage.removeItem('supplierPerformancePage');
+        sessionStorage.removeItem('supplierPerformanceActiveTab');
+        sessionStorage.removeItem('supplierPerformanceSortBy');
+        sessionStorage.removeItem('supplierPerformanceFilterFlag');
+        sessionStorage.removeItem('supplierPerformanceSearchQuery');
         navigate('/login');
         return;
       }
@@ -114,50 +135,63 @@ function Dashboard() {
     localStorage.removeItem('companyName');
     localStorage.removeItem('userName');
     localStorage.removeItem('userRole');
+    sessionStorage.removeItem('dashboardActiveTab');
+    sessionStorage.removeItem('dashboardPages');
+    sessionStorage.removeItem('supplierPerformancePage');
+    sessionStorage.removeItem('supplierPerformanceActiveTab');
+    sessionStorage.removeItem('supplierPerformanceSortBy');
+    sessionStorage.removeItem('supplierPerformanceFilterFlag');
+    sessionStorage.removeItem('supplierPerformanceSearchQuery');
     navigate('/login');
   };
 
-  // Sort the full list once into a stable ordering based on PO number and line item, with comms_group_id as tie-breaker
-  const sortedOpenPOs = useMemo(() => {
-    if (!data || !data.openPOs) return [];
-    return [...(data.openPOs || [])].sort((a, b) => {
-      const poA = String(a.po_number || '').trim();
-      const poB = String(b.po_number || '').trim();
-      const poCompare = poA.localeCompare(poB, undefined, { numeric: true, sensitivity: 'base' });
-      if (poCompare !== 0) return poCompare;
+  // Sort and filter the full list once into a stable ordering using useMemo
+  const { sortedOpenPOs, needsAttention, onTrack, awaitingReply } = React.useMemo(() => {
+    if (!data) {
+      return { sortedOpenPOs: [], needsAttention: [], onTrack: [], awaitingReply: [] };
+    }
+    const list = [...(data.openPOs || [])];
+    const sorted = list
+      .map((po, index) => ({ po, index }))
+      .sort((a, b) => {
+        const poA = String(a.po.po_number || '').trim();
+        const poB = String(b.po.po_number || '').trim();
+        const poCompare = poA.localeCompare(poB, undefined, { numeric: true, sensitivity: 'base' });
+        if (poCompare !== 0) return poCompare;
 
-      const lineA = String(a.po_line_item || '').trim();
-      const lineB = String(b.po_line_item || '').trim();
-      const lineCompare = lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
-      if (lineCompare !== 0) return lineCompare;
+        const lineA = String(a.po.po_line_item || '').trim();
+        const lineB = String(b.po.po_line_item || '').trim();
+        const lineCompare = lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
+        if (lineCompare !== 0) return lineCompare;
 
-      const idA = String(a.comms_group_id || '');
-      const idB = String(b.comms_group_id || '');
-      return idA.localeCompare(idB);
-    });
-  }, [data?.openPOs]);
+        return a.index - b.index;
+      })
+      .map(item => item.po);
 
-  const openPOs = sortedOpenPOs;
-  
-  // Re-classify on the frontend to ensure 100% correct tab grouping and memoize to prevent drift/leakage on page navigation
-  const { needsAttention, onTrack, awaitingReply } = useMemo(() => {
     const attn = [];
     const track = [];
-    const awaitRep = [];
-    
-    openPOs.forEach(po => {
+    const awaitReply = [];
+
+    sorted.forEach(po => {
       const resolved = resolvePoDashboardState(po);
       if (resolved.status === 'Needs Attention') {
         attn.push(po);
       } else if (resolved.status === 'On Track') {
         track.push(po);
       } else {
-        awaitRep.push(po);
+        awaitReply.push(po);
       }
     });
 
-    return { needsAttention: attn, onTrack: track, awaitingReply: awaitRep };
-  }, [openPOs]);
+    return {
+      sortedOpenPOs: sorted,
+      needsAttention: attn,
+      onTrack: track,
+      awaitingReply: awaitReply
+    };
+  }, [data]);
+
+  const openPOs = sortedOpenPOs;
 
   if (loading) {
     return (
@@ -179,8 +213,6 @@ function Dashboard() {
     return null;
   }
 
-
-
   const getPageData = (list, tabKey) => {
     const total = list.length;
     const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -191,7 +223,16 @@ function Dashboard() {
   };
 
   const handlePageClick = (tabKey, p) => {
-    setPages(prev => ({ ...prev, [tabKey]: p }));
+    setPages(prev => {
+      const newPages = { ...prev, [tabKey]: p };
+      sessionStorage.setItem('dashboardPages', JSON.stringify(newPages));
+      return newPages;
+    });
+  };
+
+  const handleTabClick = (tabKey) => {
+    setActiveTab(tabKey);
+    sessionStorage.setItem('dashboardActiveTab', tabKey);
   };
 
   const renderReactPager = (tabKey, total) => {
@@ -413,16 +454,16 @@ function Dashboard() {
       </div>
 
       <div className="flex gap-1 pt-[14px] px-7 pb-0 border-b border-line">
-        <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'open' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('open')}>
+        <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'open' ? '!text-emerald !border-emerald' : ''}`} onClick={() => handleTabClick('open')}>
           Open POs <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'open' ? '!bg-pale !text-emerald' : ''}`}>{openPOs.length}</span>
         </button>
-        <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'attn' ? '!text-red !border-red' : ''}`} onClick={() => setActiveTab('attn')}>
+        <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'attn' ? '!text-red !border-red' : ''}`} onClick={() => handleTabClick('attn')}>
           Needs attention <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'attn' ? '!bg-redfill !text-red' : ''}`}>{needsAttention.length}</span>
         </button>
-        <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'track' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('track')}>
+        <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'track' ? '!text-emerald !border-emerald' : ''}`} onClick={() => handleTabClick('track')}>
           On track <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'track' ? '!bg-pale !text-emerald' : ''}`}>{onTrack.length}</span>
         </button>
-        <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'await' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('await')}>
+        <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'await' ? '!text-emerald !border-emerald' : ''}`} onClick={() => handleTabClick('await')}>
           Awaiting reply <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'await' ? '!bg-pale !text-emerald' : ''}`}>{awaitingReply.length}</span>
         </button>
       </div>

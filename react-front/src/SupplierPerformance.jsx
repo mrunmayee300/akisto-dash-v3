@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
@@ -24,11 +24,24 @@ function SupplierPerformance() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [supplierPage, setSupplierPage] = useState(1);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [sortBy, setSortBy] = useState('rate_desc');
-  const [filterFlag, setFilterFlag] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const [supplierPage, setSupplierPage] = useState(() => {
+    const saved = sessionStorage.getItem('supplierPerformancePage');
+    return saved ? parseInt(saved, 10) : 1;
+  });
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem('supplierPerformanceActiveTab') || 'overview';
+  });
+  const [sortBy, setSortBy] = useState(() => {
+    return sessionStorage.getItem('supplierPerformanceSortBy') || 'rate_desc';
+  });
+  const [filterFlag, setFilterFlag] = useState(() => {
+    return sessionStorage.getItem('supplierPerformanceFilterFlag') || 'all';
+  });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return sessionStorage.getItem('supplierPerformanceSearchQuery') || '';
+  });
+
   const SUPPLIER_PAGE_SIZE = 15;
 
   const userEmail = localStorage.getItem('userEmail');
@@ -71,9 +84,41 @@ function SupplierPerformance() {
     return () => clearInterval(interval);
   }, []);
 
-  const { suppliers = [], kpis = {}, trendData = [], delaySummary = [] } = data || {};
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    sessionStorage.setItem('supplierPerformanceActiveTab', tab);
+  };
 
-  const filteredSuppliers = useMemo(() => {
+  const handleSortChange = (newSort) => {
+    setSortBy(newSort);
+    setSupplierPage(1);
+    sessionStorage.setItem('supplierPerformanceSortBy', newSort);
+    sessionStorage.setItem('supplierPerformancePage', '1');
+  };
+
+  const handleFlagChange = (newFlag) => {
+    setFilterFlag(newFlag);
+    setSupplierPage(1);
+    sessionStorage.setItem('supplierPerformanceFilterFlag', newFlag);
+    sessionStorage.setItem('supplierPerformancePage', '1');
+  };
+
+  const handleSearchChange = (newSearch) => {
+    setSearchQuery(newSearch);
+    setSupplierPage(1);
+    sessionStorage.setItem('supplierPerformanceSearchQuery', newSearch);
+    sessionStorage.setItem('supplierPerformancePage', '1');
+  };
+
+  const handlePageChange = (newPage) => {
+    setSupplierPage(newPage);
+    sessionStorage.setItem('supplierPerformancePage', String(newPage));
+  };
+
+  // Memoize filtered suppliers list to be reference stable on page change
+  const filteredSuppliers = React.useMemo(() => {
+    if (!data) return [];
+    const suppliers = data.suppliers || [];
     return suppliers.filter(sup => {
       const matchesSearch = !searchQuery || 
         (sup.name && sup.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
@@ -95,35 +140,47 @@ function SupplierPerformance() {
       }
       return true;
     });
-  }, [suppliers, searchQuery, filterFlag]);
+  }, [data, searchQuery, filterFlag]);
 
-  const sortedSuppliers = useMemo(() => {
-    return [...filteredSuppliers].sort((a, b) => {
-      let diff = 0;
-      if (sortBy === 'rate_desc') {
-        diff = (b.onTime || 0) - (a.onTime || 0);
-      } else if (sortBy === 'rate_asc') {
-        diff = (a.onTime || 0) - (b.onTime || 0);
-      } else if (sortBy === 'lines_desc') {
-        diff = (b.poLines || 0) - (a.poLines || 0);
-      } else if (sortBy === 'late_desc') {
-        diff = parseFloat(b.avgDaysLate || 0) - parseFloat(a.avgDaysLate || 0);
-      } else if (sortBy === 'esc_desc') {
-        const parseEsc = val => {
-          if (typeof val === 'number') return val;
-          if (typeof val === 'string') return parseFloat(val.replace('%', '')) || 0;
-          return 0;
-        };
-        diff = parseEsc(b.escalated) - parseEsc(a.escalated);
-      }
-      
-      if (diff !== 0) return diff;
-      
-      // Stable tie-breaker: sort alphabetically by name
-      const nameA = String(a.name || '').trim();
-      const nameB = String(b.name || '').trim();
-      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
-    });
+  // Memoize sorted suppliers list to prevent re-sorting on page navigation
+  const sortedSuppliers = React.useMemo(() => {
+    return [...filteredSuppliers]
+      .map((sup, index) => ({ sup, index }))
+      .sort((a, b) => {
+        let diff = 0;
+        if (sortBy === 'rate_desc') {
+          diff = (b.sup.onTime || 0) - (a.sup.onTime || 0);
+        } else if (sortBy === 'rate_asc') {
+          diff = (a.sup.onTime || 0) - (b.sup.onTime || 0);
+        } else if (sortBy === 'lines_desc') {
+          diff = (b.sup.poLines || 0) - (a.sup.poLines || 0);
+        } else if (sortBy === 'late_desc') {
+          diff = parseFloat(b.sup.avgDaysLate || 0) - parseFloat(a.sup.avgDaysLate || 0);
+        } else if (sortBy === 'esc_desc') {
+          const parseEsc = val => {
+            if (typeof val === 'number') return val;
+            if (typeof val === 'string') return parseFloat(val.replace('%', '')) || 0;
+            return 0;
+          };
+          diff = parseEsc(b.sup.escalated) - parseEsc(a.sup.escalated);
+        }
+        
+        if (diff !== 0) return diff;
+        
+        // Stable tie-breaker: sort alphabetically by name
+        const nameA = String(a.sup.name || '').trim();
+        const nameB = String(b.sup.name || '').trim();
+        const nameCompare = nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+        if (nameCompare !== 0) return nameCompare;
+
+        const codeA = String(a.sup.code || '').trim();
+        const codeB = String(b.sup.code || '').trim();
+        const codeCompare = codeA.localeCompare(codeB);
+        if (codeCompare !== 0) return codeCompare;
+
+        return a.index - b.index;
+      })
+      .map(item => item.sup);
   }, [filteredSuppliers, sortBy]);
 
   if (loading) {
@@ -154,7 +211,7 @@ function SupplierPerformance() {
     );
   }
 
-
+  const { kpis = {}, trendData = [], delaySummary = [] } = data;
 
   const totalSupplierPages = Math.ceil(sortedSuppliers.length / SUPPLIER_PAGE_SIZE);
   const displayedSuppliers = sortedSuppliers.slice((supplierPage - 1) * SUPPLIER_PAGE_SIZE, supplierPage * SUPPLIER_PAGE_SIZE);
@@ -679,8 +736,8 @@ function SupplierPerformance() {
         </header>
 
         <div className="tabbar">
-          <button className={`tabbtn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-          <button className={`tabbtn ${activeTab === 'bysupplier' ? 'active' : ''}`} onClick={() => setActiveTab('bysupplier')}>By supplier</button>
+          <button className={`tabbtn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>Overview</button>
+          <button className={`tabbtn ${activeTab === 'bysupplier' ? 'active' : ''}`} onClick={() => handleTabChange('bysupplier')}>By supplier</button>
         </div>
 
         {/* ============ TAB 1: OVERVIEW ============ */}
@@ -778,7 +835,7 @@ function SupplierPerformance() {
           <div className="controls">
             <div className="ctl">
               <label htmlFor="sortSel">Sort</label>
-              <select id="sortSel" value={sortBy} onChange={(e) => { setSortBy(e.target.value); setSupplierPage(1); }}>
+              <select id="sortSel" value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
                 <option value="rate_desc">On-time rate (best first)</option>
                 <option value="rate_asc">On-time rate (worst first)</option>
                 <option value="lines_desc">PO lines (highest first)</option>
@@ -788,7 +845,7 @@ function SupplierPerformance() {
             </div>
             <div className="ctl">
               <label htmlFor="flagSel">Flag</label>
-              <select id="flagSel" value={filterFlag} onChange={(e) => { setFilterFlag(e.target.value); setSupplierPage(1); }}>
+              <select id="flagSel" value={filterFlag} onChange={(e) => handleFlagChange(e.target.value)}>
                 <option value="all">All suppliers</option>
                 <option value="flagged">Flagged only</option>
                 <option value="Action Needed">Action needed</option>
@@ -803,7 +860,7 @@ function SupplierPerformance() {
                 type="text" 
                 placeholder="Supplier name or code" 
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setSupplierPage(1); }}
+                onChange={(e) => handleSearchChange(e.target.value)}
               />
             </div>
             <div className="spacer"></div>
@@ -815,12 +872,12 @@ function SupplierPerformance() {
           <table>
             <thead>
               <tr>
-                <th onClick={() => { setSortBy(sortBy === 'rate_desc' ? 'rate_asc' : 'rate_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>Supplier</th>
-                <th className="r" onClick={() => { setSortBy('lines_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>PO lines ordered</th>
-                <th className="r" onClick={() => { setSortBy(sortBy === 'rate_desc' ? 'rate_asc' : 'rate_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>On-time rate</th>
-                <th className="r" onClick={() => { setSortBy('late_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>Avg days late</th>
+                <th onClick={() => handleSortChange(sortBy === 'rate_desc' ? 'rate_asc' : 'rate_desc')} style={{ cursor: 'pointer' }}>Supplier</th>
+                <th className="r" onClick={() => handleSortChange('lines_desc')} style={{ cursor: 'pointer' }}>PO lines ordered</th>
+                <th className="r" onClick={() => handleSortChange(sortBy === 'rate_desc' ? 'rate_asc' : 'rate_desc')} style={{ cursor: 'pointer' }}>On-time rate</th>
+                <th className="r" onClick={() => handleSortChange('late_desc')} style={{ cursor: 'pointer' }}>Avg days late</th>
                 <th className="r">Avg response time</th>
-                <th className="r" onClick={() => { setSortBy('esc_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>Escalated</th>
+                <th className="r" onClick={() => handleSortChange('esc_desc')} style={{ cursor: 'pointer' }}>Escalated</th>
                 <th>Flag</th>
               </tr>
             </thead>
@@ -868,7 +925,7 @@ function SupplierPerformance() {
               <div className="pgbtns" id="supplier-pager">
                 <button 
                   disabled={supplierPage <= 1} 
-                  onClick={() => setSupplierPage(p => Math.max(1, p - 1))}
+                  onClick={() => handlePageChange(Math.max(1, supplierPage - 1))}
                   id="supplier-prev-btn"
                 >
                   &lt;
@@ -878,7 +935,7 @@ function SupplierPerformance() {
                 </span>
                 <button 
                   disabled={supplierPage >= totalSupplierPages} 
-                  onClick={() => setSupplierPage(p => Math.min(totalSupplierPages, p + 1))}
+                  onClick={() => handlePageChange(Math.min(totalSupplierPages, supplierPage + 1))}
                   id="supplier-next-btn"
                 >
                   &gt;
