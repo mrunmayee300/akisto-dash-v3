@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
@@ -101,54 +101,58 @@ function SupplierPerformance() {
 
   const { suppliers = [], kpis = {}, trendData = [], delaySummary = [] } = data;
 
-  const filteredSuppliers = suppliers.filter(sup => {
-    const matchesSearch = !searchQuery || 
-      (sup.name && sup.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
-      (sup.code && String(sup.code).toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    if (!matchesSearch) return false;
+  const filteredSuppliers = useMemo(() => {
+    return suppliers.filter(sup => {
+      const matchesSearch = !searchQuery || 
+        (sup.name && sup.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
+        (sup.code && String(sup.code).toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      if (!matchesSearch) return false;
 
-    const mappedFlag = (sup.flag === 'Watch' || sup.flag === 'Action Needed') ? 'Action Needed' 
-                     : ((sup.flag === 'Review' || sup.flag === 'Monitor') ? 'Monitor' : '');
+      const mappedFlag = (sup.flag === 'Watch' || sup.flag === 'Action Needed') ? 'Action Needed' 
+                       : ((sup.flag === 'Review' || sup.flag === 'Monitor') ? 'Monitor' : '');
 
-    if (filterFlag === 'flagged') {
-      return !!mappedFlag;
-    } else if (filterFlag === 'Action Needed') {
-      return mappedFlag === 'Action Needed';
-    } else if (filterFlag === 'Monitor') {
-      return mappedFlag === 'Monitor';
-    } else if (filterFlag === 'none') {
-      return !mappedFlag;
-    }
-    return true;
-  });
+      if (filterFlag === 'flagged') {
+        return !!mappedFlag;
+      } else if (filterFlag === 'Action Needed') {
+        return mappedFlag === 'Action Needed';
+      } else if (filterFlag === 'Monitor') {
+        return mappedFlag === 'Monitor';
+      } else if (filterFlag === 'none') {
+        return !mappedFlag;
+      }
+      return true;
+    });
+  }, [suppliers, searchQuery, filterFlag]);
 
-  const sortedSuppliers = [...filteredSuppliers].sort((a, b) => {
-    let diff = 0;
-    if (sortBy === 'rate_desc') {
-      diff = (b.onTime || 0) - (a.onTime || 0);
-    } else if (sortBy === 'rate_asc') {
-      diff = (a.onTime || 0) - (b.onTime || 0);
-    } else if (sortBy === 'lines_desc') {
-      diff = (b.poLines || 0) - (a.poLines || 0);
-    } else if (sortBy === 'late_desc') {
-      diff = parseFloat(b.avgDaysLate || 0) - parseFloat(a.avgDaysLate || 0);
-    } else if (sortBy === 'esc_desc') {
-      const parseEsc = val => {
-        if (typeof val === 'number') return val;
-        if (typeof val === 'string') return parseFloat(val.replace('%', '')) || 0;
-        return 0;
-      };
-      diff = parseEsc(b.escalated) - parseEsc(a.escalated);
-    }
-    
-    if (diff !== 0) return diff;
-    
-    // Stable tie-breaker: sort alphabetically by name
-    const nameA = String(a.name || '').trim();
-    const nameB = String(b.name || '').trim();
-    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
-  });
+  const sortedSuppliers = useMemo(() => {
+    return [...filteredSuppliers].sort((a, b) => {
+      let diff = 0;
+      if (sortBy === 'rate_desc') {
+        diff = (b.onTime || 0) - (a.onTime || 0);
+      } else if (sortBy === 'rate_asc') {
+        diff = (a.onTime || 0) - (b.onTime || 0);
+      } else if (sortBy === 'lines_desc') {
+        diff = (b.poLines || 0) - (a.poLines || 0);
+      } else if (sortBy === 'late_desc') {
+        diff = parseFloat(b.avgDaysLate || 0) - parseFloat(a.avgDaysLate || 0);
+      } else if (sortBy === 'esc_desc') {
+        const parseEsc = val => {
+          if (typeof val === 'number') return val;
+          if (typeof val === 'string') return parseFloat(val.replace('%', '')) || 0;
+          return 0;
+        };
+        diff = parseEsc(b.escalated) - parseEsc(a.escalated);
+      }
+      
+      if (diff !== 0) return diff;
+      
+      // Stable tie-breaker: sort alphabetically by name
+      const nameA = String(a.name || '').trim();
+      const nameB = String(b.name || '').trim();
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [filteredSuppliers, sortBy]);
 
   const totalSupplierPages = Math.ceil(sortedSuppliers.length / SUPPLIER_PAGE_SIZE);
   const displayedSuppliers = sortedSuppliers.slice((supplierPage - 1) * SUPPLIER_PAGE_SIZE, supplierPage * SUPPLIER_PAGE_SIZE);

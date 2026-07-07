@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate, formatTimestamp, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint, resolvePoDashboardState, latestStatusText, determineNextAction } from './utils';
 
@@ -137,35 +137,46 @@ function Dashboard() {
     return null;
   }
 
-  // Sort the full list once into a stable ordering based on PO number and line item
-  const sortedOpenPOs = [...(data.openPOs || [])].sort((a, b) => {
-    const poA = String(a.po_number || '').trim();
-    const poB = String(b.po_number || '').trim();
-    const poCompare = poA.localeCompare(poB, undefined, { numeric: true, sensitivity: 'base' });
-    if (poCompare !== 0) return poCompare;
+  // Sort the full list once into a stable ordering based on PO number and line item, with comms_group_id as tie-breaker
+  const sortedOpenPOs = useMemo(() => {
+    return [...(data.openPOs || [])].sort((a, b) => {
+      const poA = String(a.po_number || '').trim();
+      const poB = String(b.po_number || '').trim();
+      const poCompare = poA.localeCompare(poB, undefined, { numeric: true, sensitivity: 'base' });
+      if (poCompare !== 0) return poCompare;
 
-    const lineA = String(a.po_line_item || '').trim();
-    const lineB = String(b.po_line_item || '').trim();
-    return lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
-  });
+      const lineA = String(a.po_line_item || '').trim();
+      const lineB = String(b.po_line_item || '').trim();
+      const lineCompare = lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
+      if (lineCompare !== 0) return lineCompare;
+
+      const idA = String(a.comms_group_id || '');
+      const idB = String(b.comms_group_id || '');
+      return idA.localeCompare(idB);
+    });
+  }, [data?.openPOs]);
 
   const openPOs = sortedOpenPOs;
   
-  // Re-classify on the frontend to ensure 100% correct tab grouping
-  const needsAttention = [];
-  const onTrack = [];
-  const awaitingReply = [];
-  
-  openPOs.forEach(po => {
-    const resolved = resolvePoDashboardState(po);
-    if (resolved.status === 'Needs Attention') {
-      needsAttention.push(po);
-    } else if (resolved.status === 'On Track') {
-      onTrack.push(po);
-    } else {
-      awaitingReply.push(po);
-    }
-  });
+  // Re-classify on the frontend to ensure 100% correct tab grouping and memoize to prevent drift/leakage on page navigation
+  const { needsAttention, onTrack, awaitingReply } = useMemo(() => {
+    const attn = [];
+    const track = [];
+    const awaitRep = [];
+    
+    openPOs.forEach(po => {
+      const resolved = resolvePoDashboardState(po);
+      if (resolved.status === 'Needs Attention') {
+        attn.push(po);
+      } else if (resolved.status === 'On Track') {
+        track.push(po);
+      } else {
+        awaitRep.push(po);
+      }
+    });
+
+    return { needsAttention: attn, onTrack: track, awaitingReply: awaitRep };
+  }, [openPOs]);
 
   const getPageData = (list, tabKey) => {
     const total = list.length;
