@@ -104,10 +104,14 @@ function SupplierDetail() {
   const fillOpacityColor = isWatch ? '#B23B2E' : '#1D9E75';
 
   // SVG Trend Chart Spacing (scaled from 40% to 100%)
-  // X Coordinate = 120 + index * 144
+  // X Coordinate = startX + index * stepX
   // Y Coordinate = 220 - ((OTR - 40) / 60) * 200 (Y=20 is 100%, Y=220 is 40%)
+  const count = trendData.length;
+  const startX = 120;
+  const endX = 840;
+  const stepX = count > 1 ? (endX - startX) / (count - 1) : 0;
   const svgPoints = trendData.map((d, index) => {
-    const x = 120 + index * 144;
+    const x = count > 1 ? startX + index * stepX : startX;
     const rate = d.rate;
     const boundedRate = Math.max(40, Math.min(100, rate));
     const y = 220 - ((boundedRate - 40) / 60) * 200;

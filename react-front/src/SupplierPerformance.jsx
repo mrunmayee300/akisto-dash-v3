@@ -151,10 +151,14 @@ function SupplierPerformance() {
   const displayedSuppliers = sortedSuppliers.slice((supplierPage - 1) * SUPPLIER_PAGE_SIZE, supplierPage * SUPPLIER_PAGE_SIZE);
 
   // Spacing and scaling for SVG Trend chart
-  // X coordinates map to 6 months: index 0 to 5
+  // X coordinates map to trendData length: index 0 to count-1
   // YCoordinate = 220 - ((OTR - 40) / 60) * 200
+  const count = trendData.length;
+  const startX = 120;
+  const endX = 840;
+  const stepX = count > 1 ? (endX - startX) / (count - 1) : 0;
   const svgPoints = trendData.map((d, index) => {
-    const x = 120 + index * 144;
+    const x = count > 1 ? startX + index * stepX : startX;
     const rate = d.rate;
     const y = 220 - ((rate - 40) / 60) * 200;
     return { x, y, month: formatMonthLabel(d.month), rate };
