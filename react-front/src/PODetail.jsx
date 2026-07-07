@@ -153,10 +153,10 @@ function TrailComponent({ data }) {
                       <div className="absolute left-[5px] top-[13px] bottom-[-3px] w-[1.5px] bg-line group-last:hidden"></div>
                       <div className="flex-1">
                         <div className="text-[15px] font-bold text-body flex items-center gap-2 flex-wrap leading-[1.3]">
-                          {event.title} <span className={`text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] ${isAnswered ? 'bg-[#EAF3EF] text-accent' : 'bg-redfill text-red'}`}>Call</span>
+                          {event.title} <span className="text-[10.5px] font-extrabold py-[1px] px-[7px] rounded-[10px] uppercase tracking-[0.4px] bg-goldfill text-darkgold">Call</span>
                         </div>
                         <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(event.timestamp)}</div>
-                        
+
                         {isAnswered ? (
                           <div className="text-[13px] text-[#0E5C44] font-bold mt-[5px]">Supplier responded on the call</div>
                         ) : (
@@ -347,82 +347,82 @@ function PODetail() {
   return (
     <div className="mx-[96px] py-12">
       <div className="w-full max-w-[800px] mx-auto bg-white border border-line rounded-[16px] overflow-hidden shadow-[0_12px_40px_rgba(11,61,46,0.12)]" id="detail-panel">
-      <div className="pt-[20px] px-[26px] pb-[18px] border-b border-line bg-[#FCFDFC]">
-        <div className="flex items-start justify-between">
-          <div className="text-[18px] font-extrabold text-emerald tracking-[-0.3px]">
-            <span id="po-number">PO# {h.poNumber || '--'}</span>
-            <span id="po-line" className="text-muted font-semibold text-[14px] ml-1">&middot; line item {li.poLineKey ? li.poLineKey.split('_').pop() : '1'}</span>
+        <div className="pt-[20px] px-[26px] pb-[18px] border-b border-line bg-[#FCFDFC]">
+          <div className="flex items-start justify-between">
+            <div className="text-[18px] font-extrabold text-emerald tracking-[-0.3px]">
+              <span id="po-number">PO# {h.poNumber || '--'}</span>
+              <span id="po-line" className="text-muted font-semibold text-[14px] ml-1">&middot; line item {li.poLineKey ? li.poLineKey.split('_').pop() : '1'}</span>
+            </div>
+            <div className="text-[20px] font-bold text-muted cursor-pointer leading-none hover:text-body" onClick={() => navigate(-1)}>&times;</div>
           </div>
-          <div className="text-[20px] font-bold text-muted cursor-pointer leading-none hover:text-body" onClick={() => navigate(-1)}>&times;</div>
-        </div>
-        <div className="grid grid-cols-2 gap-x-[32px] gap-y-[13px] mt-[14px]">
-          <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Supplier name</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-supplier">{h.supplier || '--'}</span></div>
-          <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Supplier code</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-code">{h.supplierCode || '--'}</span></div>
-          <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Material code</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-material-code">{li.materialCode || '--'}</span></div>
-          <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Material name</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-material-name">{li.materialName || '--'}</span></div>
-          <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Quantity</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-qty">{qty}</span></div>
-          <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">PO status</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-status">{h.status || 'Open'}</span></div>
-        </div>
-        <div className="mt-[15px] pt-[14px] border-t border-dashed border-line">
-          <span className={`inline-block text-[12.5px] font-extrabold py-1 px-[11px] rounded-[20px] whitespace-nowrap ${pillCls}`} id="status-pill">{statusPill.text}</span>
-          <div className="text-[14px] text-body font-semibold leading-[1.4] mt-[10px]" id="summary-text">{data.deliveryStatusText || comm.delivery_status_text || 'No status available'}</div>
-        </div>
-      </div>
-
-      <div className="flex gap-1 pt-[12px] px-[26px] pb-0 border-b border-line">
-        <button className={`text-[14px] font-bold text-muted pt-[9px] pb-[12px] px-[14px] border-b-[2.5px] border-transparent bg-none cursor-pointer hover:text-body ${activeTab === 'trail' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('trail')}>Communication trail</button>
-        <button className={`text-[14px] font-bold text-muted pt-[9px] pb-[12px] px-[14px] border-b-[2.5px] border-transparent bg-none cursor-pointer hover:text-body ${activeTab === 'dates' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('dates')}>Other order details</button>
-        <button className={`text-[14px] font-bold text-muted pt-[9px] pb-[12px] px-[14px] border-b-[2.5px] border-transparent bg-none cursor-pointer hover:text-body ${activeTab === 'supplier' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('supplier')}>Supplier details</button>
-      </div>
-
-      {activeTab === 'trail' && (
-        <div className="py-[20px] px-[26px]" id="trail">
-          <TrailComponent data={data} />
-        </div>
-      )}
-
-      {activeTab === 'dates' && (
-        <div className="py-[20px] px-[26px]" id="dates">
-          <div className="grid grid-cols-3 gap-x-[32px] gap-y-[16px]">
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">PO issue date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-issue">{formatDate(h.issueDate || comm.issue_date)}</span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Deliver-by date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-deliver">{formatDate(li.deliverBy)}</span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Ship-by date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-ship">{formatDate(li.shipBy)}</span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Delivery location</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-location">{comm.delivery_location || s.deliveryLocation || '--'}</span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Transit time (days)</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-transit">{comm.transit_time_days || '--'}</span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Tracking carrier</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-carrier">{li.carrier || '--'}</span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Tracking number</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-tracking">{li.trackingNumber || '--'}</span></div>
-            {comm.promised_revert_date && (
-              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Promised check date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-promised-revert">{formatDate(comm.promised_revert_date)}</span></div>
-            )}
-            {comm.supplier_colleague_email && (
-              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Delegated colleague</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-colleague">{comm.supplier_colleague_name ? `${comm.supplier_colleague_name} (${comm.supplier_colleague_email})` : comm.supplier_colleague_email}</span></div>
-            )}
-            {(() => {
-              const stageName = h.followUpStage || 'Stage1';
-              const p = stageName.toLowerCase().replace('.', '_') + '_';
-              const conf = comm[p + 'supplier_reply_confidence'];
-              if (conf) {
-                return (
-                  <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Classification confidence</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-confidence">{conf}</span></div>
-                );
-              }
-              return null;
-            })()}
+          <div className="grid grid-cols-2 gap-x-[32px] gap-y-[13px] mt-[14px]">
+            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Supplier name</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-supplier">{h.supplier || '--'}</span></div>
+            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Supplier code</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-code">{h.supplierCode || '--'}</span></div>
+            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Material code</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-material-code">{li.materialCode || '--'}</span></div>
+            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Material name</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-material-name">{li.materialName || '--'}</span></div>
+            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Quantity</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-qty">{qty}</span></div>
+            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">PO status</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="header-status">{h.status || 'Open'}</span></div>
+          </div>
+          <div className="mt-[15px] pt-[14px] border-t border-dashed border-line">
+            <span className={`inline-block text-[12.5px] font-extrabold py-1 px-[11px] rounded-[20px] whitespace-nowrap ${pillCls}`} id="status-pill">{statusPill.text}</span>
+            <div className="text-[14px] text-body font-semibold leading-[1.4] mt-[10px]" id="summary-text">{data.deliveryStatusText || comm.delivery_status_text || 'No status available'}</div>
           </div>
         </div>
-      )}
 
-      {activeTab === 'supplier' && (
-        <div className="py-[20px] px-[26px]" id="supplier">
-          <div className="grid grid-cols-2 gap-x-[32px] gap-y-[16px]">
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Contact name</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-contact">{s.contactName || '--'}</span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Phone</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-phone">{s.phone || '--'}</span></div>
-            <div className="flex flex-col col-span-2"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Email</span><span className="text-[14px] text-body font-semibold leading-[1.35]"><a href={s.email ? `mailto:${s.email}` : '#'} className="text-body hover:text-accent no-underline">{(s.email || '--')}</a></span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Source location</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-source">{s.sourceLocation || '--'}</span></div>
-            <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Working days</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-working">{s.workingDays || '--'}</span></div>
-          </div>
+        <div className="flex gap-1 pt-[12px] px-[26px] pb-0 border-b border-line">
+          <button className={`text-[14px] font-bold text-muted pt-[9px] pb-[12px] px-[14px] border-b-[2.5px] border-transparent bg-none cursor-pointer hover:text-body ${activeTab === 'trail' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('trail')}>Communication trail</button>
+          <button className={`text-[14px] font-bold text-muted pt-[9px] pb-[12px] px-[14px] border-b-[2.5px] border-transparent bg-none cursor-pointer hover:text-body ${activeTab === 'dates' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('dates')}>Other order details</button>
+          <button className={`text-[14px] font-bold text-muted pt-[9px] pb-[12px] px-[14px] border-b-[2.5px] border-transparent bg-none cursor-pointer hover:text-body ${activeTab === 'supplier' ? '!text-emerald !border-emerald' : ''}`} onClick={() => setActiveTab('supplier')}>Supplier details</button>
         </div>
-      )}
+
+        {activeTab === 'trail' && (
+          <div className="py-[20px] px-[26px]" id="trail">
+            <TrailComponent data={data} />
+          </div>
+        )}
+
+        {activeTab === 'dates' && (
+          <div className="py-[20px] px-[26px]" id="dates">
+            <div className="grid grid-cols-3 gap-x-[32px] gap-y-[16px]">
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">PO issue date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-issue">{formatDate(h.issueDate || comm.issue_date)}</span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Deliver-by date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-deliver">{formatDate(li.deliverBy)}</span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Ship-by date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-ship">{formatDate(li.shipBy)}</span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Delivery location</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-location">{comm.delivery_location || s.deliveryLocation || '--'}</span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Transit time (days)</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-transit">{comm.transit_time_days || '--'}</span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Tracking carrier</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-carrier">{li.carrier || '--'}</span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Tracking number</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-tracking">{li.trackingNumber || '--'}</span></div>
+              {comm.promised_revert_date && (
+                <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Promised check date</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-promised-revert">{formatDate(comm.promised_revert_date)}</span></div>
+              )}
+              {comm.supplier_colleague_email && (
+                <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Delegated colleague</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-colleague">{comm.supplier_colleague_name ? `${comm.supplier_colleague_name} (${comm.supplier_colleague_email})` : comm.supplier_colleague_email}</span></div>
+              )}
+              {(() => {
+                const stageName = h.followUpStage || 'Stage1';
+                const p = stageName.toLowerCase().replace('.', '_') + '_';
+                const conf = comm[p + 'supplier_reply_confidence'];
+                if (conf) {
+                  return (
+                    <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Classification confidence</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-confidence">{conf}</span></div>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'supplier' && (
+          <div className="py-[20px] px-[26px]" id="supplier">
+            <div className="grid grid-cols-2 gap-x-[32px] gap-y-[16px]">
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Contact name</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-contact">{s.contactName || '--'}</span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Phone</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-phone">{s.phone || '--'}</span></div>
+              <div className="flex flex-col col-span-2"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Email</span><span className="text-[14px] text-body font-semibold leading-[1.35]"><a href={s.email ? `mailto:${s.email}` : '#'} className="text-body hover:text-accent no-underline">{(s.email || '--')}</a></span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Source location</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-source">{s.sourceLocation || '--'}</span></div>
+              <div className="flex flex-col"><span className="text-[11px] text-muted font-bold uppercase tracking-[0.5px] mb-[3px]">Working days</span><span className="text-[14px] text-body font-semibold leading-[1.35]" id="detail-working">{s.workingDays || '--'}</span></div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
