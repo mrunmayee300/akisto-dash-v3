@@ -1,14 +1,22 @@
 export function formatDate(value) {
   if (!value) return '--';
   try {
-    const d = new Date(value);
+    const str = String(value).trim();
+    let d;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, dVal] = str.split('-').map(Number);
+      d = new Date(Date.UTC(y, m - 1, dVal));
+    } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+      const [m, dVal, y] = str.split('/').map(Number);
+      d = new Date(Date.UTC(y, m - 1, dVal));
+    } else {
+      d = new Date(value);
+    }
+
     if (isNaN(d.getTime())) return value;
 
-    const company = localStorage.getItem('companyName') || '';
-    let timeZone = 'Asia/Kolkata';
-    if (!company.toLowerCase().includes('emerald') && !company.toLowerCase().includes('biotique') && !company.toLowerCase().includes('sipat')) {
-      timeZone = 'America/New_York';
-    }
+    const hasTime = str.includes(':') || str.includes('T') || (str.includes(' ') && str.match(/\d{2}:\d{2}/));
+    const timeZone = hasTime ? 'America/New_York' : 'UTC';
 
     const day = d.toLocaleDateString('en-US', { day: 'numeric', timeZone: timeZone });
     const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: timeZone });
@@ -22,17 +30,22 @@ export function formatDate(value) {
 export function formatTimestamp(ts) {
   if (!ts) return '--';
   try {
-    const hasTime = String(ts).includes(':') || String(ts).includes('T');
-    const d = new Date(ts);
+    const str = String(ts).trim();
+    let d;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, dVal] = str.split('-').map(Number);
+      d = new Date(Date.UTC(y, m - 1, dVal));
+    } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+      const [m, dVal, y] = str.split('/').map(Number);
+      d = new Date(Date.UTC(y, m - 1, dVal));
+    } else {
+      d = new Date(ts);
+    }
+
     if (isNaN(d.getTime())) return ts;
 
-    const company = localStorage.getItem('companyName') || '';
-    let timeZone = 'Asia/Kolkata';
-    let tzLabel = 'EST';
-    if (!company.toLowerCase().includes('emerald') && !company.toLowerCase().includes('biotique') && !company.toLowerCase().includes('sipat')) {
-      timeZone = 'America/New_York';
-      tzLabel = 'EST';
-    }
+    const hasTime = str.includes(':') || str.includes('T') || (str.includes(' ') && str.match(/\d{2}:\d{2}/));
+    const timeZone = hasTime ? 'America/New_York' : 'UTC';
 
     const day = d.toLocaleDateString('en-US', { day: 'numeric', timeZone: timeZone });
     const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: timeZone });
@@ -44,6 +57,23 @@ export function formatTimestamp(ts) {
     }
 
     const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timeZone });
+    
+    // Get dynamic timezone label (EST or EDT)
+    let tzLabel = 'EST';
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timeZone,
+        timeZoneName: 'short'
+      });
+      const parts = formatter.formatToParts(d);
+      const tzPart = parts.find(p => p.type === 'timeZoneName');
+      if (tzPart) {
+        tzLabel = tzPart.value;
+      }
+    } catch (e) {
+      // fallback to EST
+    }
+
     return `${datePart} · ${timePart} ${tzLabel}`;
   } catch (e) {
     return ts;

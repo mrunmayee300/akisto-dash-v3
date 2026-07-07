@@ -14,18 +14,28 @@ const labels = {
 
 function formatCurrentDate() {
   const d = new Date();
-  const company = localStorage.getItem('companyName') || '';
-  let timeZone = 'Asia/Kolkata';
-  let tzLabel = 'EST';
-  if (!company.toLowerCase().includes('emerald') && !company.toLowerCase().includes('biotique') && !company.toLowerCase().includes('sipat')) {
-    timeZone = 'America/New_York';
-    tzLabel = 'EST';
-  }
+  const timeZone = 'America/New_York';
 
   const weekday = d.toLocaleDateString('en-US', { weekday: 'long', timeZone });
   const day = d.toLocaleDateString('en-US', { day: 'numeric', timeZone });
   const month = d.toLocaleDateString('en-US', { month: 'long', timeZone });
   const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone });
+
+  // Get dynamic timezone label (EST or EDT)
+  let tzLabel = 'EST';
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timeZone,
+      timeZoneName: 'short'
+    });
+    const parts = formatter.formatToParts(d);
+    const tzPart = parts.find(p => p.type === 'timeZoneName');
+    if (tzPart) {
+      tzLabel = tzPart.value;
+    }
+  } catch (e) {
+    // fallback to EST
+  }
 
   return `${weekday}, ${day} ${month} · ${time} ${tzLabel}`;
 }
