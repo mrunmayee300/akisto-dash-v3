@@ -360,7 +360,10 @@ const getObjects = (rows, clientCode = null) => {
 
     const row = {};
     headers.forEach((header, index) => {
-      row[header] = rows[i][index] !== undefined ? rows[i][index] : '';
+      const val = rows[i][index];
+      if (val !== undefined && val !== null && String(val).trim() !== '') {
+        row[header] = val;
+      }
     });
     data.push(row);
   }
@@ -487,8 +490,8 @@ const sheetsService = {
           return name;
         };
 
+        const sheets = google.sheets({ version: 'v4', auth });
         try {
-          const sheets = google.sheets({ version: 'v4', auth });
           const ranges = sheetsToFetch.map(name => {
             const resolvedName = resolveSheetName(name);
             let cols = 'A1:IZ'; 
