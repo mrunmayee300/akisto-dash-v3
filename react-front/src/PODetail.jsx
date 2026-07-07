@@ -234,9 +234,6 @@ function TrailComponent({ data }) {
           </React.Fragment>
         );
       })}
-    </div>
-  );
-}
 
       {data.nextAction && data.nextAction !== 'Waiting' && data.nextAction !== '--' && (
         <React.Fragment>
