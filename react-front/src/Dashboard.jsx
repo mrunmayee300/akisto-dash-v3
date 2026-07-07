@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatDate, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint, resolvePoDashboardState } from './utils';
+import { formatDate, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint, resolvePoDashboardState, latestStatusText } from './utils';
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 const PAGE_SIZE = 10;
@@ -16,7 +16,7 @@ function formatCurrentDate() {
   const d = new Date();
   const company = localStorage.getItem('companyName') || '';
   let timeZone = 'Asia/Kolkata';
-  let tzLabel = 'IST';
+  let tzLabel = 'EST';
   if (!company.toLowerCase().includes('emerald') && !company.toLowerCase().includes('biotique') && !company.toLowerCase().includes('sipat')) {
     timeZone = 'America/New_York';
     tzLabel = 'EST';
@@ -238,9 +238,12 @@ function Dashboard() {
       const pxCls = 'px-4';
 
       // Last update text for Awaiting Reply:
-      const stage = po.follow_up_stage || 'Stage1';
-      const prefix = stage.toLowerCase().replace('.', '_') + '_';
-      const lastUpdateText = po[prefix + 'delivery_status_text'] || po[prefix + 'supplier_raw_statement'] || 'No supplier response yet';
+      const lastUpdateText = po.stage3_delivery_status_text || po.stage3_supplier_raw_statement ||
+                             po.stage2_5_delivery_status_text || po.stage2_5_supplier_raw_statement ||
+                             po.stage2_delivery_status_text || po.stage2_supplier_raw_statement ||
+                             po.stage1_5_delivery_status_text || po.stage1_5_supplier_raw_statement ||
+                             po.stage1_delivery_status_text || po.stage1_supplier_raw_statement ||
+                             'No supplier response yet';
 
       return (
         <tr key={po.comms_group_id} onClick={() => handleRowClick(po.comms_group_id, status.label)} className="cursor-pointer hover:bg-[#FDFDFD]">
@@ -266,7 +269,7 @@ function Dashboard() {
           )}
           {showExtraColumn && tabKey === 'track' && (
             <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top text-body min-w-[200px] max-w-[340px] leading-[1.45] break-words`}>
-              {po.delivery_status_text || resolved.reason || '--'}
+              {latestStatusText(po) || po.delivery_status_text || 'No status available'}
             </td>
           )}
           {showExtraColumn && tabKey === 'await' && (

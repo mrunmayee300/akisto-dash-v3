@@ -25,7 +25,11 @@ function SupplierPerformance() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [supplierPage, setSupplierPage] = useState(1);
-  const SUPPLIER_PAGE_SIZE = 5;
+  const [activeTab, setActiveTab] = useState('overview');
+  const [sortBy, setSortBy] = useState('rate_desc');
+  const [filterFlag, setFilterFlag] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const SUPPLIER_PAGE_SIZE = 15;
 
   const userEmail = localStorage.getItem('userEmail');
   const userName = localStorage.getItem('userName');
@@ -67,15 +71,6 @@ function SupplierPerformance() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('sessionToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('companyName');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
-    navigate('/login');
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#EEF1EF] text-[#2C2C2A] flex items-center justify-center font-sans">
@@ -105,8 +100,55 @@ function SupplierPerformance() {
   }
 
   const { suppliers = [], kpis = {}, trendData = [], delaySummary = [] } = data;
-  const totalSupplierPages = Math.ceil(suppliers.length / SUPPLIER_PAGE_SIZE);
-  const displayedSuppliers = suppliers.slice((supplierPage - 1) * SUPPLIER_PAGE_SIZE, supplierPage * SUPPLIER_PAGE_SIZE);
+
+  const filteredSuppliers = suppliers.filter(sup => {
+    const matchesSearch = !searchQuery || 
+      (sup.name && sup.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
+      (sup.code && String(sup.code).toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (!matchesSearch) return false;
+
+    const mappedFlag = (sup.flag === 'Watch' || sup.flag === 'Action Needed') ? 'Action Needed' 
+                     : ((sup.flag === 'Review' || sup.flag === 'Monitor') ? 'Monitor' : '');
+
+    if (filterFlag === 'flagged') {
+      return !!mappedFlag;
+    } else if (filterFlag === 'Action Needed') {
+      return mappedFlag === 'Action Needed';
+    } else if (filterFlag === 'Monitor') {
+      return mappedFlag === 'Monitor';
+    } else if (filterFlag === 'none') {
+      return !mappedFlag;
+    }
+    return true;
+  });
+
+  const sortedSuppliers = [...filteredSuppliers].sort((a, b) => {
+    if (sortBy === 'rate_desc') {
+      return (b.onTime || 0) - (a.onTime || 0);
+    }
+    if (sortBy === 'rate_asc') {
+      return (a.onTime || 0) - (b.onTime || 0);
+    }
+    if (sortBy === 'lines_desc') {
+      return (b.poLines || 0) - (a.poLines || 0);
+    }
+    if (sortBy === 'late_desc') {
+      return parseFloat(b.avgDaysLate || 0) - parseFloat(a.avgDaysLate || 0);
+    }
+    if (sortBy === 'esc_desc') {
+      const parseEsc = val => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') return parseFloat(val.replace('%', '')) || 0;
+        return 0;
+      };
+      return parseEsc(b.escalated) - parseEsc(a.escalated);
+    }
+    return 0;
+  });
+
+  const totalSupplierPages = Math.ceil(sortedSuppliers.length / SUPPLIER_PAGE_SIZE);
+  const displayedSuppliers = sortedSuppliers.slice((supplierPage - 1) * SUPPLIER_PAGE_SIZE, supplierPage * SUPPLIER_PAGE_SIZE);
 
   // Spacing and scaling for SVG Trend chart
   // X coordinates map to 6 months: index 0 to 5
@@ -146,7 +188,7 @@ function SupplierPerformance() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 18px 28px;
+          padding: 18px 96px;
           border-bottom: 1px solid var(--line);
         }
         .supplier-performance-page .brand {
@@ -183,8 +225,41 @@ function SupplierPerformance() {
           color: var(--muted);
           margin-top: 2px;
         }
+        .supplier-performance-page .tabbar {
+          display: flex;
+          gap: 30px;
+          padding: 0 96px;
+          border-bottom: 1px solid var(--line);
+          background: #fff;
+        }
+        .supplier-performance-page .tabbtn {
+          padding: 16px 2px;
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--muted);
+          cursor: pointer;
+          background: none;
+          border: none;
+          border-bottom: 2.5px solid transparent;
+          font-family: inherit;
+          margin-bottom: -1px;
+        }
+        .supplier-performance-page .tabbtn:hover {
+          color: var(--body);
+        }
+        .supplier-performance-page .tabbtn.active {
+          color: var(--emerald);
+          border-bottom-color: var(--emerald);
+        }
+        .supplier-performance-page .tabpane {
+          display: none;
+          padding: 26px 0 8px;
+        }
+        .supplier-performance-page .tabpane.show {
+          display: block;
+        }
         .supplier-performance-page .section {
-          padding: 22px 28px 6px;
+          padding: 22px 96px 6px;
         }
         .supplier-performance-page .section h2 {
           font-size: 16px;
@@ -200,7 +275,7 @@ function SupplierPerformance() {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 13px;
-          padding: 16px 28px 6px;
+          padding: 16px 96px 6px;
         }
         .supplier-performance-page .kpi {
           border: 1px solid var(--line);
@@ -236,7 +311,7 @@ function SupplierPerformance() {
           color: var(--muted);
         }
         .supplier-performance-page .chartwrap {
-          padding: 8px 28px 12px;
+          padding: 8px 96px 12px;
         }
         .supplier-performance-page .card {
           border: 1px solid var(--line);
@@ -257,6 +332,7 @@ function SupplierPerformance() {
         .supplier-performance-page svg {
           display: block;
           width: 100%;
+          height: auto;
           overflow: visible;
         }
         .supplier-performance-page .axlab {
@@ -266,6 +342,47 @@ function SupplierPerformance() {
         .supplier-performance-page .gridline {
           stroke: #EEF1EF;
           stroke-width: 1;
+        }
+        .supplier-performance-page .controls {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 16px 96px 4px;
+          flex-wrap: wrap;
+        }
+        .supplier-performance-page .ctl {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+        }
+        .supplier-performance-page .ctl label {
+          font-size: 12.5px;
+          color: var(--muted);
+          font-weight: 700;
+        }
+        .supplier-performance-page .ctl select, .supplier-performance-page .ctl input {
+          font-family: inherit;
+          font-size: 13.5px;
+          padding: 7px 11px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          color: var(--body);
+          background: #fff;
+          outline: none;
+        }
+        .supplier-performance-page .ctl select:focus, .supplier-performance-page .ctl input:focus {
+          border-color: var(--accent);
+        }
+        .supplier-performance-page .ctl input {
+          width: 210px;
+        }
+        .supplier-performance-page .spacer {
+          flex: 1;
+        }
+        .supplier-performance-page .resultcount {
+          font-size: 12.5px;
+          color: var(--muted);
+          font-weight: 600;
         }
         .supplier-performance-page table {
           width: 100%;
@@ -278,17 +395,30 @@ function SupplierPerformance() {
           color: var(--muted);
           font-weight: 700;
           text-align: left;
-          padding: 10px 28px;
+          padding: 10px 12px;
           border-bottom: 1px solid var(--line);
+          user-select: none;
+        }
+        .supplier-performance-page thead th:first-child {
+          padding-left: 96px;
+        }
+        .supplier-performance-page thead th:last-child {
+          padding-right: 96px;
         }
         .supplier-performance-page thead th.r {
           text-align: right;
         }
         .supplier-performance-page tbody td {
-          padding: 13px 28px;
+          padding: 13px 12px;
           border-bottom: 1px solid #F2F4F2;
           font-size: 14px;
           vertical-align: middle;
+        }
+        .supplier-performance-page tbody td:first-child {
+          padding-left: 96px;
+        }
+        .supplier-performance-page tbody td:last-child {
+          padding-right: 96px;
         }
         .supplier-performance-page tbody tr:last-child td {
           border-bottom: none;
@@ -352,23 +482,60 @@ function SupplierPerformance() {
           border-radius: 20px;
           text-transform: uppercase;
           letter-spacing: 0.4px;
+          white-space: nowrap;
         }
-        .supplier-performance-page .f-watch {
+        .supplier-performance-page .f-action {
           background: var(--redfill);
           color: var(--red);
         }
-        .supplier-performance-page .f-review {
+        .supplier-performance-page .f-monitor {
           background: var(--goldfill);
           color: var(--darkgold);
         }
-        .supplier-performance-page .seemore {
-          padding: 13px 28px 4px;
-          font-size: 13px;
-          color: var(--accent);
+        .supplier-performance-page .pager {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 18px 96px 6px;
+        }
+        .supplier-performance-page .pginfo {
+          font-size: 14px;
+          color: var(--emerald);
           font-weight: 700;
         }
+        .supplier-performance-page .pgbtns {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+        }
+        .supplier-performance-page .pgbtns button {
+          width: 34px;
+          height: 34px;
+          border-radius: 8px;
+          border: 1px solid var(--line);
+          background: #fff;
+          font-weight: 700;
+          color: var(--muted);
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .supplier-performance-page .pgbtns button:hover:not(:disabled) {
+          background: #FAFBFA;
+          color: var(--body);
+        }
+        .supplier-performance-page .pgbtns button:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        .supplier-performance-page .pgbtns .cur {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--body);
+        }
         .supplier-performance-page .delaywrap {
-          padding: 8px 28px 18px;
+          padding: 8px 96px 18px;
         }
         .supplier-performance-page .delaywrap .card {
           border: none;
@@ -404,11 +571,12 @@ function SupplierPerformance() {
           font-size: 13px;
           color: var(--body);
           font-weight: 600;
-          width: 210px;
+          width: 280px;
           flex-shrink: 0;
           display: flex;
           align-items: center;
           gap: 8px;
+          white-space: nowrap;
         }
         .supplier-performance-page .rrow .rn .src {
           width: 9px;
@@ -451,6 +619,7 @@ function SupplierPerformance() {
           display: flex;
           gap: 18px;
           margin-top: 16px;
+          margin-bottom: 16px;
           font-size: 12px;
           color: var(--muted);
         }
@@ -491,192 +660,218 @@ function SupplierPerformance() {
             <span className="plabel">Supplier performance</span>
           </div>
           <div className="meta">
-            <div className="who">{userName && userRole ? `${userName} . ${userRole}` : userName || userEmail}</div>
-            <div className="day">Trailing 6 months &middot; to {formatCurrentDate()}</div>
+            <div className="who">{userName && userRole ? `${userName} · ${userRole}` : userName || userEmail}</div>
+            <div className="day">Trailing 6 months &middot; as of {formatCurrentDate()}</div>
           </div>
         </header>
 
-        <div className="kpis">
-          <div className="kpi">
-            <div className="lab">On-time rate</div>
-            <div className="num">{kpis.onTimeRate}%</div>
-            <div className="delta up">&#9650; vs prior 6 mo</div>
-          </div>
-          <div className="kpi">
-            <div className="lab">Escalated to buyer</div>
-            <div className="num">{kpis.escalatedRate}%</div>
-            <div className="delta down">&#9660; vs prior 6 mo</div>
-          </div>
-          <div className="kpi">
-            <div className="lab">PO lines tracked</div>
-            <div className="num">{kpis.totalPoLines?.toLocaleString() || '0'}</div>
-            <div className="delta flat">across {kpis.supplierCount} suppliers</div>
-          </div>
+        <div className="tabbar">
+          <button className={`tabbtn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+          <button className={`tabbtn ${activeTab === 'bysupplier' ? 'active' : ''}`} onClick={() => setActiveTab('bysupplier')}>By supplier</button>
         </div>
 
-        <div className="chartwrap">
-          <div className="card">
-            <div className="ct">On-time delivery rate over time</div>
-            <div className="cs">Share of PO lines delivered on or before the agreed date, by month, across all suppliers</div>
-            {trendData.length > 0 ? (
-              <svg viewBox="0 0 900 240" preserveAspectRatio="none" height="240">
-                <line className="gridline" x1="40" y1="20" x2="900" y2="20" />
-                <line className="gridline" x1="40" y1="70" x2="900" y2="70" />
-                <line className="gridline" x1="40" y1="120" x2="900" y2="120" />
-                <line className="gridline" x1="40" y1="170" x2="900" y2="170" />
-                <line className="gridline" x1="40" y1="220" x2="900" y2="220" />
-                <text className="axlab" x="0" y="24">100%</text>
-                <text className="axlab" x="6" y="74">85%</text>
-                <text className="axlab" x="6" y="124">70%</text>
-                <text className="axlab" x="6" y="174">55%</text>
-                <text className="axlab" x="6" y="224">40%</text>
+        {/* ============ TAB 1: OVERVIEW ============ */}
+        <div className={`tabpane ${activeTab === 'overview' ? 'show' : ''}`} id="overview">
+          <div className="kpis">
+            <div className="kpi">
+              <div className="lab">On-time rate</div>
+              <div className="num">{kpis.onTimeRate}%</div>
+              <div className="delta up">&#9650; vs prior 6 mo</div>
+            </div>
+            <div className="kpi">
+              <div className="lab">Escalated to buyer</div>
+              <div className="num">{kpis.escalatedRate}%</div>
+              <div className="delta down">&#9660; vs prior 6 mo</div>
+            </div>
+            <div className="kpi">
+              <div className="lab">PO lines tracked</div>
+              <div className="num">{kpis.totalPoLines?.toLocaleString() || '0'}</div>
+              <div className="delta flat">across {kpis.supplierCount} suppliers</div>
+            </div>
+          </div>
 
-                <polyline fill="none" stroke="#1D9E75" strokeWidth="3" points={polylinePoints} />
-                <polygon fill="#1D9E75" opacity="0.08" points={polygonPoints} />
+          <div className="chartwrap">
+            <div className="card">
+              <div className="ct">On-time delivery rate over time</div>
+              <div className="cs">Share of PO lines delivered on or before the agreed date, by month, across all suppliers</div>
+              {trendData.length > 0 ? (
+                <svg viewBox="0 0 900 240" className="w-full">
+                  <line className="gridline" x1="40" y1="20" x2="900" y2="20" />
+                  <line className="gridline" x1="40" y1="70" x2="900" y2="70" />
+                  <line className="gridline" x1="40" y1="120" x2="900" y2="120" />
+                  <line className="gridline" x1="40" y1="170" x2="900" y2="170" />
+                  <line className="gridline" x1="40" y1="220" x2="900" y2="220" />
+                  <text className="axlab" x="0" y="24">100%</text>
+                  <text className="axlab" x="6" y="74">85%</text>
+                  <text className="axlab" x="6" y="124">70%</text>
+                  <text className="axlab" x="6" y="174">55%</text>
+                  <text className="axlab" x="6" y="224">40%</text>
 
-                {svgPoints.map((pt, idx) => (
-                  <g key={idx}>
-                    <circle cx={pt.x} cy={pt.y} r={idx === svgPoints.length - 1 ? 5 : 4} fill={idx === svgPoints.length - 1 ? '#C79A2E' : '#0E5C44'} />
-                    <text className="axlab" x={pt.x - 12} y="236">{pt.month}</text>
-                  </g>
+                  <polyline fill="none" stroke="#1D9E75" strokeWidth="3" points={polylinePoints} />
+                  <polygon fill="#1D9E75" opacity="0.08" points={polygonPoints} />
+
+                  {svgPoints.map((pt, idx) => (
+                    <g key={idx}>
+                      <circle cx={pt.x} cy={pt.y} r={idx === svgPoints.length - 1 ? 5 : 4} fill={idx === svgPoints.length - 1 ? '#C79A2E' : '#0E5C44'} />
+                      <text className="axlab" x={pt.x - 12} y="236">{pt.month}</text>
+                    </g>
+                  ))}
+                </svg>
+              ) : (
+                <p className="text-sm text-muted text-center py-10">No historical trends available.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="section">
+            <h2>Delay analysis</h2>
+            <div className="sub">Root cause of every delayed PO line over the trailing 6 months, by where the delay originated</div>
+          </div>
+
+          <div className="delaywrap">
+            <div className="card">
+              <div className="splitsummary">
+                Of all delays, <b className="sb">{totalInternal}% were internal blockers</b> and <b className="si">{totalSupplier}% were supplier-side issues</b>.
+              </div>
+              <div className="reasons">
+                {delaySummary.map((d, index) => (
+                  <div key={index} className="rrow">
+                    <span className="rn">
+                      <span className={`src ${d.side === 'internal' ? 'src-int' : 'src-sup'}`}></span>
+                      {d.category}
+                    </span>
+                    <span className="rb">
+                      <i className={d.side === 'internal' ? 'int' : 'sup'} style={{ width: `${d.percentage}%` }}></i>
+                    </span>
+                    <span className="rv">{d.percentage}%</span>
+                  </div>
                 ))}
-              </svg>
-            ) : (
-              <p className="text-sm text-muted text-center py-10">No historical trends available.</p>
-            )}
+              </div>
+              <div className="legend2">
+                <span><span className="sw" style={{ background: 'var(--gold)' }}></span>Internal blockers</span>
+                <span><span className="sw" style={{ background: 'var(--accent)' }}></span>Supplier-side issues</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="section">
-          <h2>Supplier reliability</h2>
-          <div className="sub">Ranked by on-time rate over the trailing 6 months, strongest first. Click a supplier for their full history.</div>
-        </div>
+        {/* ============ TAB 2: BY SUPPLIER ============ */}
+        <div className={`tabpane ${activeTab === 'bysupplier' ? 'show' : ''}`} id="bysupplier">
+          <div className="section">
+            <h2>Supplier reliability</h2>
+            <div className="sub">Every supplier ranked on delivery performance over the trailing 6 months. Sort, filter, or search to find who you need. Click a supplier for their full history.</div>
+          </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Supplier</th>
-              <th className="r">PO lines ordered</th>
-              <th className="r">On-time rate</th>
-              <th className="r">Avg days late</th>
-              <th className="r">Avg response time</th>
-              <th className="r">Escalated</th>
-              <th>Flag</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedSuppliers.map((sup, idx) => (
-              <tr key={idx} className="click" onClick={() => navigate(`/supplier-detail/${sup.code}`)}>
-                <td className="sup">
-                  {sup.name} <span className="code">{sup.code} &middot; {sup.desc}</span>
-                </td>
-                <td className="num">{sup.poLines}</td>
-                <td>
-                  <span className={`rate ${sup.rateClass}`}>
-                    <span className="ratebar">
-                      <i style={{ width: `${sup.onTime}%` }}></i>
-                    </span>
-                    <span className="pct">{sup.onTime}%</span>
-                  </span>
-                </td>
-                <td className="num">{sup.avgDaysLate}</td>
-                <td className="num">{sup.avgRespTime}</td>
-                <td className="num">{sup.escalated}</td>
-                <td>
-                  {sup.flag && (
-                    <span className={`flag ${sup.flag === 'Watch' ? 'f-watch' : 'f-review'}`}>
-                      {sup.flag}
-                    </span>
-                  )}
-                </td>
+          <div className="controls">
+            <div className="ctl">
+              <label htmlFor="sortSel">Sort</label>
+              <select id="sortSel" value={sortBy} onChange={(e) => { setSortBy(e.target.value); setSupplierPage(1); }}>
+                <option value="rate_desc">On-time rate (best first)</option>
+                <option value="rate_asc">On-time rate (worst first)</option>
+                <option value="lines_desc">PO lines (highest first)</option>
+                <option value="late_desc">Average days late (highest first)</option>
+                <option value="esc_desc">Escalated % (highest first)</option>
+              </select>
+            </div>
+            <div className="ctl">
+              <label htmlFor="flagSel">Flag</label>
+              <select id="flagSel" value={filterFlag} onChange={(e) => { setFilterFlag(e.target.value); setSupplierPage(1); }}>
+                <option value="all">All suppliers</option>
+                <option value="flagged">Flagged only</option>
+                <option value="Action Needed">Action needed</option>
+                <option value="Monitor">Monitor</option>
+                <option value="none">Unflagged</option>
+              </select>
+            </div>
+            <div className="ctl">
+              <label htmlFor="searchBox">Search</label>
+              <input 
+                id="searchBox" 
+                type="text" 
+                placeholder="Supplier name or code" 
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setSupplierPage(1); }}
+              />
+            </div>
+            <div className="spacer"></div>
+            <div className="resultcount">
+              {filteredSuppliers.length} supplier{filteredSuppliers.length === 1 ? '' : 's'} match
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th onClick={() => { setSortBy(sortBy === 'rate_desc' ? 'rate_asc' : 'rate_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>Supplier</th>
+                <th className="r" onClick={() => { setSortBy('lines_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>PO lines ordered</th>
+                <th className="r" onClick={() => { setSortBy(sortBy === 'rate_desc' ? 'rate_asc' : 'rate_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>On-time rate</th>
+                <th className="r" onClick={() => { setSortBy('late_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>Avg days late</th>
+                <th className="r">Avg response time</th>
+                <th className="r" onClick={() => { setSortBy('esc_desc'); setSupplierPage(1); }} style={{ cursor: 'pointer' }}>Escalated</th>
+                <th>Flag</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="seemore" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <span>
-            Showing {displayedSuppliers.length > 0 ? (supplierPage - 1) * SUPPLIER_PAGE_SIZE + 1 : 0}-{Math.min(supplierPage * SUPPLIER_PAGE_SIZE, suppliers.length)} of {suppliers.length} suppliers &middot; click any supplier
-          </span>
-          {totalSupplierPages > 1 && (
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }} id="supplier-pager">
-              <button 
-                disabled={supplierPage <= 1} 
-                onClick={() => setSupplierPage(p => Math.max(1, p - 1))}
-                style={{
-                  background: '#fff',
-                  border: '1px solid var(--line)',
-                  borderRadius: '7px',
-                  width: '28px',
-                  height: '28px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--muted)',
-                  opacity: supplierPage <= 1 ? 0.4 : 1
-                }}
-                id="supplier-prev-btn"
-              >
-                &lt;
-              </button>
-              <span style={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 'bold', margin: '0 8px' }}>
-                Page {supplierPage} of {totalSupplierPages}
-              </span>
-              <button 
-                disabled={supplierPage >= totalSupplierPages} 
-                onClick={() => setSupplierPage(p => Math.min(totalSupplierPages, p + 1))}
-                style={{
-                  background: '#fff',
-                  border: '1px solid var(--line)',
-                  borderRadius: '7px',
-                  width: '28px',
-                  height: '28px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--muted)',
-                  opacity: supplierPage >= totalSupplierPages ? 0.4 : 1
-                }}
-                id="supplier-next-btn"
-              >
-                &gt;
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="section">
-          <h2>Delay analysis</h2>
-          <div className="sub">Root cause of every delayed PO line over the trailing 6 months, by where the delay originated</div>
-        </div>
-
-        <div className="delaywrap">
-          <div className="card">
-            <div className="splitsummary">
-              Of all delays, <b className="sb">{totalInternal}% originated internally</b> (payment, approvals) and <b className="si">{totalSupplier}% on the supplier side</b>.
-            </div>
-            <div className="reasons">
-              {delaySummary.map((d, index) => (
-                <div key={index} className="rrow">
-                  <span className="rn">
-                    <span className={`src ${d.side === 'internal' ? 'src-int' : 'src-sup'}`}></span>
-                    {d.category}
-                  </span>
-                  <span className="rb">
-                    <i className={d.side === 'internal' ? 'int' : 'sup'} style={{ width: `${d.percentage}%` }}></i>
-                  </span>
-                  <span className="rv">{d.percentage}%</span>
-                </div>
+            </thead>
+            <tbody>
+              {displayedSuppliers.map((sup, idx) => (
+                <tr key={idx} className="click" onClick={() => navigate(`/supplier-detail/${sup.code}`)}>
+                  <td className="sup">
+                    {sup.name} <span className="code">{sup.code}</span>
+                  </td>
+                  <td className="num">{sup.poLines}</td>
+                  <td>
+                    <span className={`rate ${sup.rateClass}`}>
+                      <span className="ratebar">
+                        <i style={{ width: `${sup.onTime}%` }}></i>
+                      </span>
+                      <span className="pct">{sup.onTime}%</span>
+                    </span>
+                  </td>
+                  <td className="num">{sup.avgDaysLate}</td>
+                  <td className="num">{sup.avgRespTime}</td>
+                  <td className="num">{sup.escalated}</td>
+                  <td>
+                    {(sup.flag === 'Watch' || sup.flag === 'Action Needed') && (
+                      <span className="flag f-action">Action Needed</span>
+                    )}
+                    {(sup.flag === 'Review' || sup.flag === 'Monitor') && (
+                      <span className="flag f-monitor">Monitor</span>
+                    )}
+                  </td>
+                </tr>
               ))}
+              {displayedSuppliers.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="text-center text-muted py-10 font-semibold">No suppliers found matching the criteria.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <div className="pager">
+            <div className="pginfo">
+              Showing {displayedSuppliers.length > 0 ? (supplierPage - 1) * SUPPLIER_PAGE_SIZE + 1 : 0}–{Math.min(supplierPage * SUPPLIER_PAGE_SIZE, sortedSuppliers.length)} of {sortedSuppliers.length} suppliers
             </div>
-            <div className="legend2">
-              <span><span className="sw" style={{ background: 'var(--gold)' }}></span>Internal</span>
-              <span><span className="sw" style={{ background: 'var(--accent)' }}></span>Supplier</span>
-            </div>
+            {totalSupplierPages > 1 && (
+              <div className="pgbtns" id="supplier-pager">
+                <button 
+                  disabled={supplierPage <= 1} 
+                  onClick={() => setSupplierPage(p => Math.max(1, p - 1))}
+                  id="supplier-prev-btn"
+                >
+                  &lt;
+                </button>
+                <span className="cur" id="pgcur">
+                  Page {supplierPage} of {totalSupplierPages}
+                </span>
+                <button 
+                  disabled={supplierPage >= totalSupplierPages} 
+                  onClick={() => setSupplierPage(p => Math.min(totalSupplierPages, p + 1))}
+                  id="supplier-next-btn"
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

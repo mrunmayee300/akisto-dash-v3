@@ -28,7 +28,7 @@ export function formatTimestamp(ts) {
 
     const company = localStorage.getItem('companyName') || '';
     let timeZone = 'Asia/Kolkata';
-    let tzLabel = 'IST';
+    let tzLabel = 'EST';
     if (!company.toLowerCase().includes('emerald') && !company.toLowerCase().includes('biotique') && !company.toLowerCase().includes('sipat')) {
       timeZone = 'America/New_York';
       tzLabel = 'EST';
@@ -202,4 +202,16 @@ export function getStatusPill(comm) {
   const resolved = resolvePoDashboardState(comm);
   return { text: resolved.label, class: resolved.cls };
 }
+
+export function latestStatusText(po) {
+  return (
+    po.stage3_delivery_status_text ||
+    po.stage2_5_delivery_status_text ||
+    po.stage2_delivery_status_text ||
+    po.stage1_5_delivery_status_text ||
+    po.stage1_delivery_status_text ||
+    ''
+  );
+}
+
 

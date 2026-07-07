@@ -97,7 +97,7 @@ function SupplierDetail() {
     );
   }
 
-  const { supplierMeta = {}, kpis = {}, trendData = [], benchmarkTrendData = [], delaySummary = [], recentDeliveries = [] } = data;
+  const { supplierMeta = {}, kpis = {}, trendData = [], delaySummary = [], recentDeliveries = [] } = data;
 
   const isWatch = parseInt(kpis.onTimeRate || 0) < 60;
   const strokeColor = isWatch ? '#B23B2E' : '#0E5C44';
@@ -119,16 +119,6 @@ function SupplierDetail() {
     ? `${polylinePoints} ${svgPoints[svgPoints.length - 1].x},220 ${svgPoints[0].x},220`
     : '';
 
-  const svgBenchmarkPoints = benchmarkTrendData.map((d, index) => {
-    const x = 120 + index * 144;
-    const rate = d.rate;
-    const boundedRate = Math.max(40, Math.min(100, rate));
-    const y = 220 - ((boundedRate - 40) / 60) * 200;
-    return { x, y };
-  });
-
-  const benchmarkPolylinePoints = svgBenchmarkPoints.map(p => `${p.x},${p.y}`).join(' ');
-
   return (
     <div className="supplier-detail-page min-h-screen bg-white text-[#2C2C2A] font-sans mx-[96px]">
       <style>{`
@@ -141,7 +131,7 @@ function SupplierDetail() {
           box-shadow: none;
         }
         .supplier-detail-page .back {
-          padding: 14px 28px 0;
+          padding: 14px 96px 0;
           font-size: 13px;
           color: var(--accent);
           font-weight: 700;
@@ -152,7 +142,7 @@ function SupplierDetail() {
           text-decoration: underline;
         }
         .supplier-detail-page .ph {
-          padding: 14px 28px 20px;
+          padding: 14px 96px 20px;
           border-bottom: 1px solid var(--line);
         }
         .supplier-detail-page .ph .top {
@@ -185,11 +175,11 @@ function SupplierDetail() {
           text-transform: uppercase;
           letter-spacing: 0.4px;
         }
-        .supplier-detail-page .f-watch {
+        .supplier-detail-page .f-action {
           background: var(--redfill);
           color: var(--red);
         }
-        .supplier-detail-page .f-review {
+        .supplier-detail-page .f-monitor {
           background: var(--goldfill);
           color: var(--darkgold);
         }
@@ -197,7 +187,7 @@ function SupplierDetail() {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 13px;
-          padding: 18px 28px 6px;
+          padding: 18px 96px 6px;
         }
         .supplier-detail-page .kpi {
           border: 1px solid var(--line);
@@ -222,7 +212,7 @@ function SupplierDetail() {
           color: var(--red);
         }
         .supplier-detail-page .chartwrap {
-          padding: 14px 28px 8px;
+          padding: 14px 96px 8px;
         }
         .supplier-detail-page .card {
           border: 1px solid var(--line);
@@ -247,6 +237,7 @@ function SupplierDetail() {
         .supplier-detail-page svg {
           display: block;
           width: 100%;
+          height: auto;
           overflow: visible;
         }
         .supplier-detail-page .axlab {
@@ -258,7 +249,7 @@ function SupplierDetail() {
           stroke-width: 1;
         }
         .supplier-detail-page .section {
-          padding: 20px 28px 4px;
+          padding: 20px 96px 4px;
         }
         .supplier-detail-page .section h2 {
           font-size: 16px;
@@ -281,17 +272,29 @@ function SupplierDetail() {
           color: var(--muted);
           font-weight: 700;
           text-align: left;
-          padding: 10px 28px;
+          padding: 10px 12px;
           border-bottom: 1px solid var(--line);
+        }
+        .supplier-detail-page thead th:first-child {
+          padding-left: 96px;
+        }
+        .supplier-detail-page thead th:last-child {
+          padding-right: 96px;
         }
         .supplier-detail-page thead th.r {
           text-align: right;
         }
         .supplier-detail-page tbody td {
-          padding: 12px 28px;
+          padding: 12px 12px;
           border-bottom: 1px solid #F2F4F2;
           font-size: 13.5px;
           vertical-align: middle;
+        }
+        .supplier-detail-page tbody td:first-child {
+          padding-left: 96px;
+        }
+        .supplier-detail-page tbody td:last-child {
+          padding-right: 96px;
         }
         .supplier-detail-page tbody tr:last-child td {
           border-bottom: none;
@@ -347,11 +350,12 @@ function SupplierDetail() {
           font-size: 13px;
           color: var(--body);
           font-weight: 600;
-          width: 210px;
+          width: 280px;
           flex-shrink: 0;
           display: flex;
           align-items: center;
           gap: 8px;
+          white-space: nowrap;
         }
         .supplier-detail-page .rrow .rn .src {
           width: 9px;
@@ -394,6 +398,7 @@ function SupplierDetail() {
           display: flex;
           gap: 18px;
           margin-top: 14px;
+          margin-bottom: 16px;
           font-size: 12px;
           color: var(--muted);
         }
@@ -408,7 +413,7 @@ function SupplierDetail() {
           border-radius: 3px;
         }
         .supplier-detail-page .contactwrap {
-          padding: 10px 28px 6px;
+          padding: 10px 96px 6px;
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 16px 28px;
@@ -450,10 +455,11 @@ function SupplierDetail() {
               <div className="nm">{supplierMeta.name} <span>&middot; {supplierMeta.code}</span></div>
               <div className="cat">{supplierMeta.cat}</div>
             </div>
-            {supplierMeta.flag && (
-              <span className={`flag ${supplierMeta.flag === 'Watch' ? 'f-watch' : 'f-review'}`}>
-                {supplierMeta.flag}
-              </span>
+            {supplierMeta.flag && (supplierMeta.flag === 'Watch' || supplierMeta.flag === 'Action Needed') && (
+              <span className="flag f-action">Action Needed</span>
+            )}
+            {supplierMeta.flag && (supplierMeta.flag === 'Review' || supplierMeta.flag === 'Monitor') && (
+              <span className="flag f-monitor">Monitor</span>
             )}
           </div>
         </div>
@@ -495,11 +501,6 @@ function SupplierDetail() {
                   <text className="axlab" x="6" y="124">70%</text>
                   <text className="axlab" x="6" y="174">55%</text>
                   <text className="axlab" x="6" y="224">40%</text>
-                  
-                  {/* Benchmark line */}
-                  {benchmarkTrendData.length > 0 && (
-                    <polyline fill="none" stroke="#8A8A85" strokeWidth="2" strokeDasharray="5,5" points={benchmarkPolylinePoints} />
-                  )}
 
                   {/* Supplier line */}
                   <polyline fill="none" stroke={strokeColor} strokeWidth="3" points={polylinePoints} />
@@ -516,10 +517,6 @@ function SupplierDetail() {
                   <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                     <span style={{ display: 'inline-block', width: '12px', height: '12px', background: strokeColor, marginRight: '6px', borderRadius: '2px' }}></span>
                     Supplier Performance
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <span style={{ display: 'inline-block', width: '12px', height: '2px', borderTop: '2px dashed #8A8A85', marginRight: '6px' }}></span>
-                    Buyer Average Benchmark
                   </span>
                 </div>
               </>
@@ -555,8 +552,8 @@ function SupplierDetail() {
             </div>
             {delaySummary.length > 0 && (
               <div className="legend2">
-                <span><span className="sw" style={{ background: 'var(--gold)' }}></span>Internal</span>
-                <span><span className="sw" style={{ background: 'var(--accent)' }}></span>Supplier</span>
+                <span><span className="sw" style={{ background: 'var(--gold)' }}></span>Internal blockers</span>
+                <span><span className="sw" style={{ background: 'var(--accent)' }}></span>Supplier-side issues</span>
               </div>
             )}
           </div>
