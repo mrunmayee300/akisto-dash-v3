@@ -145,8 +145,26 @@ function TrailComponent({ data }) {
                   );
                 }
 
+                const getClassificationColors = (classification) => {
+                  const clsLower = (classification || '').toLowerCase();
+                  if (clsLower.includes('delay') || clsLower.includes('late')) {
+                    return { text: 'text-red', dot: 'bg-red' };
+                  }
+                  if (clsLower.includes('risk')) {
+                    return { text: 'text-darkgold', dot: 'bg-gold' };
+                  }
+                  if (clsLower.includes('unclear')) {
+                    return { text: 'text-purple', dot: 'bg-purple' };
+                  }
+                  if (clsLower.includes('low') || clsLower.includes('confidence')) {
+                    return { text: 'text-lowconftext', dot: 'bg-lowconftext' };
+                  }
+                  return { text: 'text-emerald', dot: 'bg-bright' };
+                };
+
                 if (event.type === 'reminder_call') {
                   const isAnswered = event.answered === 'Yes';
+                  const colors = getClassificationColors(event.classification);
                   return (
                     <div className="flex gap-[13px] pb-[22px] relative group" key={`call-${event.index}`}>
                       <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
@@ -158,17 +176,17 @@ function TrailComponent({ data }) {
                         <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(event.timestamp)}</div>
 
                         {isAnswered ? (
-                          <div className="text-[13px] text-[#0E5C44] font-bold mt-[5px]">Supplier responded on the call</div>
+                          <div className={`text-[13px] font-bold mt-[5px] ${colors.text}`}>Supplier responded on the call</div>
                         ) : (
-                          <div className="text-[13px] text-red font-semibold mt-[5px]">
+                          <div className="text-[12px] text-muted italic mt-[5px]">
                             No reply received{event.outcome ? ` (${event.outcome.replace(/_/g, ' ')})` : ''}
                           </div>
                         )}
 
                         {isAnswered && (
                           <div className="bg-[#F6F7F6] border border-line rounded-[9px] py-[12px] px-[14px] mt-[9px] max-w-[540px]">
-                            <div className={`inline-flex items-center gap-[6px] text-[11.5px] font-extrabold mb-[9px] ${event.classification?.toLowerCase().includes('delay') ? 'text-red' : event.classification?.toLowerCase().includes('risk') ? 'text-darkgold' : 'text-emerald'}`}>
-                              <span className={`w-2 h-2 rounded-full inline-block ${event.classification?.toLowerCase().includes('delay') ? 'bg-red' : event.classification?.toLowerCase().includes('risk') ? 'bg-gold' : 'bg-bright'}`}></span>
+                            <div className={`inline-flex items-center gap-[6px] text-[11.5px] font-extrabold mb-[9px] ${colors.text}`}>
+                              <span className={`w-2 h-2 rounded-full inline-block ${colors.dot}`}></span>
                               {event.classification || 'On track'}
                             </div>
                             <div className="text-[13px] text-body font-bold leading-[1.4]">{event.statusText || '--'}</div>
@@ -186,6 +204,7 @@ function TrailComponent({ data }) {
                 }
 
                 if (event.type === 'reply') {
+                  const colors = getClassificationColors(event.classification);
                   return (
                     <div className="flex gap-[13px] pb-[22px] relative group" key="reply">
                       <div className="w-[10px] h-[10px] rounded-full mt-[4px] shrink-0 relative z-[1] bg-bright"></div>
@@ -196,8 +215,8 @@ function TrailComponent({ data }) {
                         </div>
                         <div className="text-[12px] text-muted mt-[4px] font-medium">{formatTimestamp(event.timestamp)}</div>
                         <div className="bg-[#F6F7F6] border border-line rounded-[9px] py-[12px] px-[14px] mt-[9px] max-w-[540px]">
-                          <div className={`inline-flex items-center gap-[6px] text-[11.5px] font-extrabold mb-[9px] ${event.classification?.toLowerCase().includes('delay') ? 'text-red' : event.classification?.toLowerCase().includes('risk') ? 'text-darkgold' : 'text-emerald'}`}>
-                            <span className={`w-2 h-2 rounded-full inline-block ${event.classification?.toLowerCase().includes('delay') ? 'bg-red' : event.classification?.toLowerCase().includes('risk') ? 'bg-gold' : 'bg-bright'}`}></span>
+                          <div className={`inline-flex items-center gap-[6px] text-[11.5px] font-extrabold mb-[9px] ${colors.text}`}>
+                            <span className={`w-2 h-2 rounded-full inline-block ${colors.dot}`}></span>
                             {event.classification || 'On track'}
                           </div>
                           <div className="text-[13px] text-body font-bold leading-[1.4]">{event.statusText || '--'}</div>
