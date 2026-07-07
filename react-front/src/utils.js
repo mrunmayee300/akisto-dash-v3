@@ -130,7 +130,7 @@ export function resolvePoDashboardState(po) {
       reason = po[prefix + 'delivery_status_text'] || 'Delivery delayed.';
     } else if (subStatus === 'No Response') {
       label = 'No Response';
-      cls = 'p-delayed';
+      cls = 'p-no-response';
       reason = 'No reply despite repeated follow-up emails and calls.';
     }
 

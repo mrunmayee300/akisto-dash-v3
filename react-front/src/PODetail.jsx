@@ -340,11 +340,12 @@ function PODetail() {
   // Status pill classes
   let pillCls = "bg-[#F1F5F9] text-[#475569]"; // Slate gray for fallback / Needs review
   if (statusPill.class === 'p-delayed') pillCls = "bg-redfill text-red";
+  if (statusPill.class === 'p-no-response') pillCls = "bg-goldfill text-darkgold";
+  if (statusPill.class === 'p-unclear') pillCls = "bg-purplefill text-purple";
+  if (statusPill.class === 'p-low-confidence') pillCls = "bg-canvas text-lowconftext";
   if (statusPill.class === 'p-risk') pillCls = "bg-goldfill text-darkgold";
   if (statusPill.class === 'p-ontime') pillCls = "bg-pale text-emerald";
   if (statusPill.class === 'p-await') pillCls = "bg-[#EAF0FB] text-[#3A5C9A]";
-  if (statusPill.class === 'p-unclear') pillCls = "bg-[#F3E8FF] text-[#7E22CE]"; // Lavender / Purple
-  if (statusPill.class === 'p-low-confidence') pillCls = "bg-[#FFEDD5] text-[#C2410C]"; // Orange
 
   return (
     <div className="mx-[96px] py-12">
