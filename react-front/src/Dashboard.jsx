@@ -191,18 +191,44 @@ function Dashboard() {
       if (sortBy === 'po_asc') {
         const poA = String(a.po_number || '').trim();
         const poB = String(b.po_number || '').trim();
-        const poCompare = poA.localeCompare(poB, undefined, { numeric: true, sensitivity: 'base' });
-        if (poCompare !== 0) return poCompare;
+        const numA = Number(poA);
+        const numB = Number(poB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          if (numA !== numB) {
+            return numA - numB;
+          }
+        } else {
+          const poCompare = poA.localeCompare(poB, undefined, { numeric: true, sensitivity: 'base' });
+          if (poCompare !== 0) return poCompare;
+        }
         const lineA = String(a.po_line_item || '').trim();
         const lineB = String(b.po_line_item || '').trim();
+        const lineNumA = Number(lineA);
+        const lineNumB = Number(lineB);
+        if (!isNaN(lineNumA) && !isNaN(lineNumB)) {
+          return lineNumA - lineNumB;
+        }
         return lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
       } else if (sortBy === 'po_desc') {
         const poA = String(a.po_number || '').trim();
         const poB = String(b.po_number || '').trim();
-        const poCompare = poB.localeCompare(poA, undefined, { numeric: true, sensitivity: 'base' });
-        if (poCompare !== 0) return poCompare;
+        const numA = Number(poA);
+        const numB = Number(poB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          if (numA !== numB) {
+            return numB - numA;
+          }
+        } else {
+          const poCompare = poB.localeCompare(poA, undefined, { numeric: true, sensitivity: 'base' });
+          if (poCompare !== 0) return poCompare;
+        }
         const lineA = String(a.po_line_item || '').trim();
         const lineB = String(b.po_line_item || '').trim();
+        const lineNumA = Number(lineA);
+        const lineNumB = Number(lineB);
+        if (!isNaN(lineNumA) && !isNaN(lineNumB)) {
+          return lineNumB - lineNumA;
+        }
         return lineB.localeCompare(lineA, undefined, { numeric: true, sensitivity: 'base' });
       } else if (sortBy === 'date_asc') {
         const dateValA = activeTab === 'track' ? a.ship_by_date_delivery_1 : a.deliver_by_date_delivery_1;
