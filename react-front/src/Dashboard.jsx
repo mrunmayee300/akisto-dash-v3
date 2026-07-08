@@ -374,7 +374,7 @@ function Dashboard() {
       const pxCls = 'px-4 first:pl-0 last:pr-0';
 
       return (
-        <tr key={po.comms_group_id} onClick={() => handleRowClick(po.comms_group_id, status.label)} className="cursor-pointer hover:bg-[#FDFDFD]">
+        <tr key={po.po_line_key} onClick={() => handleRowClick(po.comms_group_id, status.label)} className="cursor-pointer hover:bg-[#FDFDFD]">
           <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top font-extrabold text-emerald whitespace-nowrap min-w-[80px]`}>{po.po_number || '--'}</td>
           <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[14.5px] align-top font-bold text-body min-w-[150px] max-w-[220px] break-words`}>{supplierText || '--'}</td>
           <td className={`p-[13px] ${pxCls} border-b border-[#F2F4F2] text-[13.5px] align-top text-body font-bold whitespace-nowrap min-w-[100px]`}>{po.material_code || '--'}</td>
