@@ -145,28 +145,60 @@ function Dashboard() {
     navigate('/login');
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('po_asc');
+
   // Sort and filter the full list once into a stable ordering using useMemo
   const { sortedOpenPOs, needsAttention, onTrack, awaitingReply } = React.useMemo(() => {
     if (!data) {
       return { sortedOpenPOs: [], needsAttention: [], onTrack: [], awaitingReply: [] };
     }
-    const list = [...(data.openPOs || [])];
-    const sorted = list
-      .map((po, index) => ({ po, index }))
-      .sort((a, b) => {
-        const poA = String(a.po.po_number || '').trim();
-        const poB = String(b.po.po_number || '').trim();
+
+    // 1. Filter raw list based on searchQuery (searches PO number, supplier name, or material code)
+    const filtered = (data.openPOs || []).filter(po => {
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return true;
+
+      const matchesPo = String(po.po_number || '').toLowerCase().includes(q);
+      const matchesSupplier = String(po.supplier_name || '').toLowerCase().includes(q);
+      const matchesMaterial = String(po.material_code || '').toLowerCase().includes(q);
+
+      return matchesPo || matchesSupplier || matchesMaterial;
+    });
+
+    // 2. Sort the filtered list
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'po_asc') {
+        const poA = String(a.po_number || '').trim();
+        const poB = String(b.po_number || '').trim();
         const poCompare = poA.localeCompare(poB, undefined, { numeric: true, sensitivity: 'base' });
         if (poCompare !== 0) return poCompare;
-
-        const lineA = String(a.po.po_line_item || '').trim();
-        const lineB = String(b.po.po_line_item || '').trim();
-        const lineCompare = lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
-        if (lineCompare !== 0) return lineCompare;
-
-        return a.index - b.index;
-      })
-      .map(item => item.po);
+        const lineA = String(a.po_line_item || '').trim();
+        const lineB = String(b.po_line_item || '').trim();
+        return lineA.localeCompare(lineB, undefined, { numeric: true, sensitivity: 'base' });
+      } else if (sortBy === 'po_desc') {
+        const poA = String(a.po_number || '').trim();
+        const poB = String(b.po_number || '').trim();
+        const poCompare = poB.localeCompare(poA, undefined, { numeric: true, sensitivity: 'base' });
+        if (poCompare !== 0) return poCompare;
+        const lineA = String(a.po_line_item || '').trim();
+        const lineB = String(b.po_line_item || '').trim();
+        return lineB.localeCompare(lineA, undefined, { numeric: true, sensitivity: 'base' });
+      } else if (sortBy === 'date_asc') {
+        const dateA = new Date(a.deliver_by_date_delivery_1 || a.ship_by_date_delivery_1 || '9999-12-31');
+        const dateB = new Date(b.deliver_by_date_delivery_1 || b.ship_by_date_delivery_1 || '9999-12-31');
+        return dateA - dateB;
+      } else if (sortBy === 'date_desc') {
+        const dateA = new Date(a.deliver_by_date_delivery_1 || a.ship_by_date_delivery_1 || '0000-01-01');
+        const dateB = new Date(b.deliver_by_date_delivery_1 || b.ship_by_date_delivery_1 || '0000-01-01');
+        return dateB - dateA;
+      } else if (sortBy === 'supplier_asc') {
+        const supA = String(a.supplier_name || '').trim();
+        const supB = String(b.supplier_name || '').trim();
+        return supA.localeCompare(supB);
+      }
+      return 0;
+    });
 
     const attn = [];
     const track = [];
@@ -189,7 +221,7 @@ function Dashboard() {
       onTrack: track,
       awaitingReply: awaitReply
     };
-  }, [data]);
+  }, [data, searchQuery, sortBy]);
 
   const openPOs = sortedOpenPOs;
 
@@ -466,6 +498,45 @@ function Dashboard() {
         <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'await' ? '!text-emerald !border-emerald' : ''}`} onClick={() => handleTabClick('await')}>
           Awaiting reply <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'await' ? '!bg-pale !text-emerald' : ''}`}>{awaitingReply.length}</span>
         </button>
+      </div>
+
+      {/* Search and Sort Toolbar */}
+      <div className="flex items-center justify-between py-[12px] px-7 bg-[#F8FAEC]/40 border-b border-line gap-4">
+        {/* Search Input */}
+        <div className="flex items-center gap-2.5 w-full max-w-[400px]">
+          <span className="text-[12px] font-extrabold text-muted uppercase tracking-[0.5px]">Search</span>
+          <input 
+            type="text" 
+            placeholder="Search PO#, supplier, or material..." 
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPages({
+                open: 1,
+                attn: 1,
+                track: 1,
+                await: 1
+              });
+            }}
+            className="flex-1 bg-white border border-line rounded px-3 py-1.5 text-[13.5px] text-body placeholder:text-muted focus:outline-none focus:border-emerald transition-all duration-200"
+          />
+        </div>
+
+        {/* Sort Select */}
+        <div className="flex items-center gap-2.5">
+          <span className="text-[12px] font-extrabold text-muted uppercase tracking-[0.5px]">Sort By</span>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            className="bg-white border border-line rounded px-3 py-1.5 text-[13.5px] text-body focus:outline-none focus:border-emerald cursor-pointer transition-all duration-200"
+          >
+            <option value="po_asc">PO Number (ascending)</option>
+            <option value="po_desc">PO Number (descending)</option>
+            <option value="date_asc">Need By Date (earliest first)</option>
+            <option value="date_desc">Need By Date (latest first)</option>
+            <option value="supplier_asc">Supplier Name (A-Z)</option>
+          </select>
+        </div>
       </div>
 
       {/* ============ OPEN POs ============ */}
