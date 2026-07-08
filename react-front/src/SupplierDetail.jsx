@@ -533,12 +533,6 @@ function SupplierDetail() {
                     </g>
                   ))}
                 </svg>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '12px', color: 'var(--muted)', justifyContent: 'center' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <span style={{ display: 'inline-block', width: '12px', height: '12px', background: strokeColor, marginRight: '6px', borderRadius: '2px' }}></span>
-                    Supplier Performance
-                  </span>
-                </div>
               </>
             ) : (
               <p className="text-sm text-muted text-center py-10">No historical trends available for this supplier.</p>
