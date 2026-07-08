@@ -143,137 +143,33 @@ function doGet(e) {
       var statsSheet = ss.getSheetByName("Supplier Stats");
       var monthlySheet = ss.getSheetByName("Supplier Monthly Stats");
       var delaySheet = ss.getSheetByName("Delay Event Logs");
-      var commSheet = ss.getSheetByName("Communication Logs");
 
       var stats = getObjects(statsSheet);
       var monthly = getObjects(monthlySheet);
       var delays = getObjects(delaySheet);
-      var comms = getObjects(commSheet);
 
       // Filter by client code
       var filteredStats = stats.filter(function(s) {
         return normalize(s.client_code) === normalize(clientCode);
       });
 
-      var formatMonth = function(monthVal) {
-        if (!monthVal) return '';
-        var str = String(monthVal).trim();
-        if (/^\d{4}-\d{2}$/.test(str)) {
-          return str;
-        }
-        var d = new Date(str);
-        if (!isNaN(d.getTime())) {
-          var y = d.getFullYear();
-          var m = String(d.getMonth() + 1);
-          if (m.length === 1) m = "0" + m;
-          return y + "-" + m;
-        }
-        return str;
-      };
-
-      var getPast6MonthsRange = function() {
-        var dates = [];
-        var now = new Date();
-        var currentYear = now.getFullYear();
-        var currentMonth = now.getMonth(); // 0-indexed
-        
-        for (var i = 0; i < 6; i++) {
-          var d = new Date(currentYear, currentMonth - i, 1);
-          var y = d.getFullYear();
-          var m = String(d.getMonth() + 1);
-          if (m.length === 1) m = "0" + m;
-          dates.push(y + "-" + m);
-        }
-        return dates;
-      };
-
-      var allowedMonths = getPast6MonthsRange();
-      var allowedMonthsSet = {};
-      allowedMonths.forEach(function(m) { allowedMonthsSet[m] = true; });
-
       var suppliers = filteredStats.map(function(s) {
-        var supplierCode = normalize(s.supplier_code);
-        
-        // Filter communication logs for this supplier and client in the past 6 months
-        var supplierComms = comms.filter(function(row) {
-          var rowClient = normalize(row.client_code);
-          var rowSupplier = normalize(row.supplier_code);
-          var rowMonth = formatMonth(row.need_by_month || row.month_of_closure);
-          return rowClient === normalize(clientCode) && 
-                 rowSupplier === supplierCode && 
-                 allowedMonthsSet[rowMonth];
-        });
+        var rawOnTime = parseFloat(s.on_time_rate || 0);
+        var isWholeNumber = rawOnTime > 1.5;
+        var onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+        var escalatedRate = isWholeNumber ? (parseFloat(s.escalated_rate || 0) / 100) : parseFloat(s.escalated_rate || 0);
 
-        // poLines: closed OR (not closed AND deliver_by_date < TODAY)
-        var todayTime = new Date().getTime();
-        var poLines = supplierComms.filter(function(row) {
-          var status = normalize(row['PO line item status']).toLowerCase();
-          if (status === 'closed') return true;
-          var deliverByDate = row['deliver_by_date'];
-          if (deliverByDate) {
-            var deliverDate = new Date(deliverByDate);
-            if (!isNaN(deliverDate.getTime())) {
-              return deliverDate.getTime() < todayTime;
-            }
-          }
-          return false;
-        }).length;
-
-        // onTimeLines: outcome is 'On time'
-        var onTimeLines = supplierComms.filter(function(row) {
-          return normalize(row['outcome']).toLowerCase() === 'on time';
-        }).length;
-
-        var onTimeRate = poLines > 0 ? (onTimeLines / poLines) : 1.0;
-
-        var lateComms = supplierComms.filter(function(row) {
-          var val = parseFloat(row.delivery_variance_days || 0);
-          return val > 0;
-        });
-        var avgDaysLate = 0;
-        if (lateComms.length > 0) {
-          var totalDaysLate = lateComms.reduce(function(sum, row) {
-            return sum + parseFloat(row.delivery_variance_days || 0);
-          }, 0);
-          avgDaysLate = totalDaysLate / lateComms.length;
-        }
-
-        var respComms = supplierComms.filter(function(row) {
-          var val = parseFloat(row.running_avg_response_time_days || 0);
-          return val > 0;
-        });
-        var avgRespTime = 0;
-        if (respComms.length > 0) {
-          var totalRespTime = respComms.reduce(function(sum, row) {
-            return sum + parseFloat(row.running_avg_response_time_days || 0);
-          }, 0);
-          avgRespTime = totalRespTime / respComms.length;
-        }
-
-        // escalatedLines: is_escalated is 'Escalation_Sent'
-        var escalatedLines = supplierComms.filter(function(row) {
-          return normalize(row.is_escalated || row.follow_up_status).toLowerCase() === 'escalation_sent';
-        }).length;
-        var escalatedRate = poLines > 0 ? (escalatedLines / poLines) : 0.0;
-
-        // Flag thresholds: < 70% Action Needed, < 85% Monitor
-        var flag = onTimeRate < 0.70 ? 'Action Needed' : (onTimeRate < 0.85 ? 'Monitor' : '');
-        var rateClass = onTimeRate < 0.70 ? 'bad' : (onTimeRate < 0.85 ? 'mid' : 'good');
-
-        s.calculated_total_po_lines = poLines;
-        s.calculated_on_time_lines = onTimeLines;
-        s.calculated_escalated_lines = escalatedLines;
-
+        var rateClass = onTimeRate < 0.6 ? 'bad' : (onTimeRate < 0.8 ? 'mid' : 'good');
         return {
           name: s.supplier_name || s.supplier_name_full || 'Unknown Supplier',
           code: s.supplier_code,
           desc: s.category || '',
-          poLines: poLines,
+          poLines: parseInt(s.total_po_lines || 0, 10),
           onTime: Math.round(onTimeRate * 100),
-          avgDaysLate: avgDaysLate.toFixed(1),
-          avgRespTime: avgRespTime.toFixed(1) + ' d',
+          avgDaysLate: parseFloat(s.avg_days_late || 0).toFixed(1),
+          avgRespTime: parseFloat(s.avg_response_time_days || 0).toFixed(1) + ' d',
           escalated: Math.round(escalatedRate * 100) + '%',
-          flag: flag,
+          flag: s.performance_flag || '',
           rateClass: rateClass
         };
       });
@@ -282,9 +178,9 @@ function doGet(e) {
 
       var totalPoLines = 0, totalOnTimeLines = 0, totalEscalatedLines = 0;
       filteredStats.forEach(function(s) {
-        totalPoLines += (s.calculated_total_po_lines || 0);
-        totalOnTimeLines += (s.calculated_on_time_lines || 0);
-        totalEscalatedLines += (s.calculated_escalated_lines || 0);
+        totalPoLines += parseInt(s.total_po_lines || 0, 10);
+        totalOnTimeLines += parseInt(s.on_time_lines || 0, 10);
+        totalEscalatedLines += parseInt(s.escalated_lines || 0, 10);
       });
 
       var formatMonth = function(monthVal) {
@@ -389,90 +285,15 @@ function doGet(e) {
           .setMimeType(ContentService.MimeType.JSON);
       }
 
-      var getPast6MonthsRange = function() {
-        var dates = [];
-        var now = new Date();
-        var currentYear = now.getFullYear();
-        var currentMonth = now.getMonth(); // 0-indexed
-        
-        for (var i = 0; i < 6; i++) {
-          var d = new Date(currentYear, currentMonth - i, 1);
-          var y = d.getFullYear();
-          var m = String(d.getMonth() + 1);
-          if (m.length === 1) m = "0" + m;
-          dates.push(y + "-" + m);
-        }
-        return dates;
-      };
-
-      var allowedMonths = getPast6MonthsRange();
-      var allowedMonthsSet = {};
-      allowedMonths.forEach(function(m) { allowedMonthsSet[m] = true; });
-
-      var supplierComms = comms.filter(function(row) {
-        var rowClient = normalize(row.client_code);
-        var rowSupplier = normalize(row.supplier_code);
-        var rowMonth = formatMonth(row.need_by_month || row.month_of_closure);
-        return rowClient === normalize(clientCode) && 
-               rowSupplier === normalize(supplierCode) && 
-               allowedMonthsSet[rowMonth];
-      });
-
-      var todayTime = new Date().getTime();
-      var poLines = supplierComms.filter(function(row) {
-        var status = normalize(row['PO line item status']).toLowerCase();
-        if (status === 'closed') return true;
-        var deliverByDate = row['deliver_by_date'];
-        if (deliverByDate) {
-          var deliverDate = new Date(deliverByDate);
-          if (!isNaN(deliverDate.getTime())) {
-            return deliverDate.getTime() < todayTime;
-          }
-        }
-        return false;
-      }).length;
-
-      var onTimeLines = supplierComms.filter(function(row) {
-        return normalize(row['outcome']).toLowerCase() === 'on time';
-      }).length;
-
-      var onTimeRate = poLines > 0 ? (onTimeLines / poLines) : 1.0;
-
-      var lateComms = supplierComms.filter(function(row) {
-        var val = parseFloat(row.delivery_variance_days || 0);
-        return val > 0;
-      });
-      var avgDaysLate = 0;
-      if (lateComms.length > 0) {
-        var totalDaysLate = lateComms.reduce(function(sum, row) {
-          return sum + parseFloat(row.delivery_variance_days || 0);
-        }, 0);
-        avgDaysLate = totalDaysLate / lateComms.length;
-      }
-
-      var respComms = supplierComms.filter(function(row) {
-        var val = parseFloat(row.running_avg_response_time_days || 0);
-        return val > 0;
-      });
-      var avgRespTime = 0;
-      if (respComms.length > 0) {
-        var totalRespTime = respComms.reduce(function(sum, row) {
-          return sum + parseFloat(row.running_avg_response_time_days || 0);
-        }, 0);
-        avgRespTime = totalRespTime / respComms.length;
-      }
-
-      var escalatedLines = supplierComms.filter(function(row) {
-        return normalize(row.is_escalated || row.follow_up_status).toLowerCase() === 'escalation_sent';
-      }).length;
-      var escalatedRate = poLines > 0 ? (escalatedLines / poLines) : 0.0;
-
-      var flag = onTimeRate < 0.70 ? 'Action Needed' : (onTimeRate < 0.85 ? 'Monitor' : '');
+      var rawOnTime = parseFloat(foundStats.on_time_rate || 0);
+      var isWholeNumber = rawOnTime > 1.5;
+      var onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+      var escalatedRate = isWholeNumber ? (parseFloat(foundStats.escalated_rate || 0) / 100) : parseFloat(foundStats.escalated_rate || 0);
 
       var kpis = {
         onTimeRate: Math.round(onTimeRate * 100) + '%',
-        avgDaysLate: avgDaysLate.toFixed(1),
-        avgRespTime: avgRespTime.toFixed(1) + ' d',
+        avgDaysLate: parseFloat(foundStats.avg_days_late || 0).toFixed(1),
+        avgRespTime: parseFloat(foundStats.avg_response_time_days || 0).toFixed(1) + ' d',
         escalatedRate: Math.round(escalatedRate * 100) + '%'
       };
 
@@ -568,8 +389,8 @@ function doGet(e) {
         supplierMeta: {
           name: foundStats.supplier_name || foundStats.supplier_name_full || 'Unknown',
           code: foundStats.supplier_code,
-          cat: poLines + ' PO lines over the trailing 6 months',
-          flag: flag,
+          cat: foundStats.total_po_lines + ' PO lines over the trailing 6 months',
+          flag: foundStats.performance_flag || '',
           contact: foundStats.contact_name || '--',
           email: foundStats.email || '--',
           phone: foundStats.phone || '--',

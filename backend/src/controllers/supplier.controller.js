@@ -32,21 +32,6 @@ const getThresholdMonth = (latestMonthStr, numMonths = 6) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
-const getPast6MonthsRange = () => {
-  const dates = [];
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); // 0-indexed
-  
-  for (let i = 0; i < 6; i++) {
-    const d = new Date(currentYear, currentMonth - i, 1);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    dates.push(`${y}-${m}`);
-  }
-  return dates;
-};
-
 const supplierController = {
   getSuppliers: async (req, res) => {
     const clientCode = req.clientCode;
@@ -63,15 +48,13 @@ const supplierController = {
         'Supplier Stats',
         'Supplier Monthly Stats',
         'Delay Event Logs',
-        'Client info',
-        'Communication Logs'
+        'Client info'
       ], clientCode);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
       const supplierMonthlyStatsRows = sheetsData['Supplier Monthly Stats'] || [];
       const delayEventLogsRows = sheetsData['Delay Event Logs'] || [];
       const clientInfoRows = sheetsData['Client info'] || [];
-      const communicationLogs = sheetsData['Communication Logs'] || [];
 
       // Resolve buyer name from Client info or req.user
       const loggedInEmail = String(userEmail).trim().toLowerCase();
@@ -109,79 +92,30 @@ const supplierController = {
         }
       }
 
-      const allowedMonths = getPast6MonthsRange();
-      const allowedMonthsSet = new Set(allowedMonths);
-
       // Map rows for the Reliability Table
       const suppliers = filteredSuppliers.map(s => {
-        const supplierCode = normalize(s.supplier_code);
-        
-        // Filter communication logs for this supplier and client in the past 6 months
-        const supplierComms = communicationLogs.filter(row => {
-          const rowClient = normalize(row.client_code);
-          const rowSupplier = normalize(row.supplier_code);
-          const rowMonth = formatMonth(row.need_by_month || row.month_of_closure);
-          return rowClient === normalize(clientCode) && 
-                 rowSupplier === supplierCode && 
-                 allowedMonthsSet.has(rowMonth);
-        });
+        const rawOnTime = parseFloat(s.on_time_rate || 0);
+        const isWholeNumber = rawOnTime > 1.5;
+        const onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+        const escalatedRate = isWholeNumber ? (parseFloat(s.escalated_rate || 0) / 100) : parseFloat(s.escalated_rate || 0);
 
-        // poLines: closed OR (not closed AND deliver_by_date < TODAY)
-        const todayTime = new Date().getTime();
-        const poLines = supplierComms.filter(row => {
-          const status = normalize(row['PO line item status']).toLowerCase();
-          if (status === 'closed') return true;
-          const deliverByDate = row['deliver_by_date'];
-          if (deliverByDate) {
-            const deliverDate = new Date(deliverByDate);
-            if (!isNaN(deliverDate.getTime())) {
-              return deliverDate.getTime() < todayTime;
-            }
-          }
-          return false;
-        }).length;
-
-        // onTimeLines: outcome is 'On time'
-        const onTimeLines = supplierComms.filter(row => {
-          return normalize(row['outcome']).toLowerCase() === 'on time';
-        }).length;
-
-        const onTimeRate = poLines > 0 ? (onTimeLines / poLines) : 1.0;
-
-        const lateComms = supplierComms.filter(row => parseFloat(row.delivery_variance_days || 0) > 0);
-        const avgDaysLate = lateComms.length > 0 
-          ? lateComms.reduce((sum, row) => sum + parseFloat(row.delivery_variance_days || 0), 0) / lateComms.length 
-          : 0;
-
-        const respComms = supplierComms.filter(row => parseFloat(row.running_avg_response_time_days || 0) > 0);
-        const avgRespTime = respComms.length > 0 
-          ? respComms.reduce((sum, row) => sum + parseFloat(row.running_avg_response_time_days || 0), 0) / respComms.length 
-          : 0;
-
-        // escalatedLines: is_escalated is 'Escalation_Sent'
-        const escalatedLines = supplierComms.filter(row => {
-          return normalize(row.is_escalated || row.follow_up_status).toLowerCase() === 'escalation_sent';
-        }).length;
-        const escalatedRate = poLines > 0 ? (escalatedLines / poLines) : 0.0;
-
-        // Flag thresholds: < 70% Action Needed, < 85% Monitor
-        const flag = onTimeRate < 0.70 ? 'Action Needed' : (onTimeRate < 0.85 ? 'Monitor' : '');
-        const rateClass = onTimeRate < 0.70 ? 'bad' : (onTimeRate < 0.85 ? 'mid' : 'good');
-
-        s.calculated_total_po_lines = poLines;
-        s.calculated_on_time_lines = onTimeLines;
-        s.calculated_escalated_lines = escalatedLines;
+        let rateClass = 'good';
+        if (onTimeRate < 0.6) {
+          rateClass = 'bad';
+        } else if (onTimeRate < 0.8) {
+          rateClass = 'mid';
+        }
 
         return {
           name: s.supplier_name || s.supplier_name_full || 'Unknown Supplier',
           code: s.supplier_code,
           desc: s.category || '',
-          poLines: poLines,
+          poLines: parseInt(s.total_po_lines || 0, 10),
           onTime: Math.round(onTimeRate * 100),
-          avgDaysLate: avgDaysLate.toFixed(1),
-          avgRespTime: avgRespTime.toFixed(1) + ' d',
+          avgDaysLate: parseFloat(s.avg_days_late || 0).toFixed(1),
+          avgRespTime: parseFloat(s.avg_response_time_days || 0).toFixed(1) + ' d',
           escalated: Math.round(escalatedRate * 100) + '%',
-          flag: flag,
+          flag: s.performance_flag || '',
           rateClass: rateClass
         };
       });
@@ -195,9 +129,9 @@ const supplierController = {
       let totalEscalatedLines = 0;
 
       filteredSuppliers.forEach(s => {
-        totalPoLines += (s.calculated_total_po_lines || 0);
-        totalOnTimeLines += (s.calculated_on_time_lines || 0);
-        totalEscalatedLines += (s.calculated_escalated_lines || 0);
+        totalPoLines += parseInt(s.total_po_lines || 0, 10);
+        totalOnTimeLines += parseInt(s.on_time_lines || 0, 10);
+        totalEscalatedLines += parseInt(s.escalated_lines || 0, 10);
       });
 
       const onTimeRateOverall = totalPoLines > 0 ? Math.round((totalOnTimeLines / totalPoLines) * 100) : 100;
@@ -347,58 +281,16 @@ const supplierController = {
         });
       }
 
-      const allowedMonths = getPast6MonthsRange();
-      const allowedMonthsSet = new Set(allowedMonths);
-
-      const supplierComms = communicationLogs.filter(row => {
-        return normalize(row.client_code) === normalize(clientCode) &&
-               normalize(row.supplier_code) === normalize(supplierCode) &&
-               allowedMonthsSet.has(formatMonth(row.need_by_month || row.month_of_closure));
-      });
-
-      const todayTime = new Date().getTime();
-      const poLines = supplierComms.filter(row => {
-        const status = normalize(row['PO line item status']).toLowerCase();
-        if (status === 'closed') return true;
-        const deliverByDate = row['deliver_by_date'];
-        if (deliverByDate) {
-          const deliverDate = new Date(deliverByDate);
-          if (!isNaN(deliverDate.getTime())) {
-            return deliverDate.getTime() < todayTime;
-          }
-        }
-        return false;
-      }).length;
-
-      const onTimeLines = supplierComms.filter(row => {
-        return normalize(row['outcome']).toLowerCase() === 'on time';
-      }).length;
-
-      const onTimeRate = poLines > 0 ? (onTimeLines / poLines) : 1.0;
-
-      const lateComms = supplierComms.filter(row => parseFloat(row.delivery_variance_days || 0) > 0);
-      const avgDaysLate = lateComms.length > 0 
-        ? lateComms.reduce((sum, row) => sum + parseFloat(row.delivery_variance_days || 0), 0) / lateComms.length 
-        : 0;
-
-      const respComms = supplierComms.filter(row => parseFloat(row.running_avg_response_time_days || 0) > 0);
-      const avgRespTime = respComms.length > 0 
-        ? respComms.reduce((sum, row) => sum + parseFloat(row.running_avg_response_time_days || 0), 0) / respComms.length 
-        : 0;
-
-      const escalatedLines = supplierComms.filter(row => {
-        return normalize(row.is_escalated || row.follow_up_status).toLowerCase() === 'escalation_sent';
-      }).length;
-      const escalatedRate = poLines > 0 ? (escalatedLines / poLines) : 0.0;
-
-      // Flag thresholds: < 70% Action Needed, < 85% Monitor
-      const flag = onTimeRate < 0.70 ? 'Action Needed' : (onTimeRate < 0.85 ? 'Monitor' : '');
+      const rawOnTime = parseFloat(foundSupplier.on_time_rate || 0);
+      const isWholeNumber = rawOnTime > 1.5;
+      const onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+      const escalatedRate = isWholeNumber ? (parseFloat(foundSupplier.escalated_rate || 0) / 100) : parseFloat(foundSupplier.escalated_rate || 0);
 
       const supplierMeta = {
         name: foundSupplier.supplier_name || foundSupplier.supplier_name_full || 'Unknown Supplier',
         code: foundSupplier.supplier_code,
-        cat: `${poLines} PO lines over the trailing 6 months`,
-        flag: flag,
+        cat: `${foundSupplier.total_po_lines} PO lines over the trailing 6 months`,
+        flag: foundSupplier.performance_flag || '',
         contact: foundSupplier.contact_name || '--',
         email: foundSupplier.email || '--',
         phone: foundSupplier.phone || '--',
@@ -407,8 +299,8 @@ const supplierController = {
 
       const kpis = {
         onTimeRate: Math.round(onTimeRate * 100) + '%',
-        avgDaysLate: avgDaysLate.toFixed(1),
-        avgRespTime: avgRespTime.toFixed(1) + ' d',
+        avgDaysLate: parseFloat(foundSupplier.avg_days_late || 0).toFixed(1),
+        avgRespTime: parseFloat(foundSupplier.avg_response_time_days || 0).toFixed(1) + ' d',
         escalatedRate: Math.round(escalatedRate * 100) + '%'
       };
 
