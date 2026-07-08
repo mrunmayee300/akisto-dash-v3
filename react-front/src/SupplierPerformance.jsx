@@ -181,7 +181,7 @@ function SupplierPerformance() {
       .map(item => item.sup);
   }, [filteredSuppliers, sortBy]);
 
-  const { kpis = {}, trendData: rawTrendData = [], delaySummary = [] } = data || {};
+  const { kpis = {}, trendData: rawTrendData = [], delaySummary: rawDelaySummary = [] } = data || {};
 
   const trendData = React.useMemo(() => {
     const getThresholdMonth = (latestMonthStr, numMonths = 6) => {
@@ -193,11 +193,14 @@ function SupplierPerformance() {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     };
 
-    if (rawTrendData.length === 0) return [];
-    const latestMonth = rawTrendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
+    const actualTrendData = rawTrendData || [];
+    if (actualTrendData.length === 0) return [];
+    const latestMonth = actualTrendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
     const thresholdMonth = getThresholdMonth(latestMonth, 6);
-    return rawTrendData.filter(d => d.month >= thresholdMonth);
+    return actualTrendData.filter(d => d.month >= thresholdMonth);
   }, [rawTrendData]);
+
+  const delaySummary = rawDelaySummary || [];
 
   if (loading) {
     return (

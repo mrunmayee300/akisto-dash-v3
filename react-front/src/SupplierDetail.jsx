@@ -69,7 +69,7 @@ function SupplierDetail() {
     loadData();
   }, [supplierId]);
 
-  const { supplierMeta = {}, kpis = {}, trendData: rawTrendData = [], delaySummary = [], recentDeliveries = [] } = data || {};
+  const { supplierMeta = {}, kpis = {}, trendData: rawTrendData = [], delaySummary: rawDelaySummary = [], recentDeliveries: rawRecentDeliveries = [] } = data || {};
 
   const trendData = React.useMemo(() => {
     const getThresholdMonth = (latestMonthStr, numMonths = 6) => {
@@ -81,11 +81,15 @@ function SupplierDetail() {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     };
 
-    if (rawTrendData.length === 0) return [];
-    const latestMonth = rawTrendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
+    const actualTrendData = rawTrendData || [];
+    if (actualTrendData.length === 0) return [];
+    const latestMonth = actualTrendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
     const thresholdMonth = getThresholdMonth(latestMonth, 6);
-    return rawTrendData.filter(d => d.month >= thresholdMonth);
+    return actualTrendData.filter(d => d.month >= thresholdMonth);
   }, [rawTrendData]);
+
+  const delaySummary = rawDelaySummary || [];
+  const recentDeliveries = rawRecentDeliveries || [];
 
   if (loading) {
     return (
