@@ -129,9 +129,7 @@ function SupplierPerformance() {
       const mappedFlag = (sup.flag === 'Watch' || sup.flag === 'Action Needed') ? 'Action Needed' 
                        : ((sup.flag === 'Review' || sup.flag === 'Monitor') ? 'Monitor' : '');
 
-      if (filterFlag === 'flagged') {
-        return !!mappedFlag;
-      } else if (filterFlag === 'Action Needed') {
+      if (filterFlag === 'Action Needed') {
         return mappedFlag === 'Action Needed';
       } else if (filterFlag === 'Monitor') {
         return mappedFlag === 'Monitor';
@@ -863,7 +861,6 @@ function SupplierPerformance() {
               <label htmlFor="flagSel">Flag</label>
               <select id="flagSel" value={filterFlag} onChange={(e) => handleFlagChange(e.target.value)}>
                 <option value="all">All suppliers</option>
-                <option value="flagged">Flagged only</option>
                 <option value="Action Needed">Action needed</option>
                 <option value="Monitor">Monitor</option>
                 <option value="none">Unflagged</option>
