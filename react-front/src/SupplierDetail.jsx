@@ -235,6 +235,20 @@ function SupplierDetail() {
         .supplier-detail-page .kpi .num.bad {
           color: var(--red);
         }
+        .supplier-detail-page .kpi .delta {
+          font-size: 12.5px;
+          font-weight: 700;
+          margin-top: 2px;
+        }
+        .supplier-detail-page .kpi .delta.up {
+          color: var(--accent);
+        }
+        .supplier-detail-page .kpi .delta.down {
+          color: var(--red);
+        }
+        .supplier-detail-page .kpi .delta.flat {
+          color: var(--muted);
+        }
         .supplier-detail-page .chartwrap {
           padding: 14px 28px 8px;
         }
@@ -492,6 +506,15 @@ function SupplierDetail() {
           <div className="kpi">
             <div className="lab">On-time rate</div>
             <div className={`num ${isWatch ? 'bad' : ''}`}>{kpis.onTimeRate}</div>
+            {kpis.onTimeRateDelta > 0 && (
+              <div className="delta up">&#9650; {Math.round(Math.abs(kpis.onTimeRateDelta) * 100)}% vs prior 6 mo</div>
+            )}
+            {kpis.onTimeRateDelta < 0 && (
+              <div className="delta down">&#9660; {Math.round(Math.abs(kpis.onTimeRateDelta) * 100)}% vs prior 6 mo</div>
+            )}
+            {(kpis.onTimeRateDelta === 0 || kpis.onTimeRateDelta === undefined) && (
+              <div className="delta flat">Flat vs prior 6 mo</div>
+            )}
           </div>
           <div className="kpi">
             <div className="lab">Avg days late</div>
@@ -504,6 +527,15 @@ function SupplierDetail() {
           <div className="kpi">
             <div className="lab">Escalated to buyer</div>
             <div className="num">{kpis.escalatedRate}</div>
+            {kpis.escalatedRateDelta > 0 && (
+              <div className="delta up">&#9650; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
+            )}
+            {kpis.escalatedRateDelta < 0 && (
+              <div className="delta down">&#9660; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
+            )}
+            {(kpis.escalatedRateDelta === 0 || kpis.escalatedRateDelta === undefined) && (
+              <div className="delta flat">Flat vs prior 6 mo</div>
+            )}
           </div>
         </div>
 

@@ -48,13 +48,15 @@ const supplierController = {
         'Supplier Stats',
         'Supplier Monthly Stats',
         'Delay Event Logs',
-        'Client info'
+        'Client info',
+        'Client Stats'
       ], clientCode);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
       const supplierMonthlyStatsRows = sheetsData['Supplier Monthly Stats'] || [];
       const delayEventLogsRows = sheetsData['Delay Event Logs'] || [];
       const clientInfoRows = sheetsData['Client info'] || [];
+      const clientStatsRows = sheetsData['Client Stats'] || [];
 
       // Resolve buyer name from Client info or req.user
       const loggedInEmail = String(userEmail).trim().toLowerCase();
@@ -138,9 +140,15 @@ const supplierController = {
       const escalatedRateOverall = totalPoLines > 0 ? Math.round((totalEscalatedLines / totalPoLines) * 100) : 0;
       const supplierCount = filteredSuppliers.length;
 
+      const clientStatRow = clientStatsRows.find(
+        cs => normalize(cs.client_code) === normalize(clientCode)
+      );
+
       const kpis = {
         onTimeRate: onTimeRateOverall,
+        onTimeRateDelta: clientStatRow ? parseFloat(clientStatRow.client_otr_6months || 0) : 0,
         escalatedRate: escalatedRateOverall,
+        escalatedRateDelta: clientStatRow ? parseFloat(clientStatRow.client_escalation_6months || 0) : 0,
         totalPoLines: totalPoLines,
         supplierCount: supplierCount
       };
@@ -299,9 +307,11 @@ const supplierController = {
 
       const kpis = {
         onTimeRate: Math.round(onTimeRate * 100) + '%',
+        onTimeRateDelta: parseFloat(foundSupplier.supplier_otr_6months || 0),
         avgDaysLate: parseFloat(foundSupplier.avg_days_late || 0).toFixed(1),
         avgRespTime: parseFloat(foundSupplier.avg_response_time_days || 0).toFixed(1) + ' d',
-        escalatedRate: Math.round(escalatedRate * 100) + '%'
+        escalatedRate: Math.round(escalatedRate * 100) + '%',
+        escalatedRateDelta: parseFloat(foundSupplier.supplier_escalation_6months || 0)
       };
 
       // Trend Data for Selected Supplier

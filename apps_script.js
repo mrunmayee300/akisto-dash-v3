@@ -143,10 +143,12 @@ function doGet(e) {
       var statsSheet = ss.getSheetByName("Supplier Stats");
       var monthlySheet = ss.getSheetByName("Supplier Monthly Stats");
       var delaySheet = ss.getSheetByName("Delay Event Logs");
+      var clientStatsSheet = ss.getSheetByName("Client Stats");
 
       var stats = getObjects(statsSheet);
       var monthly = getObjects(monthlySheet);
       var delays = getObjects(delaySheet);
+      var clientStats = getObjects(clientStatsSheet);
 
       // Filter by client code
       var filteredStats = stats.filter(function(s) {
@@ -241,12 +243,18 @@ function doGet(e) {
       });
       delaySummary.sort(function(a, b) { return b.percentage - a.percentage; });
 
+      var foundClientStat = clientStats.find(function(cs) {
+        return normalize(cs.client_code) === normalize(clientCode);
+      });
+
       var result = {
         success: true,
         suppliers: suppliers,
         kpis: {
           onTimeRate: totalPoLines > 0 ? Math.round((totalOnTimeLines / totalPoLines) * 100) : 100,
           escalatedRate: totalPoLines > 0 ? Math.round((totalEscalatedLines / totalPoLines) * 100) : 0,
+          onTimeRateDelta: foundClientStat ? parseFloat(foundClientStat.client_otr_6months || 0) : 0,
+          escalatedRateDelta: foundClientStat ? parseFloat(foundClientStat.client_escalation_6months || 0) : 0,
           totalPoLines: totalPoLines,
           supplierCount: filteredStats.length
         },
@@ -292,9 +300,11 @@ function doGet(e) {
 
       var kpis = {
         onTimeRate: Math.round(onTimeRate * 100) + '%',
+        onTimeRateDelta: parseFloat(foundStats.supplier_otr_6months || 0),
         avgDaysLate: parseFloat(foundStats.avg_days_late || 0).toFixed(1),
         avgRespTime: parseFloat(foundStats.avg_response_time_days || 0).toFixed(1) + ' d',
-        escalatedRate: Math.round(escalatedRate * 100) + '%'
+        escalatedRate: Math.round(escalatedRate * 100) + '%',
+        escalatedRateDelta: parseFloat(foundStats.supplier_escalation_6months || 0)
       };
 
       var formatMonth = function(monthVal) {
