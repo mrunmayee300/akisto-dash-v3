@@ -123,25 +123,31 @@ function SupplierDetail() {
   const strokeColor = isWatch ? '#B23B2E' : '#0E5C44';
   const fillOpacityColor = isWatch ? '#B23B2E' : '#1D9E75';
 
-  // SVG Trend Chart Spacing (scaled from 40% to 100%)
-  // X Coordinate = startX + index * stepX
-  // Y Coordinate = 220 - ((OTR - 40) / 60) * 200 (Y=20 is 100%, Y=220 is 40%)
+  // SVG Trend Chart — robust for any data
+  // viewBox: "0 0 900 260"; chart area x:[50,890], y:[20,220]; labels at y=250
+  // Rate clamped to [0,100]; Y: 20=100%, 220=0%
+  const SVG_W = 900, SVG_H = 260;
+  const CHART_X1 = 50, CHART_X2 = 890;
+  const CHART_Y_TOP = 20, CHART_Y_BOT = 220;
   const count = trendData.length;
-  const startX = 120;
-  const endX = 840;
-  const stepX = count > 1 ? (endX - startX) / (count - 1) : 0;
+  const stepX = count > 1 ? (CHART_X2 - CHART_X1) / (count - 1) : 0;
   const svgPoints = trendData.map((d, index) => {
-    const x = count > 1 ? startX + index * stepX : startX;
-    const rate = d.rate;
-    const boundedRate = Math.max(40, Math.min(100, rate));
-    const y = 220 - ((boundedRate - 40) / 60) * 200;
+    const x = count === 1
+      ? (CHART_X1 + CHART_X2) / 2
+      : CHART_X1 + index * stepX;
+    const rate = Math.max(0, Math.min(100, d.rate ?? 0));
+    const y = CHART_Y_BOT - (rate / 100) * (CHART_Y_BOT - CHART_Y_TOP);
     return { x, y, month: formatMonthLabel(d.month) };
   });
 
   const polylinePoints = svgPoints.map(p => `${p.x},${p.y}`).join(' ');
   const polygonPoints = svgPoints.length > 0
-    ? `${polylinePoints} ${svgPoints[svgPoints.length - 1].x},220 ${svgPoints[0].x},220`
+    ? `${polylinePoints} ${svgPoints[svgPoints.length - 1].x},${CHART_Y_BOT} ${svgPoints[0].x},${CHART_Y_BOT}`
     : '';
+  const yAxisTicks = [100, 80, 60, 40, 20, 0].map(pct => ({
+    label: `${pct}%`,
+    y: CHART_Y_BOT - (pct / 100) * (CHART_Y_BOT - CHART_Y_TOP),
+  }));
 
   return (
     <div className="supplier-detail-page min-h-screen bg-white text-[#2C2C2A] font-sans mx-[96px]">
@@ -527,27 +533,37 @@ function SupplierDetail() {
             <div className="cs">This supplier's monthly on-time rate over the trailing 6 months</div>
             {trendData.length > 0 ? (
               <>
-                <svg viewBox="0 0 900 240" className="w-full">
-                  <line className="gridline" x1="40" y1="20" x2="900" y2="20" />
-                  <line className="gridline" x1="40" y1="70" x2="900" y2="70" />
-                  <line className="gridline" x1="40" y1="120" x2="900" y2="120" />
-                  <line className="gridline" x1="40" y1="170" x2="900" y2="170" />
-                  <line className="gridline" x1="40" y1="220" x2="900" y2="220" />
+                              <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full" style={{ display: 'block' }}>
+                  <defs>
+                    <clipPath id="chart-area-detail">
+                      <rect x={CHART_X1} y={CHART_Y_TOP - 5} width={CHART_X2 - CHART_X1} height={CHART_Y_BOT - CHART_Y_TOP + 10} />
+                    </clipPath>
+                  </defs>
 
-                  <text className="axlab" x="0" y="24">100%</text>
-                  <text className="axlab" x="6" y="74">85%</text>
-                  <text className="axlab" x="6" y="124">70%</text>
-                  <text className="axlab" x="6" y="174">55%</text>
-                  <text className="axlab" x="6" y="224">40%</text>
+                  {/* Gridlines + Y-axis labels */}
+                  {yAxisTicks.map((tick, i) => (
+                    <g key={i}>
+                      <line className="gridline" x1={CHART_X1} y1={tick.y} x2={CHART_X2} y2={tick.y} />
+                      <text className="axlab" x={CHART_X1 - 6} y={tick.y + 4} textAnchor="end">{tick.label}</text>
+                    </g>
+                  ))}
 
-                  {/* Supplier line */}
-                  <polyline fill="none" stroke={strokeColor} strokeWidth="3" points={polylinePoints} />
-                  <polygon fill={fillOpacityColor} opacity="0.07" points={polygonPoints} />
+                  {/* Area fill + line — clipped */}
+                  <g clipPath="url(#chart-area-detail)">
+                    <polygon fill={fillOpacityColor} opacity="0.07" points={polygonPoints} />
+                    <polyline fill="none" stroke={strokeColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={polylinePoints} />
+                  </g>
 
+                  {/* Data points + X-axis month labels */}
                   {svgPoints.map((pt, idx) => (
                     <g key={idx}>
-                      <circle cx={pt.x} cy={pt.y} r={idx === svgPoints.length - 1 ? 5 : 4} fill={idx === svgPoints.length - 1 ? strokeColor : '#8A6516'} />
-                      <text className="axlab" x={pt.x - 12} y="236">{pt.month}</text>
+                      <circle
+                        cx={pt.x}
+                        cy={Math.max(CHART_Y_TOP, Math.min(CHART_Y_BOT, pt.y))}
+                        r={idx === svgPoints.length - 1 ? 5 : 4}
+                        fill={idx === svgPoints.length - 1 ? strokeColor : '#8A6516'}
+                      />
+                      <text className="axlab" x={pt.x} y={CHART_Y_BOT + 22} textAnchor="middle">{pt.month}</text>
                     </g>
                   ))}
                 </svg>

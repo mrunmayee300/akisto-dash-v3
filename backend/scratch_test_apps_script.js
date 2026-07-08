@@ -22,13 +22,13 @@ function getUrl(url) {
 async function main() {
   try {
     console.log('Logging in to get a fresh token...');
-    const loginRes = await getUrl('https://script.google.com/macros/s/AKfycbwDYIGa38fQeS9qAMefASLOzSUlz14V4ElMjnEjZ3_0qwrzMZDNpauDZiwCHMUzM2sz/exec?action=login&companyName=Emerald&email=mrunmayeesangode@gmail.com&password=password123');
+    const loginRes = await getUrl('https://script.google.com/macros/s/AKfycbyACrp4ca_ieGCufxadT7iUmADZjPTh9tiGaxlSQOws_u07sZIHZSO5hWe1BVtw-ooz/exec?action=login&companyName=Emerald&email=mrunmayeesangode@gmail.com&password=password123');
     console.log('Login Response:', loginRes);
 
     if (loginRes.success) {
       const token = loginRes.token;
       console.log('\nValidating session with token:', token);
-      const validateRes = await getUrl(`https://script.google.com/macros/s/AKfycbwDYIGa38fQeS9qAMefASLOzSUlz14V4ElMjnEjZ3_0qwrzMZDNpauDZiwCHMUzM2sz/exec?action=dashboard&sessionToken=${encodeURIComponent(token)}`);
+      const validateRes = await getUrl(`https://script.google.com/macros/s/AKfycbyACrp4ca_ieGCufxadT7iUmADZjPTh9tiGaxlSQOws_u07sZIHZSO5hWe1BVtw-ooz/exec?action=dashboard&sessionToken=${encodeURIComponent(token)}`);
       console.log('Validation Response:', validateRes);
     }
   } catch (err) {
