@@ -23,6 +23,15 @@ const formatMonth = (monthVal) => {
   return str;
 };
 
+const getThresholdMonth = (latestMonthStr, numMonths = 6) => {
+  if (!latestMonthStr || !latestMonthStr.includes('-')) return '';
+  const parts = latestMonthStr.split('-');
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const d = new Date(year, month - numMonths, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const supplierController = {
   getSuppliers: async (req, res) => {
     const clientCode = req.clientCode;
@@ -177,6 +186,12 @@ const supplierController = {
 
       trendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
 
+      if (trendData.length > 0) {
+        const latestMonth = trendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
+        const thresholdMonth = getThresholdMonth(latestMonth, 6);
+        trendData = trendData.filter(d => d.month >= thresholdMonth);
+      }
+
       // Filter Delay Summary dynamically (buyer-scoped causes)
       const filteredDelays = delayEventLogsRows.filter(
         row => normalize(row.client_code) === normalize(clientCode) && 
@@ -274,7 +289,7 @@ const supplierController = {
       const supplierMeta = {
         name: foundSupplier.supplier_name || foundSupplier.supplier_name_full || 'Unknown Supplier',
         code: foundSupplier.supplier_code,
-        cat: `${foundSupplier.total_po_lines} PO lines over the trailing 6 months · primary contact on file`,
+        cat: `${foundSupplier.total_po_lines} PO lines over the trailing 6 months`,
         flag: foundSupplier.performance_flag || '',
         contact: foundSupplier.contact_name || '--',
         email: foundSupplier.email || '--',
@@ -290,7 +305,7 @@ const supplierController = {
       };
 
       // Trend Data for Selected Supplier
-      const trendData = supplierMonthlyStatsRows
+      let trendData = supplierMonthlyStatsRows
         .filter(row => normalize(row.client_code) === normalize(clientCode) && 
                        normalize(row.supplier_code) === normalize(supplierCode))
         .map(row => {
@@ -303,6 +318,13 @@ const supplierController = {
         });
 
       trendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
+
+      let supplierLatestMonth = '';
+      if (trendData.length > 0) {
+        supplierLatestMonth = trendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
+        const thresholdMonth = getThresholdMonth(supplierLatestMonth, 6);
+        trendData = trendData.filter(d => d.month >= thresholdMonth);
+      }
 
       // Benchmark Trend Data: average OTR of all suppliers assigned to the same buyer
       const buyerName = foundSupplier.buyer_name || '';
@@ -341,6 +363,10 @@ const supplierController = {
         benchmarkTrendData = [...trendData];
       }
       benchmarkTrendData.sort((a, b) => normalize(a.month).localeCompare(normalize(b.month)));
+      if (supplierLatestMonth) {
+        const thresholdMonth = getThresholdMonth(supplierLatestMonth, 6);
+        benchmarkTrendData = benchmarkTrendData.filter(d => d.month >= thresholdMonth);
+      }
 
       // Delay Summary dynamically (supplier-specific causes)
       const filteredDelays = delayEventLogsRows.filter(

@@ -213,6 +213,12 @@ function doGet(e) {
         });
       trendData.sort(function(a, b) { return normalize(a.month).localeCompare(normalize(b.month)); });
 
+      if (trendData.length > 0) {
+        var latestMonth = trendData.reduce(function(max, d) { return d.month > max ? d.month : max; }, '0000-00');
+        var thresholdMonth = getThresholdMonth(latestMonth, 6);
+        trendData = trendData.filter(function(d) { return d.month >= thresholdMonth; });
+      }
+
       // Filter Delay Summary dynamically (GLOBAL causes)
       var filteredDelays = delays.filter(function(row) {
         return normalize(row.client_code) === normalize(clientCode);
@@ -321,6 +327,12 @@ function doGet(e) {
         });
       trendData.sort(function(a, b) { return normalize(a.month).localeCompare(normalize(b.month)); });
 
+      if (trendData.length > 0) {
+        var latestMonth = trendData.reduce(function(max, d) { return d.month > max ? d.month : max; }, '0000-00');
+        var thresholdMonth = getThresholdMonth(latestMonth, 6);
+        trendData = trendData.filter(function(d) { return d.month >= thresholdMonth; });
+      }
+
       // Delay Summary dynamically (supplier-specific causes)
       var filteredDelays = delays.filter(function(row) {
         return normalize(row.client_code) === normalize(clientCode) && normalize(row.supplier_code) === normalize(supplierCode);
@@ -377,7 +389,7 @@ function doGet(e) {
         supplierMeta: {
           name: foundStats.supplier_name || foundStats.supplier_name_full || 'Unknown',
           code: foundStats.supplier_code,
-          cat: foundStats.total_po_lines + ' PO lines over the trailing 6 months · primary contact on file',
+          cat: foundStats.total_po_lines + ' PO lines over the trailing 6 months',
           flag: foundStats.performance_flag || '',
           contact: foundStats.contact_name || '--',
           email: foundStats.email || '--',
@@ -632,6 +644,18 @@ function doGet(e) {
       return "";
     }
     return String(value).trim();
+  }
+
+  function getThresholdMonth(latestMonthStr, numMonths) {
+    if (!latestMonthStr || !latestMonthStr.includes('-')) return '';
+    var parts = latestMonthStr.split('-');
+    var year = parseInt(parts[0], 10);
+    var month = parseInt(parts[1], 10);
+    var d = new Date(year, month - (numMonths || 6), 1);
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1);
+    if (m.length === 1) m = "0" + m;
+    return y + "-" + m;
   }
   
   /* =====================================

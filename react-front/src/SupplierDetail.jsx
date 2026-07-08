@@ -97,7 +97,23 @@ function SupplierDetail() {
     );
   }
 
-  const { supplierMeta = {}, kpis = {}, trendData = [], delaySummary = [], recentDeliveries = [] } = data;
+  const { supplierMeta = {}, kpis = {}, trendData: rawTrendData = [], delaySummary = [], recentDeliveries = [] } = data || {};
+
+  const trendData = React.useMemo(() => {
+    const getThresholdMonth = (latestMonthStr, numMonths = 6) => {
+      if (!latestMonthStr || !latestMonthStr.includes('-')) return '';
+      const parts = latestMonthStr.split('-');
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const d = new Date(year, month - numMonths, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    if (rawTrendData.length === 0) return [];
+    const latestMonth = rawTrendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
+    const thresholdMonth = getThresholdMonth(latestMonth, 6);
+    return rawTrendData.filter(d => d.month >= thresholdMonth);
+  }, [rawTrendData]);
 
   const isWatch = parseInt(kpis.onTimeRate || 0) < 60;
   const strokeColor = isWatch ? '#B23B2E' : '#0E5C44';
