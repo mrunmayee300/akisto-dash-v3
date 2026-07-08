@@ -506,15 +506,6 @@ function SupplierDetail() {
           <div className="kpi">
             <div className="lab">On-time rate</div>
             <div className={`num ${isWatch ? 'bad' : ''}`}>{kpis.onTimeRate}</div>
-            {kpis.onTimeRateDelta > 0 && (
-              <div className="delta up">&#9650; {Math.round(Math.abs(kpis.onTimeRateDelta) * 100)}% vs prior 6 mo</div>
-            )}
-            {kpis.onTimeRateDelta < 0 && (
-              <div className="delta down">&#9660; {Math.round(Math.abs(kpis.onTimeRateDelta) * 100)}% vs prior 6 mo</div>
-            )}
-            {(kpis.onTimeRateDelta === 0 || kpis.onTimeRateDelta === undefined) && (
-              <div className="delta flat">Flat vs prior 6 mo</div>
-            )}
           </div>
           <div className="kpi">
             <div className="lab">Avg days late</div>
@@ -527,15 +518,6 @@ function SupplierDetail() {
           <div className="kpi">
             <div className="lab">Escalated to buyer</div>
             <div className="num">{kpis.escalatedRate}</div>
-            {kpis.escalatedRateDelta > 0 && (
-              <div className="delta up">&#9650; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
-            )}
-            {kpis.escalatedRateDelta < 0 && (
-              <div className="delta down">&#9660; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
-            )}
-            {(kpis.escalatedRateDelta === 0 || kpis.escalatedRateDelta === undefined) && (
-              <div className="delta flat">Flat vs prior 6 mo</div>
-            )}
           </div>
         </div>
 
