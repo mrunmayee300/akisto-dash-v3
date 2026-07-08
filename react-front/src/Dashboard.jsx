@@ -40,6 +40,26 @@ function formatCurrentDate() {
   return `${weekday}, ${day} ${month} · ${time} ${tzLabel}`;
 }
 
+function parseDateToMs(value) {
+  if (!value) return 0;
+  try {
+    const str = String(value).trim();
+    let d;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, dVal] = str.split('-').map(Number);
+      d = new Date(Date.UTC(y, m - 1, dVal));
+    } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+      const [m, dVal, y] = str.split('/').map(Number);
+      d = new Date(Date.UTC(y, m - 1, dVal));
+    } else {
+      d = new Date(value);
+    }
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  } catch (e) {
+    return 0;
+  }
+}
+
 function Dashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('dashboardActiveTab') || 'open';
@@ -185,13 +205,17 @@ function Dashboard() {
         const lineB = String(b.po_line_item || '').trim();
         return lineB.localeCompare(lineA, undefined, { numeric: true, sensitivity: 'base' });
       } else if (sortBy === 'date_asc') {
-        const dateA = new Date(a.deliver_by_date_delivery_1 || a.ship_by_date_delivery_1 || '9999-12-31');
-        const dateB = new Date(b.deliver_by_date_delivery_1 || b.ship_by_date_delivery_1 || '9999-12-31');
-        return dateA - dateB;
+        const dateValA = activeTab === 'track' ? a.ship_by_date_delivery_1 : a.deliver_by_date_delivery_1;
+        const dateValB = activeTab === 'track' ? b.ship_by_date_delivery_1 : b.deliver_by_date_delivery_1;
+        const msA = parseDateToMs(dateValA) || 9999999999999;
+        const msB = parseDateToMs(dateValB) || 9999999999999;
+        return msA - msB;
       } else if (sortBy === 'date_desc') {
-        const dateA = new Date(a.deliver_by_date_delivery_1 || a.ship_by_date_delivery_1 || '0000-01-01');
-        const dateB = new Date(b.deliver_by_date_delivery_1 || b.ship_by_date_delivery_1 || '0000-01-01');
-        return dateB - dateA;
+        const dateValA = activeTab === 'track' ? a.ship_by_date_delivery_1 : a.deliver_by_date_delivery_1;
+        const dateValB = activeTab === 'track' ? b.ship_by_date_delivery_1 : b.deliver_by_date_delivery_1;
+        const msA = parseDateToMs(dateValA) || 0;
+        const msB = parseDateToMs(dateValB) || 0;
+        return msB - msA;
       } else if (sortBy === 'supplier_asc') {
         const supA = String(a.supplier_name || '').trim();
         const supB = String(b.supplier_name || '').trim();
@@ -221,7 +245,7 @@ function Dashboard() {
       onTrack: track,
       awaitingReply: awaitReply
     };
-  }, [data, searchQuery, sortBy]);
+  }, [data, searchQuery, sortBy, activeTab]);
 
   const openPOs = sortedOpenPOs;
 
@@ -527,7 +551,15 @@ function Dashboard() {
           <span className="text-[12px] font-extrabold text-muted uppercase tracking-[0.5px]">Sort By</span>
           <select 
             value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setPages({
+                open: 1,
+                attn: 1,
+                track: 1,
+                await: 1
+              });
+            }}
             className="bg-white border border-line rounded px-3 py-1.5 text-[13.5px] text-body focus:outline-none focus:border-emerald cursor-pointer transition-all duration-200"
           >
             <option value="po_asc">PO Number (ascending)</option>
