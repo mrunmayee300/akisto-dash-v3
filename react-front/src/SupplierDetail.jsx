@@ -135,7 +135,7 @@ function SupplierDetail() {
           box-shadow: none;
         }
         .supplier-detail-page .back {
-          padding: 14px 96px 0;
+          padding: 14px 28px 0;
           font-size: 13px;
           color: var(--accent);
           font-weight: 700;
@@ -146,7 +146,7 @@ function SupplierDetail() {
           text-decoration: underline;
         }
         .supplier-detail-page .ph {
-          padding: 14px 96px 20px;
+          padding: 14px 28px 20px;
           border-bottom: 1px solid var(--line);
         }
         .supplier-detail-page .ph .top {
@@ -191,7 +191,7 @@ function SupplierDetail() {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 13px;
-          padding: 18px 96px 6px;
+          padding: 18px 28px 6px;
         }
         .supplier-detail-page .kpi {
           border: 1px solid var(--line);
@@ -216,7 +216,7 @@ function SupplierDetail() {
           color: var(--red);
         }
         .supplier-detail-page .chartwrap {
-          padding: 14px 96px 8px;
+          padding: 14px 28px 8px;
         }
         .supplier-detail-page .card {
           border: 1px solid var(--line);
@@ -253,7 +253,7 @@ function SupplierDetail() {
           stroke-width: 1;
         }
         .supplier-detail-page .section {
-          padding: 20px 96px 4px;
+          padding: 20px 28px 4px;
         }
         .supplier-detail-page .section h2 {
           font-size: 16px;
@@ -280,10 +280,10 @@ function SupplierDetail() {
           border-bottom: 1px solid var(--line);
         }
         .supplier-detail-page thead th:first-child {
-          padding-left: 96px;
+          padding-left: 28px;
         }
         .supplier-detail-page thead th:last-child {
-          padding-right: 96px;
+          padding-right: 28px;
         }
         .supplier-detail-page thead th.r {
           text-align: right;
@@ -295,10 +295,10 @@ function SupplierDetail() {
           vertical-align: middle;
         }
         .supplier-detail-page tbody td:first-child {
-          padding-left: 96px;
+          padding-left: 28px;
         }
         .supplier-detail-page tbody td:last-child {
-          padding-right: 96px;
+          padding-right: 28px;
         }
         .supplier-detail-page tbody tr:last-child td {
           border-bottom: none;
@@ -417,7 +417,7 @@ function SupplierDetail() {
           border-radius: 3px;
         }
         .supplier-detail-page .contactwrap {
-          padding: 10px 96px 6px;
+          padding: 10px 28px 6px;
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 16px 28px;

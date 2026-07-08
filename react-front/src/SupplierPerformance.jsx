@@ -258,7 +258,7 @@ function SupplierPerformance() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 18px 96px;
+          padding: 18px 28px;
           border-bottom: 1px solid var(--line);
         }
         .supplier-performance-page .brand {
@@ -298,7 +298,7 @@ function SupplierPerformance() {
         .supplier-performance-page .tabbar {
           display: flex;
           gap: 30px;
-          padding: 0 96px;
+          padding: 0 28px;
           border-bottom: 1px solid var(--line);
           background: #fff;
         }
@@ -329,7 +329,7 @@ function SupplierPerformance() {
           display: block;
         }
         .supplier-performance-page .section {
-          padding: 22px 96px 6px;
+          padding: 22px 28px 6px;
         }
         .supplier-performance-page .section h2 {
           font-size: 16px;
@@ -345,7 +345,7 @@ function SupplierPerformance() {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 13px;
-          padding: 16px 96px 6px;
+          padding: 16px 28px 6px;
         }
         .supplier-performance-page .kpi {
           border: 1px solid var(--line);
@@ -381,7 +381,7 @@ function SupplierPerformance() {
           color: var(--muted);
         }
         .supplier-performance-page .chartwrap {
-          padding: 8px 96px 12px;
+          padding: 8px 28px 12px;
         }
         .supplier-performance-page .card {
           border: 1px solid var(--line);
@@ -417,7 +417,7 @@ function SupplierPerformance() {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 16px 96px 4px;
+          padding: 16px 28px 4px;
           flex-wrap: wrap;
         }
         .supplier-performance-page .ctl {
@@ -470,10 +470,10 @@ function SupplierPerformance() {
           user-select: none;
         }
         .supplier-performance-page thead th:first-child {
-          padding-left: 96px;
+          padding-left: 28px;
         }
         .supplier-performance-page thead th:last-child {
-          padding-right: 96px;
+          padding-right: 28px;
         }
         .supplier-performance-page thead th.r {
           text-align: right;
@@ -485,10 +485,10 @@ function SupplierPerformance() {
           vertical-align: middle;
         }
         .supplier-performance-page tbody td:first-child {
-          padding-left: 96px;
+          padding-left: 28px;
         }
         .supplier-performance-page tbody td:last-child {
-          padding-right: 96px;
+          padding-right: 28px;
         }
         .supplier-performance-page tbody tr:last-child td {
           border-bottom: none;
@@ -566,7 +566,7 @@ function SupplierPerformance() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 18px 96px 6px;
+          padding: 18px 28px 6px;
         }
         .supplier-performance-page .pginfo {
           font-size: 14px;
@@ -605,7 +605,7 @@ function SupplierPerformance() {
           color: var(--body);
         }
         .supplier-performance-page .delaywrap {
-          padding: 8px 96px 18px;
+          padding: 8px 28px 18px;
         }
         .supplier-performance-page .delaywrap .card {
           border: none;

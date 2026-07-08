@@ -315,7 +315,7 @@ function Dashboard() {
       if (status.cls === 'p-ontime') pillCls = "bg-pale text-emerald";
       if (status.cls === 'p-await') pillCls = "bg-[#EAF0FB] text-[#3A5C9A]";
 
-      const pxCls = 'px-4';
+      const pxCls = 'px-4 first:pl-0 last:pr-0';
 
       return (
         <tr key={po.comms_group_id} onClick={() => handleRowClick(po.comms_group_id, status.label)} className="cursor-pointer hover:bg-[#FDFDFD]">
@@ -474,17 +474,17 @@ function Dashboard() {
           <h2 className="text-[18px] font-extrabold text-emerald">Open POs</h2>
           <span className="text-[14px] text-muted font-semibold">all {openPOs.length} open POs across every status</span>
         </div>
-        <div className="overflow-x-auto w-full">
+        <div className="overflow-x-auto w-full px-7">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">PO</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Supplier</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Material&nbsp;code</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Material&nbsp;description</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Quantity</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Need&nbsp;by</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Status</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">PO</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Supplier</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Material&nbsp;code</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Material&nbsp;description</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Quantity</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Need&nbsp;by</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -507,18 +507,18 @@ function Dashboard() {
           <h2 className="text-[18px] font-extrabold text-emerald">Needs attention today</h2>
           <span className="text-[14px] text-muted font-semibold">{needsAttention.length} of {openPOs.length} open POs</span>
         </div>
-        <div className="overflow-x-auto w-full">
+        <div className="overflow-x-auto w-full px-7">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">PO</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Supplier</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Material&nbsp;code</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Material&nbsp;description</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Quantity</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Need&nbsp;by</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Status</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">What&rsquo;s happening</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">PO</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Supplier</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Material&nbsp;code</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Material&nbsp;description</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Quantity</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Need&nbsp;by</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Status</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">What&rsquo;s happening</th>
               </tr>
             </thead>
             <tbody>
@@ -541,18 +541,18 @@ function Dashboard() {
           <h2 className="text-[18px] font-extrabold text-emerald">On track</h2>
           <span className="text-[14px] text-muted font-semibold">{onTrack.length} of {openPOs.length} open POs, confirmed, no action needed</span>
         </div>
-        <div className="overflow-x-auto w-full">
+        <div className="overflow-x-auto w-full px-7">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">PO</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Supplier</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Material&nbsp;code</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Material&nbsp;description</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Quantity</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Ship-by</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Status</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Delivery status</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">PO</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Supplier</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Material&nbsp;code</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Material&nbsp;description</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Quantity</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Ship-by</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Status</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Delivery status</th>
               </tr>
             </thead>
             <tbody>
@@ -575,19 +575,19 @@ function Dashboard() {
           <h2 className="text-[18px] font-extrabold text-emerald">Awaiting reply</h2>
           <span className="text-[14px] text-muted font-semibold">{awaitingReply.length} of {openPOs.length} open POs, chasing, within window</span>
         </div>
-        <div className="overflow-x-auto w-full">
+        <div className="overflow-x-auto w-full px-7">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">PO</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Supplier</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Material&nbsp;code</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Material&nbsp;description</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Quantity</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Need&nbsp;by</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Status</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Last update from supplier</th>
-                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 border-b border-line">Next touch point</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">PO</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Supplier</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Material&nbsp;code</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Material&nbsp;description</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Quantity</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Need&nbsp;by</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Status</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Last update from supplier</th>
+                <th className="text-[12.5px] uppercase tracking-[0.7px] text-muted font-bold text-left py-2.5 px-4 first:pl-0 last:pr-0 border-b border-line">Next touch point</th>
               </tr>
             </thead>
             <tbody>
