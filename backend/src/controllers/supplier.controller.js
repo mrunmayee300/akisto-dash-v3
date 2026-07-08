@@ -400,7 +400,7 @@ const supplierController = {
 
       // Recent Deliveries
       // Filter logs by client_code, supplier_code, and status === 'Closed'
-      const recentDeliveries = communicationLogs
+      let recentDeliveries = communicationLogs
         .filter(log => normalize(log.client_code) === normalize(clientCode) && 
                        normalize(log.supplier_code) === normalize(supplierCode) && 
                        normalize(log['PO line item status']).toLowerCase() === 'closed')
@@ -408,12 +408,15 @@ const supplierController = {
           const variance = parseInt(log.delivery_variance_days || 0, 10);
           
           // Resolve delivery date: reply timestamp of the final stage that marked it closed
-          let deliveryDate = log.stage3_reply_timestamp || 
+          let deliveryDate = log.delivered_date ||
+                             log.stage3_reply_timestamp || 
                              log.stage2_5_reply_timestamp || 
                              log.stage2_reply_timestamp || 
                              log.stage1_5_reply_timestamp || 
                              log.stage1_reply_timestamp || 
                              '';
+
+          const resolvedOutcome = log.outcome || (variance <= 0 ? 'On time' : 'Delayed');
 
           return {
             po: log.po_number || '--',
@@ -422,13 +425,18 @@ const supplierController = {
             needBy: log.deliver_by_date || '',
             delivered: deliveryDate,
             daysLate: variance,
-            outcome: variance <= 0 ? 'On time' : 'Delayed',
+            outcome: resolvedOutcome,
             commsGroupId: log.comms_group_id || ''
           };
         });
 
-      // Sort recent deliveries: most recent needBy date first
-      recentDeliveries.sort((a, b) => new Date(b.needBy) - new Date(a.needBy));
+      const parseDate = (val) => {
+        if (!val) return 0;
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
+      };
+      recentDeliveries.sort((a, b) => parseDate(b.delivered) - parseDate(a.delivered));
+      recentDeliveries = recentDeliveries.slice(0, 10);
 
       const responseData = {
         success: true,

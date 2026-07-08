@@ -374,12 +374,14 @@ function doGet(e) {
         })
         .map(function(log) {
           var variance = parseInt(log.delivery_variance_days || 0, 10);
-          var deliveryDate = log.stage3_reply_timestamp || 
+          var deliveryDate = log.delivered_date || 
+                             log.stage3_reply_timestamp || 
                              log.stage2_5_reply_timestamp || 
                              log.stage2_reply_timestamp || 
                              log.stage1_5_reply_timestamp || 
                              log.stage1_reply_timestamp || 
                              '';
+          var resolvedOutcome = log.outcome || (variance <= 0 ? 'On time' : 'Delayed');
           return {
             po: log.po_number || '--',
             materialName: log.material_name || '--',
@@ -387,12 +389,20 @@ function doGet(e) {
             needBy: log.deliver_by_date || '',
             delivered: deliveryDate,
             daysLate: variance,
-            outcome: variance <= 0 ? 'On time' : 'Delayed',
+            outcome: resolvedOutcome,
             commsGroupId: log.comms_group_id || ''
           };
         });
 
-      recentDeliveries.sort(function(a, b) { return new Date(b.needBy) - new Date(a.needBy); });
+      recentDeliveries.sort(function(a, b) {
+        var parseDate = function(val) {
+          if (!val) return 0;
+          var d = new Date(val);
+          return isNaN(d.getTime()) ? 0 : d.getTime();
+        };
+        return parseDate(b.delivered) - parseDate(a.delivered);
+      });
+      recentDeliveries = recentDeliveries.slice(0, 10);
 
       var result = {
         success: true,
