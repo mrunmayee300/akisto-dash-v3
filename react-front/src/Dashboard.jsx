@@ -470,7 +470,7 @@ function Dashboard() {
 
       {/* ============ OPEN POs ============ */}
       <div className={`hidden ${activeTab === 'open' ? '!block' : ''}`} id="open">
-        <div className="py-[18px] px-7 pb-[4px] flex items-baseline gap-[10px]">
+        <div className="py-[18px] px-7 pb-[14px] flex items-baseline gap-[10px]">
           <h2 className="text-[18px] font-extrabold text-emerald">Open POs</h2>
           <span className="text-[14px] text-muted font-semibold">all {openPOs.length} open POs across every status</span>
         </div>
@@ -503,7 +503,7 @@ function Dashboard() {
 
       {/* ============ NEEDS ATTENTION ============ */}
       <div className={`hidden ${activeTab === 'attn' ? '!block' : ''}`} id="attn">
-        <div className="py-[18px] px-7 pb-[4px] flex items-baseline gap-[10px]">
+        <div className="py-[18px] px-7 pb-[14px] flex items-baseline gap-[10px]">
           <h2 className="text-[18px] font-extrabold text-emerald">Needs attention today</h2>
           <span className="text-[14px] text-muted font-semibold">{needsAttention.length} of {openPOs.length} open POs</span>
         </div>
@@ -537,7 +537,7 @@ function Dashboard() {
 
       {/* ============ ON TRACK ============ */}
       <div className={`hidden ${activeTab === 'track' ? '!block' : ''}`} id="track">
-        <div className="py-[18px] px-7 pb-[4px] flex items-baseline gap-[10px]">
+        <div className="py-[18px] px-7 pb-[14px] flex items-baseline gap-[10px]">
           <h2 className="text-[18px] font-extrabold text-emerald">On track</h2>
           <span className="text-[14px] text-muted font-semibold">{onTrack.length} of {openPOs.length} open POs, confirmed, no action needed</span>
         </div>
@@ -571,7 +571,7 @@ function Dashboard() {
 
       {/* ============ AWAITING REPLY ============ */}
       <div className={`hidden ${activeTab === 'await' ? '!block' : ''}`} id="await">
-        <div className="py-[18px] px-7 pb-[4px] flex items-baseline gap-[10px]">
+        <div className="py-[18px] px-7 pb-[14px] flex items-baseline gap-[10px]">
           <h2 className="text-[18px] font-extrabold text-emerald">Awaiting reply</h2>
           <span className="text-[14px] text-muted font-semibold">{awaitingReply.length} of {openPOs.length} open POs, chasing, within window</span>
         </div>
