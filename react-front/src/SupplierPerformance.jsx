@@ -184,20 +184,11 @@ function SupplierPerformance() {
   const { kpis = {}, trendData: rawTrendData = [], delaySummary: rawDelaySummary = [] } = data || {};
 
   const trendData = React.useMemo(() => {
-    const getThresholdMonth = (latestMonthStr, numMonths = 6) => {
-      if (!latestMonthStr || !latestMonthStr.includes('-')) return '';
-      const parts = latestMonthStr.split('-');
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10);
-      const d = new Date(year, month - numMonths, 1);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    };
-
     const actualTrendData = rawTrendData || [];
     if (actualTrendData.length === 0) return [];
-    const latestMonth = actualTrendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
-    const thresholdMonth = getThresholdMonth(latestMonth, 6);
-    return actualTrendData.filter(d => d.month >= thresholdMonth);
+    // Sort ascending by month string, then take only the last 6 months
+    const sorted = [...actualTrendData].sort((a, b) => a.month < b.month ? -1 : a.month > b.month ? 1 : 0);
+    return sorted.slice(-6);
   }, [rawTrendData]);
 
   const delaySummary = rawDelaySummary || [];

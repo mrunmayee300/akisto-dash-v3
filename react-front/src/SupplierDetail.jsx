@@ -72,20 +72,11 @@ function SupplierDetail() {
   const { supplierMeta = {}, kpis = {}, trendData: rawTrendData = [], delaySummary: rawDelaySummary = [], recentDeliveries: rawRecentDeliveries = [] } = data || {};
 
   const trendData = React.useMemo(() => {
-    const getThresholdMonth = (latestMonthStr, numMonths = 6) => {
-      if (!latestMonthStr || !latestMonthStr.includes('-')) return '';
-      const parts = latestMonthStr.split('-');
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10);
-      const d = new Date(year, month - numMonths, 1);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    };
-
     const actualTrendData = rawTrendData || [];
     if (actualTrendData.length === 0) return [];
-    const latestMonth = actualTrendData.reduce((max, d) => d.month > max ? d.month : max, '0000-00');
-    const thresholdMonth = getThresholdMonth(latestMonth, 6);
-    return actualTrendData.filter(d => d.month >= thresholdMonth);
+    // Sort ascending by month string, then take only the last 6 months
+    const sorted = [...actualTrendData].sort((a, b) => a.month < b.month ? -1 : a.month > b.month ? 1 : 0);
+    return sorted.slice(-6);
   }, [rawTrendData]);
 
   const delaySummary = rawDelaySummary || [];
@@ -119,9 +110,11 @@ function SupplierDetail() {
     );
   }
 
-  const isWatch = parseInt(kpis.onTimeRate || 0) < 60;
-  const strokeColor = isWatch ? '#B23B2E' : '#0E5C44';
-  const fillOpacityColor = isWatch ? '#B23B2E' : '#1D9E75';
+  const supplierFlag = supplierMeta.flag || '';
+  const isMonitor = supplierFlag === 'Monitor' || supplierFlag === 'Review';
+  const isWatch = supplierFlag === 'Watch' || supplierFlag === 'Action Needed';
+  const strokeColor = isWatch ? '#B23B2E' : isMonitor ? '#C79A2E' : '#0E5C44';
+  const fillOpacityColor = isWatch ? '#B23B2E' : isMonitor ? '#C79A2E' : '#1D9E75';
 
   // SVG Trend Chart — robust for any data
   // viewBox: "0 0 900 260"; chart area x:[50,890], y:[20,220]; labels at y=250
