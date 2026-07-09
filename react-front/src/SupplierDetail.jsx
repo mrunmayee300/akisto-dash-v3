@@ -561,7 +561,7 @@ function SupplierDetail() {
                         cx={pt.x}
                         cy={Math.max(CHART_Y_TOP, Math.min(CHART_Y_BOT, pt.y))}
                         r={idx === svgPoints.length - 1 ? 5 : 4}
-                        fill={idx === svgPoints.length - 1 ? strokeColor : '#8A6516'}
+                        fill={strokeColor}
                       />
                       <text className="axlab" x={pt.x} y={CHART_Y_BOT + 22} textAnchor="middle">{pt.month}</text>
                     </g>

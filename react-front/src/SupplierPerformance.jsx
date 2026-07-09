@@ -834,7 +834,7 @@ function SupplierPerformance() {
                         cx={pt.x}
                         cy={Math.max(CHART_Y_TOP, Math.min(CHART_Y_BOT, pt.y))}
                         r={idx === svgPoints.length - 1 ? 5 : 4}
-                        fill={idx === svgPoints.length - 1 ? '#C79A2E' : '#0E5C44'}
+                        fill='#0E5C44'
                       />
                       <text className="axlab" x={pt.x} y={CHART_Y_BOT + 22} textAnchor="middle">{pt.month}</text>
                     </g>
