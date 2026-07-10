@@ -776,10 +776,10 @@ function SupplierPerformance() {
               <div className="lab">Escalated to buyer</div>
               <div className="num">{kpis.escalatedRate}%</div>
               {kpis.escalatedRateDelta > 0 && (
-                <div className="delta up">&#9650; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
+                <div className="delta down">&#9650; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
               )}
               {kpis.escalatedRateDelta < 0 && (
-                <div className="delta down">&#9660; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
+                <div className="delta up">&#9660; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
               )}
               {(kpis.escalatedRateDelta === 0 || kpis.escalatedRateDelta === undefined) && (
                 <div className="delta flat">Flat vs prior 6 mo</div>
