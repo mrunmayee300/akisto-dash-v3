@@ -103,101 +103,12 @@ const supplierController = {
         }
       }
 
-      // Calculate last 6 months list based on current local/system time
-      const baseDate = new Date();
-      const last6Months = [];
-      const tempDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-      for (let i = 0; i < 6; i++) {
-        const y = tempDate.getFullYear();
-        const m = tempDate.getMonth() + 1;
-        const mStr = m < 10 ? '0' + m : '' + m;
-        last6Months.push(`${y}-${mStr}`);
-        tempDate.setMonth(tempDate.getMonth() - 1);
-      }
-
-      const getRowMonth = (row) => {
-        if (row.month_of_closure && String(row.month_of_closure).trim()) {
-          return String(row.month_of_closure).trim();
-        }
-        const ts = row.stage1_outreach_timestamp || row.last_action_timestamp;
-        if (ts) {
-          const str = String(ts).trim();
-          if (str.includes('-')) {
-            const parts = str.split('-');
-            if (parts.length >= 2) {
-              return `${parts[0]}-${parts[1]}`;
-            }
-          }
-        }
-        const po = poMap[row.po_line_key];
-        if (po) {
-          const dDate = po.deliver_by_date_delivery_1 || po.issue_date;
-          if (dDate) {
-            const str = String(dDate).trim();
-            if (str.includes('-')) {
-              const parts = str.split('-');
-              if (parts.length >= 2) {
-                return `${parts[0]}-${parts[1]}`;
-              }
-            } else if (str.includes('/')) {
-              const parts = str.split('/');
-              if (parts.length >= 3) {
-                const y = parts[2];
-                const m = parseInt(parts[0], 10);
-                const mStr = m < 10 ? '0' + m : '' + m;
-                return `${y}-${mStr}`;
-              }
-            }
-          }
-        }
-        return '';
-      };
-
-      // Compute dynamic 6-month stats per supplier and overall KPIs
-      let totalPoLines = 0;
-      let totalOnTimeLines = 0;
-      let totalEscalatedLines = 0;
-
       // Map rows for the Reliability Table
       const suppliers = filteredSuppliers.map(s => {
-        const supplierCodeStr = normalize(s.supplier_code);
-        
-        const supplierCommRows = commLogsRows.filter(r => 
-          normalize(r.client_code) === normalize(clientCode) &&
-          normalize(r.supplier_code) === supplierCodeStr &&
-          last6Months.includes(getRowMonth(r))
-        );
-
-        const sTotal = supplierCommRows.length;
-        const sOnTime = supplierCommRows.filter(r => 
-          normalize(r['PO line item status']).toLowerCase() === 'closed' && 
-          parseFloat(r.delivery_variance_days || 0) <= 0
-        ).length;
-        const sEscalated = supplierCommRows.filter(r => 
-          normalize(r.follow_up_status).toLowerCase() === 'escalation_sent'
-        ).length;
-
-        totalPoLines += sTotal;
-        totalOnTimeLines += sOnTime;
-        totalEscalatedLines += sEscalated;
-
-        const onTimeRate = sTotal > 0 ? sOnTime / sTotal : 1.0;
-
-        const lateRows = supplierCommRows.filter(r => 
-          parseFloat(r.delivery_variance_days || 0) > 0
-        );
-        const avgDaysLate = lateRows.length > 0 
-          ? lateRows.reduce((sum, r) => sum + parseFloat(r.delivery_variance_days || 0), 0) / lateRows.length 
-          : 0;
-
-        const respRows = supplierCommRows.filter(r => 
-          parseFloat(r.running_avg_response_time_days || 0) > 0
-        );
-        const avgRespTime = respRows.length > 0 
-          ? respRows.reduce((sum, r) => sum + parseFloat(r.running_avg_response_time_days || 0), 0) / respRows.length 
-          : 0;
-
-        const escalatedRate = sTotal > 0 ? sEscalated / sTotal : 0;
+        const rawOnTime = parseFloat(s.on_time_rate || 0);
+        const isWholeNumber = rawOnTime > 1.5;
+        const onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
+        const escalatedRate = isWholeNumber ? (parseFloat(s.escalated_rate || 0) / 100) : parseFloat(s.escalated_rate || 0);
 
         let rateClass = 'good';
         if (onTimeRate < 0.6) {
@@ -210,10 +121,10 @@ const supplierController = {
           name: s.supplier_name || s.supplier_name_full || 'Unknown Supplier',
           code: s.supplier_code,
           desc: s.category || '',
-          poLines: sTotal,
+          poLines: parseInt(s.total_po_lines || 0, 10),
           onTime: Math.round(onTimeRate * 100),
-          avgDaysLate: avgDaysLate.toFixed(1),
-          avgRespTime: avgRespTime.toFixed(1) + ' d',
+          avgDaysLate: parseFloat(s.avg_days_late || 0).toFixed(1),
+          avgRespTime: parseFloat(s.avg_response_time_days || 0).toFixed(1) + ' d',
           escalated: Math.round(escalatedRate * 100) + '%',
           flag: s.performance_flag || '',
           rateClass: rateClass
@@ -222,6 +133,17 @@ const supplierController = {
 
       // Sort suppliers: good/mid/bad ranked by on-time rate descending (strongest first)
       suppliers.sort((a, b) => b.onTime - a.onTime);
+
+      // Compute Overall KPIs
+      let totalPoLines = 0;
+      let totalOnTimeLines = 0;
+      let totalEscalatedLines = 0;
+
+      filteredSuppliers.forEach(s => {
+        totalPoLines += parseInt(s.total_po_lines || 0, 10);
+        totalOnTimeLines += parseInt(s.on_time_lines || 0, 10);
+        totalEscalatedLines += parseInt(s.escalated_lines || 0, 10);
+      });
 
       const onTimeRateOverall = totalPoLines > 0 ? Math.round((totalOnTimeLines / totalPoLines) * 100) : 100;
       const escalatedRateOverall = totalPoLines > 0 ? Math.round((totalEscalatedLines / totalPoLines) * 100) : 0;
