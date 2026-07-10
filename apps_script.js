@@ -145,12 +145,19 @@ function doGet(e) {
       var delaySheet = ss.getSheetByName("Delay Event Logs");
       var clientStatsSheet = ss.getSheetByName("Client Stats");
       var commSheet = ss.getSheetByName("Communication Logs");
+      var poSheet = ss.getSheetByName("PO consolidated data");
 
       var stats = getObjects(statsSheet);
       var monthly = getObjects(monthlySheet);
       var delays = getObjects(delaySheet);
       var clientStats = getObjects(clientStatsSheet);
       var comms = getObjects(commSheet);
+      var poData = getObjects(poSheet);
+
+      var poMap = {};
+      poData.forEach(function(po) {
+        poMap[po.po_line_key] = po;
+      });
 
       // Filter by client code
       var filteredStats = stats.filter(function(s) {
@@ -180,6 +187,27 @@ function doGet(e) {
             var parts = str.split('-');
             if (parts.length >= 2) {
               return parts[0] + '-' + parts[1];
+            }
+          }
+        }
+        var po = poMap[row.po_line_key];
+        if (po) {
+          var dDate = po.deliver_by_date_delivery_1 || po.issue_date;
+          if (dDate) {
+            var str = normalize(dDate);
+            if (str.indexOf('-') !== -1) {
+              var parts = str.split('-');
+              if (parts.length >= 2) {
+                return parts[0] + '-' + parts[1];
+              }
+            } else if (str.indexOf('/') !== -1) {
+              var parts = str.split('/');
+              if (parts.length >= 3) {
+                var y = parts[2];
+                var m = parseInt(parts[0], 10);
+                var mStr = m < 10 ? '0' + m : '' + m;
+                return y + '-' + mStr;
+              }
             }
           }
         }

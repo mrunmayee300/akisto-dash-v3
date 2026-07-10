@@ -50,7 +50,8 @@ const supplierController = {
         'Delay Event Logs',
         'Client info',
         'Client Stats',
-        'Communication Logs'
+        'Communication Logs',
+        'PO consolidated data'
       ], clientCode);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
@@ -59,6 +60,12 @@ const supplierController = {
       const clientInfoRows = sheetsData['Client info'] || [];
       const clientStatsRows = sheetsData['Client Stats'] || [];
       const commLogsRows = sheetsData['Communication Logs'] || [];
+      const poConsolidatedRows = sheetsData['PO consolidated data'] || [];
+
+      const poMap = {};
+      poConsolidatedRows.forEach(po => {
+        poMap[po.po_line_key] = po;
+      });
 
       // Resolve buyer name from Client info or req.user
       const loggedInEmail = String(userEmail).trim().toLowerCase();
@@ -119,6 +126,27 @@ const supplierController = {
             const parts = str.split('-');
             if (parts.length >= 2) {
               return `${parts[0]}-${parts[1]}`;
+            }
+          }
+        }
+        const po = poMap[row.po_line_key];
+        if (po) {
+          const dDate = po.deliver_by_date_delivery_1 || po.issue_date;
+          if (dDate) {
+            const str = String(dDate).trim();
+            if (str.includes('-')) {
+              const parts = str.split('-');
+              if (parts.length >= 2) {
+                return `${parts[0]}-${parts[1]}`;
+              }
+            } else if (str.includes('/')) {
+              const parts = str.split('/');
+              if (parts.length >= 3) {
+                const y = parts[2];
+                const m = parseInt(parts[0], 10);
+                const mStr = m < 10 ? '0' + m : '' + m;
+                return `${y}-${mStr}`;
+              }
             }
           }
         }
