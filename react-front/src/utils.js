@@ -259,5 +259,17 @@ export function determineNextAction(po) {
   return po.next_action || '--';
 }
 
+export function getCleanFlag(flag) {
+  const f = String(flag || '').trim().toLowerCase();
+  if (f === 'watch' || f === 'action needed' || f === 'action_needed' || f === 'actionneeded') {
+    return 'Action Needed';
+  }
+  if (f === 'review' || f === 'monitor') {
+    return 'Monitor';
+  }
+  return '';
+}
+
+
 
 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { getCleanFlag } from './utils';
+
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 
@@ -110,9 +112,9 @@ function SupplierDetail() {
     );
   }
 
-  const supplierFlag = supplierMeta.flag || '';
-  const isMonitor = supplierFlag === 'Monitor' || supplierFlag === 'Review';
-  const isWatch = supplierFlag === 'Watch' || supplierFlag === 'Action Needed';
+  const supplierFlag = getCleanFlag(supplierMeta.flag);
+  const isMonitor = supplierFlag === 'Monitor';
+  const isWatch = supplierFlag === 'Action Needed';
   const strokeColor = isWatch ? '#B23B2E' : isMonitor ? '#C79A2E' : '#0E5C44';
   const fillOpacityColor = isWatch ? '#B23B2E' : isMonitor ? '#C79A2E' : '#1D9E75';
 
@@ -492,10 +494,10 @@ function SupplierDetail() {
               <div className="nm">{supplierMeta.name} <span>&middot; {supplierMeta.code}</span></div>
               <div className="cat">{supplierMeta.cat}</div>
             </div>
-            {supplierMeta.flag && (supplierMeta.flag === 'Watch' || supplierMeta.flag === 'Action Needed') && (
+            {getCleanFlag(supplierMeta.flag) === 'Action Needed' && (
               <span className="flag f-action">Action Needed</span>
             )}
-            {supplierMeta.flag && (supplierMeta.flag === 'Review' || supplierMeta.flag === 'Monitor') && (
+            {getCleanFlag(supplierMeta.flag) === 'Monitor' && (
               <span className="flag f-monitor">Monitor</span>
             )}
           </div>

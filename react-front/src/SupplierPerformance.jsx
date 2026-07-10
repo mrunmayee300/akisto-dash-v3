@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getCleanFlag } from './utils';
+
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 
@@ -126,8 +128,7 @@ function SupplierPerformance() {
       
       if (!matchesSearch) return false;
 
-      const mappedFlag = (sup.flag === 'Watch' || sup.flag === 'Action Needed') ? 'Action Needed' 
-                       : ((sup.flag === 'Review' || sup.flag === 'Monitor') ? 'Monitor' : '');
+      const mappedFlag = getCleanFlag(sup.flag);
 
       if (filterFlag === 'Action Needed') {
         return mappedFlag === 'Action Needed';
@@ -943,10 +944,10 @@ function SupplierPerformance() {
                   <td className="num">{sup.avgRespTime}</td>
                   <td className="num">{sup.escalated}</td>
                   <td>
-                    {(sup.flag === 'Watch' || sup.flag === 'Action Needed') && (
+                    {getCleanFlag(sup.flag) === 'Action Needed' && (
                       <span className="flag f-action">Action Needed</span>
                     )}
-                    {(sup.flag === 'Review' || sup.flag === 'Monitor') && (
+                    {getCleanFlag(sup.flag) === 'Monitor' && (
                       <span className="flag f-monitor">Monitor</span>
                     )}
                   </td>
