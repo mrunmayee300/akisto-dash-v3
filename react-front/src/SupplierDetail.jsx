@@ -113,8 +113,9 @@ function SupplierDetail() {
   const supplierFlag = supplierMeta.flag || '';
   const isMonitor = supplierFlag === 'Monitor' || supplierFlag === 'Review';
   const isWatch = supplierFlag === 'Watch' || supplierFlag === 'Action Needed';
-  const strokeColor = isWatch ? '#B23B2E' : isMonitor ? '#C79A2E' : '#0E5C44';
-  const fillOpacityColor = isWatch ? '#B23B2E' : isMonitor ? '#C79A2E' : '#1D9E75';
+  const strokeColor = isWatch ? '#DE6B5E' : isMonitor ? '#C79A2E' : '#1D9E75';
+  const dotColor = isWatch ? '#B23B2E' : isMonitor ? '#8A6516' : '#0E5C44';
+  const fillOpacityColor = isWatch ? '#DE6B5E' : isMonitor ? '#C79A2E' : '#1D9E75';
 
   // SVG Trend Chart — robust for any data
   // viewBox: "0 0 900 260"; chart area x:[50,890], y:[20,220]; labels at y=250
@@ -554,7 +555,7 @@ function SupplierDetail() {
                         cx={pt.x}
                         cy={Math.max(CHART_Y_TOP, Math.min(CHART_Y_BOT, pt.y))}
                         r={idx === svgPoints.length - 1 ? 5 : 4}
-                        fill={strokeColor}
+                        fill={dotColor}
                       />
                       <text className="axlab" x={pt.x} y={CHART_Y_BOT + 22} textAnchor="middle">{pt.month}</text>
                     </g>

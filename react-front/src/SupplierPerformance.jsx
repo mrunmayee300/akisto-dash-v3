@@ -251,6 +251,13 @@ function SupplierPerformance() {
     y: CHART_Y_BOT - (pct / 100) * (CHART_Y_BOT - CHART_Y_TOP),
   }));
 
+  // Determine chart colors based on overall on-time rate KPI
+  const rateVal = parseFloat(kpis.onTimeRate || 0);
+  const isBad = rateVal < 60;
+  const isMid = rateVal < 80;
+  const lineColor = isBad ? '#DE6B5E' : isMid ? '#C79A2E' : '#1D9E75';
+  const dotColor = isBad ? '#B23B2E' : isMid ? '#8A6516' : '#0E5C44';
+
   // Calculate sum of internal vs supplier delay percentages
   const totalInternal = delaySummary
     .filter(d => d.side === 'internal')
@@ -814,8 +821,8 @@ function SupplierPerformance() {
 
                   {/* Area fill + line — clipped */}
                   <g clipPath="url(#chart-area-perf)">
-                    <polygon fill="#1D9E75" opacity="0.08" points={polygonPoints} />
-                    <polyline fill="none" stroke="#1D9E75" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={polylinePoints} />
+                    <polygon fill={lineColor} opacity="0.08" points={polygonPoints} />
+                    <polyline fill="none" stroke={lineColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={polylinePoints} />
                   </g>
 
                   {/* Data points + X-axis month labels */}
@@ -825,7 +832,7 @@ function SupplierPerformance() {
                         cx={pt.x}
                         cy={Math.max(CHART_Y_TOP, Math.min(CHART_Y_BOT, pt.y))}
                         r={idx === svgPoints.length - 1 ? 5 : 4}
-                        fill='#0E5C44'
+                        fill={dotColor}
                       />
                       <text className="axlab" x={pt.x} y={CHART_Y_BOT + 22} textAnchor="middle">{pt.month}</text>
                     </g>
