@@ -57,7 +57,7 @@ export function formatTimestamp(ts) {
     }
 
     const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timeZone });
-    
+
     // Get dynamic timezone label (EST or EDT)
     let tzLabel = 'EST';
     try {
@@ -83,21 +83,21 @@ export function formatTimestamp(ts) {
 export function resolvePoDashboardState(po) {
   const stage = po.follow_up_stage || 'Stage1';
   const prefix = stage.toLowerCase().replace('.', '_') + '_';
-  
+
   const classification = po[prefix + 'delivery_status_classification'] || '';
   const classificationLower = classification.toLowerCase();
   const status = po.follow_up_status || '';
   const statusLower = status.toLowerCase();
-  
+
   const needsHumanReview = po.needs_human_review && String(po.needs_human_review).trim().toLowerCase() === 'yes';
   const humanReviewStatus = po.human_review_status && String(po.human_review_status).trim().toLowerCase() === 'pending';
   const isEscalated = statusLower === 'escalation_sent';
   const isLowConfidence = po[prefix + 'supplier_reply_confidence'] && String(po[prefix + 'supplier_reply_confidence']).trim().toLowerCase() === 'low';
 
-  const isNeedsAttention = needsHumanReview || humanReviewStatus || isEscalated || 
-                           classificationLower.includes('delay') || 
-                           classificationLower.includes('late') ||
-                           isLowConfidence;
+  const isNeedsAttention = needsHumanReview || humanReviewStatus || isEscalated ||
+    classificationLower.includes('delay') ||
+    classificationLower.includes('late') ||
+    isLowConfidence;
 
   // 1. Needs Attention Bucket
   if (isNeedsAttention) {
@@ -146,18 +146,18 @@ export function resolvePoDashboardState(po) {
   // Helper check for Stage 1.5/2.5
   const isPassiveStage = ['Stage1.5', 'Stage2.5', 'stage1.5', 'stage2.5'].includes(stage);
   const hasReply = (po[prefix + 'reply_timestamp'] && po[prefix + 'reply_timestamp'] !== '') ||
-                   (po[prefix + 'supplier_reply_status'] && String(po[prefix + 'supplier_reply_status']).trim().toLowerCase() === 'received');
+    (po[prefix + 'supplier_reply_status'] && String(po[prefix + 'supplier_reply_status']).trim().toLowerCase() === 'received');
 
   // 2. On Track Bucket
   const confirmedClassifications = ['on time', 'on time tbc', 'shipped tbc'];
   const isOnTrackState = (!isPassiveStage && confirmedClassifications.includes(classificationLower)) ||
-                         (isPassiveStage && !hasReply) ||
-                         (isPassiveStage && hasReply && confirmedClassifications.includes(classificationLower));
+    (isPassiveStage && !hasReply) ||
+    (isPassiveStage && hasReply && confirmedClassifications.includes(classificationLower));
 
   if (isOnTrackState) {
     let label = isPassiveStage && !hasReply ? 'On track' : 'On time';
     let cls = 'p-ontime';
-    
+
     if (classificationLower.includes('tbc') || classificationLower.includes('soft') || classificationLower.includes('warning') || classificationLower.includes('shipped')) {
       label = 'On time · TBC';
       cls = 'p-tbc';
@@ -258,18 +258,6 @@ export function latestStatusText(po) {
 export function determineNextAction(po) {
   return po.next_action || '--';
 }
-
-export function getCleanFlag(flag) {
-  const f = String(flag || '').trim().toLowerCase();
-  if (f === 'watch' || f === 'action needed' || f === 'action_needed' || f === 'actionneeded') {
-    return 'Action Needed';
-  }
-  if (f === 'review' || f === 'monitor') {
-    return 'Monitor';
-  }
-  return '';
-}
-
 
 
 

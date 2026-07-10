@@ -144,32 +144,100 @@ function doGet(e) {
       var monthlySheet = ss.getSheetByName("Supplier Monthly Stats");
       var delaySheet = ss.getSheetByName("Delay Event Logs");
       var clientStatsSheet = ss.getSheetByName("Client Stats");
+      var commSheet = ss.getSheetByName("Communication Logs");
 
       var stats = getObjects(statsSheet);
       var monthly = getObjects(monthlySheet);
       var delays = getObjects(delaySheet);
       var clientStats = getObjects(clientStatsSheet);
+      var comms = getObjects(commSheet);
 
       // Filter by client code
       var filteredStats = stats.filter(function(s) {
         return normalize(s.client_code) === normalize(clientCode);
       });
 
+      // Calculate last 6 months list based on current local/system time
+      var baseDate = new Date();
+      var last6Months = [];
+      var tempDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+      for (var i = 0; i < 6; i++) {
+        var y = tempDate.getFullYear();
+        var m = tempDate.getMonth() + 1;
+        var mStr = m < 10 ? '0' + m : '' + m;
+        last6Months.push(y + '-' + mStr);
+        tempDate.setMonth(tempDate.getMonth() - 1);
+      }
+
+      var getRowMonth = function(row) {
+        if (row.month_of_closure && normalize(row.month_of_closure) !== '') {
+          return normalize(row.month_of_closure);
+        }
+        var ts = row.stage1_outreach_timestamp || row.last_action_timestamp;
+        if (ts) {
+          var str = normalize(ts);
+          if (str.indexOf('-') !== -1) {
+            var parts = str.split('-');
+            if (parts.length >= 2) {
+              return parts[0] + '-' + parts[1];
+            }
+          }
+        }
+        return '';
+      };
+
+      // Compute dynamic 6-month stats per supplier and overall KPIs
+      var totalPoLines = 0, totalOnTimeLines = 0, totalEscalatedLines = 0;
+
       var suppliers = filteredStats.map(function(s) {
-        var rawOnTime = parseFloat(s.on_time_rate || 0);
-        var isWholeNumber = rawOnTime > 1.5;
-        var onTimeRate = isWholeNumber ? (rawOnTime / 100) : rawOnTime;
-        var escalatedRate = isWholeNumber ? (parseFloat(s.escalated_rate || 0) / 100) : parseFloat(s.escalated_rate || 0);
+        var supplierCodeStr = normalize(s.supplier_code);
+        
+        var supplierCommRows = comms.filter(function(r) {
+          return normalize(r.client_code) === normalize(clientCode) &&
+                 normalize(r.supplier_code) === supplierCodeStr &&
+                 last6Months.indexOf(getRowMonth(r)) !== -1;
+        });
+
+        var sTotal = supplierCommRows.length;
+        var sOnTime = supplierCommRows.filter(function(r) {
+          return normalize(r['PO line item status']).toLowerCase() === 'closed' && 
+                 parseFloat(r.delivery_variance_days || 0) <= 0;
+        }).length;
+        var sEscalated = supplierCommRows.filter(function(r) {
+          return normalize(r.follow_up_status).toLowerCase() === 'escalation_sent';
+        }).length;
+
+        totalPoLines += sTotal;
+        totalOnTimeLines += sOnTime;
+        totalEscalatedLines += sEscalated;
+
+        var onTimeRate = sTotal > 0 ? sOnTime / sTotal : 1.0;
+
+        var lateRows = supplierCommRows.filter(function(r) {
+          return parseFloat(r.delivery_variance_days || 0) > 0;
+        });
+        var sumLate = 0;
+        lateRows.forEach(function(r) { sumLate += parseFloat(r.delivery_variance_days || 0); });
+        var avgDaysLate = lateRows.length > 0 ? sumLate / lateRows.length : 0;
+
+        var respRows = supplierCommRows.filter(function(r) {
+          return parseFloat(r.running_avg_response_time_days || 0) > 0;
+        });
+        var sumResp = 0;
+        respRows.forEach(function(r) { sumResp += parseFloat(r.running_avg_response_time_days || 0); });
+        var avgRespTime = respRows.length > 0 ? sumResp / respRows.length : 0;
+
+        var escalatedRate = sTotal > 0 ? sEscalated / sTotal : 0;
 
         var rateClass = onTimeRate < 0.6 ? 'bad' : (onTimeRate < 0.8 ? 'mid' : 'good');
         return {
           name: s.supplier_name || s.supplier_name_full || 'Unknown Supplier',
           code: s.supplier_code,
           desc: s.category || '',
-          poLines: parseInt(s.total_po_lines || 0, 10),
+          poLines: sTotal,
           onTime: Math.round(onTimeRate * 100),
-          avgDaysLate: parseFloat(s.avg_days_late || 0).toFixed(1),
-          avgRespTime: parseFloat(s.avg_response_time_days || 0).toFixed(1) + ' d',
+          avgDaysLate: avgDaysLate.toFixed(1),
+          avgRespTime: avgRespTime.toFixed(1) + ' d',
           escalated: Math.round(escalatedRate * 100) + '%',
           flag: s.performance_flag || '',
           rateClass: rateClass
@@ -177,13 +245,6 @@ function doGet(e) {
       });
 
       suppliers.sort(function(a, b) { return b.onTime - a.onTime; });
-
-      var totalPoLines = 0, totalOnTimeLines = 0, totalEscalatedLines = 0;
-      filteredStats.forEach(function(s) {
-        totalPoLines += parseInt(s.total_po_lines || 0, 10);
-        totalOnTimeLines += parseInt(s.on_time_lines || 0, 10);
-        totalEscalatedLines += parseInt(s.escalated_lines || 0, 10);
-      });
 
       var formatMonth = function(monthVal) {
         if (!monthVal) return '';

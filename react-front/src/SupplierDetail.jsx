@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCleanFlag } from './utils';
-
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 
@@ -101,8 +99,8 @@ function SupplierDetail() {
         <div className="bg-white border border-line p-8 rounded-xl shadow-md max-w-md text-center">
           <div className="text-red font-bold text-lg mb-2">Error</div>
           <p className="text-sm text-muted mb-4">{error}</p>
-          <button 
-            onClick={loadData} 
+          <button
+            onClick={loadData}
             className="bg-emerald text-white px-4 py-2 rounded font-bold hover:bg-accent transition-all text-xs"
           >
             Retry
@@ -112,9 +110,9 @@ function SupplierDetail() {
     );
   }
 
-  const supplierFlag = getCleanFlag(supplierMeta.flag);
-  const isMonitor = supplierFlag === 'Monitor';
-  const isWatch = supplierFlag === 'Action Needed';
+  const supplierFlag = supplierMeta.flag || '';
+  const isMonitor = supplierFlag === 'Monitor' || supplierFlag === 'Review';
+  const isWatch = supplierFlag === 'Watch' || supplierFlag === 'Action Needed';
   const strokeColor = isWatch ? '#B23B2E' : isMonitor ? '#C79A2E' : '#0E5C44';
   const fillOpacityColor = isWatch ? '#B23B2E' : isMonitor ? '#C79A2E' : '#1D9E75';
 
@@ -494,10 +492,10 @@ function SupplierDetail() {
               <div className="nm">{supplierMeta.name} <span>&middot; {supplierMeta.code}</span></div>
               <div className="cat">{supplierMeta.cat}</div>
             </div>
-            {getCleanFlag(supplierMeta.flag) === 'Action Needed' && (
+            {supplierMeta.flag && (supplierMeta.flag === 'Watch' || supplierMeta.flag === 'Action Needed') && (
               <span className="flag f-action">Action Needed</span>
             )}
-            {getCleanFlag(supplierMeta.flag) === 'Monitor' && (
+            {supplierMeta.flag && (supplierMeta.flag === 'Review' || supplierMeta.flag === 'Monitor') && (
               <span className="flag f-monitor">Monitor</span>
             )}
           </div>
@@ -528,7 +526,7 @@ function SupplierDetail() {
             <div className="cs">This supplier's monthly on-time rate over the trailing 6 months</div>
             {trendData.length > 0 ? (
               <>
-                              <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full" style={{ display: 'block' }}>
+                <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full" style={{ display: 'block' }}>
                   <defs>
                     <clipPath id="chart-area-detail">
                       <rect x={CHART_X1} y={CHART_Y_TOP - 5} width={CHART_X2 - CHART_X1} height={CHART_Y_BOT - CHART_Y_TOP + 10} />
@@ -640,9 +638,9 @@ function SupplierDetail() {
           <tbody>
             {recentDeliveries.length > 0 ? (
               recentDeliveries.map((item, idx) => (
-                <tr 
-                  key={idx} 
-                  className={item.commsGroupId ? 'click' : ''} 
+                <tr
+                  key={idx}
+                  className={item.commsGroupId ? 'click' : ''}
                   onClick={() => item.commsGroupId && navigate(`/detail/${item.commsGroupId}`)}
                 >
                   <td className="po">{item.po}</td>

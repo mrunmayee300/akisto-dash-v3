@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCleanFlag } from './utils';
-
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 
@@ -122,13 +120,14 @@ function SupplierPerformance() {
     if (!data) return [];
     const suppliers = data.suppliers || [];
     return suppliers.filter(sup => {
-      const matchesSearch = !searchQuery || 
-        (sup.name && sup.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
+      const matchesSearch = !searchQuery ||
+        (sup.name && sup.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (sup.code && String(sup.code).toLowerCase().includes(searchQuery.toLowerCase()));
-      
+
       if (!matchesSearch) return false;
 
-      const mappedFlag = getCleanFlag(sup.flag);
+      const mappedFlag = (sup.flag === 'Watch' || sup.flag === 'Action Needed') ? 'Action Needed'
+        : ((sup.flag === 'Review' || sup.flag === 'Monitor') ? 'Monitor' : '');
 
       if (filterFlag === 'Action Needed') {
         return mappedFlag === 'Action Needed';
@@ -163,9 +162,9 @@ function SupplierPerformance() {
           };
           diff = parseEsc(b.sup.escalated) - parseEsc(a.sup.escalated);
         }
-        
+
         if (diff !== 0) return diff;
-        
+
         // Stable tie-breaker: sort alphabetically by name
         const nameA = String(a.sup.name || '').trim();
         const nameB = String(b.sup.name || '').trim();
@@ -211,8 +210,8 @@ function SupplierPerformance() {
         <div className="bg-white border border-line p-8 rounded-xl shadow-md max-w-md text-center">
           <div className="text-red font-bold text-lg mb-2">Error</div>
           <p className="text-sm text-muted mb-4">{error}</p>
-          <button 
-            onClick={loadData} 
+          <button
+            onClick={loadData}
             className="bg-emerald text-white px-4 py-2 rounded font-bold hover:bg-accent transition-all text-xs"
           >
             Retry
@@ -725,7 +724,7 @@ function SupplierPerformance() {
       <div className="app-container">
         <header>
           <div className="brand">
-            <button 
+            <button
               onClick={() => navigate('/dashboard')}
               style={{
                 background: 'none',
@@ -777,10 +776,10 @@ function SupplierPerformance() {
               <div className="lab">Escalated to buyer</div>
               <div className="num">{kpis.escalatedRate}%</div>
               {kpis.escalatedRateDelta > 0 && (
-                <div className="delta down">&#9650; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
+                <div className="delta up">&#9650; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
               )}
               {kpis.escalatedRateDelta < 0 && (
-                <div className="delta up">&#9660; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
+                <div className="delta down">&#9660; {Math.round(Math.abs(kpis.escalatedRateDelta) * 100)}% vs prior 6 mo</div>
               )}
               {(kpis.escalatedRateDelta === 0 || kpis.escalatedRateDelta === undefined) && (
                 <div className="delta flat">Flat vs prior 6 mo</div>
@@ -899,10 +898,10 @@ function SupplierPerformance() {
             </div>
             <div className="ctl">
               <label htmlFor="searchBox">Search</label>
-              <input 
-                id="searchBox" 
-                type="text" 
-                placeholder="Supplier name or code" 
+              <input
+                id="searchBox"
+                type="text"
+                placeholder="Supplier name or code"
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
               />
@@ -944,10 +943,10 @@ function SupplierPerformance() {
                   <td className="num">{sup.avgRespTime}</td>
                   <td className="num">{sup.escalated}</td>
                   <td>
-                    {getCleanFlag(sup.flag) === 'Action Needed' && (
+                    {(sup.flag === 'Watch' || sup.flag === 'Action Needed') && (
                       <span className="flag f-action">Action Needed</span>
                     )}
-                    {getCleanFlag(sup.flag) === 'Monitor' && (
+                    {(sup.flag === 'Review' || sup.flag === 'Monitor') && (
                       <span className="flag f-monitor">Monitor</span>
                     )}
                   </td>
@@ -967,8 +966,8 @@ function SupplierPerformance() {
             </div>
             {totalSupplierPages > 1 && (
               <div className="pgbtns" id="supplier-pager">
-                <button 
-                  disabled={supplierPage <= 1} 
+                <button
+                  disabled={supplierPage <= 1}
                   onClick={() => handlePageChange(Math.max(1, supplierPage - 1))}
                   id="supplier-prev-btn"
                 >
@@ -977,8 +976,8 @@ function SupplierPerformance() {
                 <span className="cur" id="pgcur">
                   Page {supplierPage} of {totalSupplierPages}
                 </span>
-                <button 
-                  disabled={supplierPage >= totalSupplierPages} 
+                <button
+                  disabled={supplierPage >= totalSupplierPages}
                   onClick={() => handlePageChange(Math.min(totalSupplierPages, supplierPage + 1))}
                   id="supplier-next-btn"
                 >
