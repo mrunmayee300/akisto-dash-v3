@@ -390,12 +390,36 @@ function doGet(e) {
       });
       delaySummary.sort(function(a, b) { return b.percentage - a.percentage; });
 
-      // Recent Deliveries from Communication Logs
+      // Generate last 6 months range (inclusive of current month) in EST/EDT
+      var getNewYorkMonthsRange = function(numMonths) {
+        var months = [];
+        var d = new Date();
+        d.setDate(15); // avoid end of month rollover bugs
+        for (var i = 0; i < numMonths; i++) {
+          months.push(Utilities.formatDate(d, "America/New_York", "yyyy-MM"));
+          d.setMonth(d.getMonth() - 1);
+        }
+        return months;
+      };
+      var last6Months = getNewYorkMonthsRange(6);
+
+      // Recent Deliveries from Communication Logs (filtered to trailing 6 months)
       var recentDeliveries = comms
         .filter(function(log) {
-          return normalize(log.client_code) === normalize(clientCode) && 
-                 normalize(log.supplier_code) === normalize(supplierCode) && 
-                 normalize(log['PO line item status']).toLowerCase() === 'closed';
+          var isClosed = normalize(log.client_code) === normalize(clientCode) && 
+                         normalize(log.supplier_code) === normalize(supplierCode) && 
+                         normalize(log['PO line item status']).toLowerCase() === 'closed';
+          if (!isClosed) return false;
+          
+          var deliveryDate = log.delivered_date || 
+                             log.stage3_reply_timestamp || 
+                             log.stage2_5_reply_timestamp || 
+                             log.stage2_reply_timestamp || 
+                             log.stage1_5_reply_timestamp || 
+                             log.stage1_reply_timestamp || 
+                             '';
+          var m = formatMonth(deliveryDate);
+          return last6Months.indexOf(m) !== -1;
         })
         .map(function(log) {
           var variance = parseInt(log.delivery_variance_days || 0, 10);

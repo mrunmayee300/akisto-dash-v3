@@ -431,12 +431,43 @@ const supplierController = {
         percentage: totalDelays > 0 ? Math.round((delayCounts[cat] / totalDelays) * 100) : 0
       })).sort((a, b) => b.percentage - a.percentage);
 
+      // Generate last 6 months range (inclusive of current month) in EST/EDT
+      const getNewYorkMonthsRange = (numMonths) => {
+        const months = [];
+        const d = new Date();
+        d.setDate(15); // avoid end of month rollover bugs
+        for (let i = 0; i < numMonths; i++) {
+          const tzString = d.toLocaleString('en-US', { timeZone: 'America/New_York' });
+          const localDate = new Date(tzString);
+          const y = localDate.getFullYear();
+          const m = String(localDate.getMonth() + 1).padStart(2, '0');
+          months.push(`${y}-${m}`);
+          d.setMonth(d.getMonth() - 1);
+        }
+        return months;
+      };
+
+      const last6Months = getNewYorkMonthsRange(6);
+
       // Recent Deliveries
-      // Filter logs by client_code, supplier_code, and status === 'Closed'
+      // Filter logs by client_code, supplier_code, and status === 'Closed' (filtered to trailing 6 months)
       let recentDeliveries = communicationLogs
-        .filter(log => normalize(log.client_code) === normalize(clientCode) && 
-                       normalize(log.supplier_code) === normalize(supplierCode) && 
-                       normalize(log['PO line item status']).toLowerCase() === 'closed')
+        .filter(log => {
+          const isClosed = normalize(log.client_code) === normalize(clientCode) && 
+                           normalize(log.supplier_code) === normalize(supplierCode) && 
+                           normalize(log['PO line item status']).toLowerCase() === 'closed';
+          if (!isClosed) return false;
+
+          const deliveryDate = log.delivered_date ||
+                               log.stage3_reply_timestamp || 
+                               log.stage2_5_reply_timestamp || 
+                               log.stage2_reply_timestamp || 
+                               log.stage1_5_reply_timestamp || 
+                               log.stage1_reply_timestamp || 
+                               '';
+          const m = formatMonth(deliveryDate);
+          return last6Months.includes(m);
+        })
         .map(log => {
           const variance = parseInt(log.delivery_variance_days || 0, 10);
           

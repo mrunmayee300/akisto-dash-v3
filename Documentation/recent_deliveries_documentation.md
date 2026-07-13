@@ -37,10 +37,11 @@ Contains transaction history logs for every PO line item.
 When retrieving supplier details (`action=supplierDetail`), the backend processes the log data:
 
 ### A. Raw Row Filtering
-Filters rows from the `Communication Logs` sheet that meet three conditions:
+Filters rows from the `Communication Logs` sheet that meet the following conditions:
 - `client_code` matches the client session.
 - `supplier_code` matches the queried supplier code.
 - `PO line item status` is exactly `'closed'` (case-insensitive, trimmed).
+- The resolved delivery date's month falls within the trailing 6-month window (inclusive of the current month resolved in the `America/New_York` timezone at query run-time).
 
 ### B. Delivery Date Resolution
 The actual delivery timestamp (`delivered`) is resolved by taking the first non-empty date value in sequence:
