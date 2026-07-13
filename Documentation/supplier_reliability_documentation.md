@@ -39,7 +39,30 @@ When the endpoint (`action=supplierPerformance`) is hit, the backend maps the ra
 
 ---
 
-## 3. Frontend Filtering Logic
+## 3. UI Visual Mappings & Display Information
+
+The table renders the following data fields to the user:
+
+1. **Supplier**: Renders the corporate supplier name (`name`) along with the unique code (`code`) formatted in a lighter gray text:
+   - **Render**: `[Supplier Name] (S01)`
+2. **PO lines ordered**: Renders the raw count of purchase order line items (`poLines`) right-aligned.
+3. **On-time rate**: Displays the calculated percentage value along with a horizontal visual completion bar (`.ratebar`):
+   - The fill width is bound to `onTime%`: `<i style={{ width: `${sup.onTime}%` }}></i>`.
+   - The color classes match the resolved threshold classifications:
+     - Class `good`: Green fill.
+     - Class `mid`: Yellow/Gold fill.
+     - Class `bad`: Red fill.
+4. **Avg days late**: Displays `avgDaysLate` (formatted to one decimal point on the backend, e.g. `2.5`).
+5. **Avg response time**: Displays the raw days taken to reply, suffixed with `' d'` (e.g. `1.2 d`).
+6. **Escalated**: Displays the percentage value of escalated lines (e.g. `10%`).
+7. **Flag**: Designates high-level alerts using generalized colored badge pills:
+   - **`Action Needed` Badge (Red, class `.f-action`)**: Renders if the sheet `performance_flag` is either `'Watch'` or `'Action Needed'`.
+   - **`Monitor` Badge (Yellow, class `.f-monitor`)**: Renders if the sheet `performance_flag` is either `'Review'` or `'Monitor'`.
+   - **Blank**: Shows no badge if the supplier is unflagged.
+
+---
+
+## 4. Frontend Filtering Logic
 
 The list of suppliers is filtered dynamically in React using the `useMemo` hook based on the user's active configuration:
 
@@ -63,7 +86,7 @@ The list of suppliers is filtered dynamically in React using the `useMemo` hook 
 
 ---
 
-## 4. Frontend Sorting Logic
+## 5. Frontend Sorting Logic
 
 Sorting is processed in React using a secondary `useMemo` block when the `sortBy` header or select changes:
 
@@ -83,7 +106,7 @@ If the sorting values are identical, the system applies a tie-breaker sorting al
 
 ---
 
-## 5. Pagination
+## 6. Pagination
 
 To keep performance fast, the list is divided into pages:
 * **Page Size**: `SUPPLIER_PAGE_SIZE = 15`.
