@@ -134,15 +134,40 @@ const supplierController = {
       // Sort suppliers: good/mid/bad ranked by on-time rate descending (strongest first)
       suppliers.sort((a, b) => b.onTime - a.onTime);
 
-      // Compute Overall KPIs
+      // Compute Overall KPIs for the last 6 months from login/run date
+      const getNewYorkMonthsRange = (numMonths) => {
+        const months = [];
+        const d = new Date();
+        d.setDate(15); // avoid end of month rollover bugs
+        for (let i = 0; i < numMonths; i++) {
+          const tzString = d.toLocaleString('en-US', { timeZone: 'America/New_York' });
+          const localDate = new Date(tzString);
+          const y = localDate.getFullYear();
+          const m = String(localDate.getMonth() + 1).padStart(2, '0');
+          months.push(`${y}-${m}`);
+          d.setMonth(d.getMonth() - 1);
+        }
+        return months;
+      };
+
+      const last6Months = getNewYorkMonthsRange(6);
+
       let totalPoLines = 0;
       let totalOnTimeLines = 0;
       let totalEscalatedLines = 0;
+      const assignedSupplierCodes = new Set(filteredSuppliers.map(s => normalize(s.supplier_code)));
 
-      filteredSuppliers.forEach(s => {
-        totalPoLines += parseInt(s.total_po_lines || 0, 10);
-        totalOnTimeLines += parseInt(s.on_time_lines || 0, 10);
-        totalEscalatedLines += parseInt(s.escalated_lines || 0, 10);
+      supplierMonthlyStatsRows.forEach(row => {
+        const sCode = normalize(row.supplier_code);
+        const cCode = normalize(row.client_code);
+        if (cCode === normalize(clientCode) && assignedSupplierCodes.has(sCode)) {
+          const m = formatMonth(row.month);
+          if (last6Months.includes(m)) {
+            totalPoLines += parseInt(row.total_po_lines || 0, 10);
+            totalOnTimeLines += parseInt(row.on_time_lines || 0, 10);
+            totalEscalatedLines += parseInt(row.escalated_lines || 0, 10);
+          }
+        }
       });
 
       const onTimeRateOverall = totalPoLines > 0 ? Math.round((totalOnTimeLines / totalPoLines) * 100) : 100;
@@ -163,7 +188,6 @@ const supplierController = {
       };
 
       // Filter Trend Data (Dynamic buyer-scoped monthly OTR)
-      const assignedSupplierCodes = new Set(filteredSuppliers.map(s => normalize(s.supplier_code)));
       const monthlyAggregates = {};
       
       supplierMonthlyStatsRows.forEach(row => {

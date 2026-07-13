@@ -177,13 +177,6 @@ function doGet(e) {
 
       suppliers.sort(function(a, b) { return b.onTime - a.onTime; });
 
-      var totalPoLines = 0, totalOnTimeLines = 0, totalEscalatedLines = 0;
-      filteredStats.forEach(function(s) {
-        totalPoLines += parseInt(s.total_po_lines || 0, 10);
-        totalOnTimeLines += parseInt(s.on_time_lines || 0, 10);
-        totalEscalatedLines += parseInt(s.escalated_lines || 0, 10);
-      });
-      
       var formatMonth = function(monthVal) {
         if (!monthVal) return '';
         var str = String(monthVal).trim();
@@ -199,6 +192,39 @@ function doGet(e) {
         }
         return str;
       };
+
+      // Generate last 6 months range (inclusive of current month) in EST/EDT
+      var getNewYorkMonthsRange = function(numMonths) {
+        var months = [];
+        var d = new Date();
+        d.setDate(15); // avoid end of month rollover bugs
+        for (var i = 0; i < numMonths; i++) {
+          months.push(Utilities.formatDate(d, "America/New_York", "yyyy-MM"));
+          d.setMonth(d.getMonth() - 1);
+        }
+        return months;
+      };
+      
+      var last6Months = getNewYorkMonthsRange(6);
+
+      var totalPoLines = 0, totalOnTimeLines = 0, totalEscalatedLines = 0;
+      var assignedSupplierCodes = {};
+      filteredStats.forEach(function(s) {
+        assignedSupplierCodes[normalize(s.supplier_code)] = true;
+      });
+
+      monthly.forEach(function(row) {
+        var cCode = normalize(row.client_code);
+        var sCode = normalize(row.supplier_code);
+        if (cCode === normalize(clientCode) && assignedSupplierCodes[sCode]) {
+          var m = formatMonth(row.month);
+          if (last6Months.indexOf(m) !== -1) {
+            totalPoLines += parseInt(row.total_po_lines || 0, 10);
+            totalOnTimeLines += parseInt(row.on_time_lines || 0, 10);
+            totalEscalatedLines += parseInt(row.escalated_lines || 0, 10);
+          }
+        }
+      });
 
       var trendData = monthly
         .filter(function(row) {
