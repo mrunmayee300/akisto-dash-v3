@@ -767,3 +767,6 @@ npm install && npm run dev
 ---
 
 *Guide based on codebase analysis (backend, react-front, apps_script.js, updated_workflows), Danish spreadsheet export (July 2026), and Render/Google published specifications. Validate with k6 load tests against your live Render deployment.*
+# Historical capacity guide
+
+> This document describes the pre-hardening query-string API and 30-second polling implementation. It is retained for historical capacity assumptions, not current deployment instructions. Use `DEPLOYMENT.md`, `SECURITY.md`, `render.yaml`, and the current source code for releases.

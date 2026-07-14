@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
-const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
+import { apiRequest, clearAuthSession, getSessionToken, isUnauthorized } from './api';
 
 function formatShortDate(value) {
   if (!value) return '--';
@@ -12,7 +11,7 @@ function formatShortDate(value) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const month = months[d.getMonth()];
     return `${day} ${month}`;
-  } catch (e) {
+  } catch {
     return value;
   }
 }
@@ -35,39 +34,31 @@ function SupplierDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('sessionToken');
-      if (!token) {
+      if (!getSessionToken()) {
         navigate('/login');
         return;
       }
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=supplierDetail&supplierCode=${encodeURIComponent(supplierId)}&sessionToken=${encodeURIComponent(token)}`);
-      if (!response.ok) throw new Error('Failed to fetch supplier details');
-      const json = await response.json();
-
-      if (json.success === false && json.error === 'Unauthorized') {
-        localStorage.removeItem('sessionToken');
-        navigate('/login');
-        return;
-      }
-
-      if (json.success === false) {
-        throw new Error(json.message || 'API returned success: false');
-      }
-
+      const json = await apiRequest(`/api/supplier/${encodeURIComponent(supplierId)}`);
       setData(json);
+      setError(null);
     } catch (err) {
+      if (isUnauthorized(err)) {
+        clearAuthSession();
+        navigate('/login');
+        return;
+      }
       console.error('Supplier Detail API Error:', err);
       setError('Unable to load supplier details. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, supplierId]);
 
   useEffect(() => {
     loadData();
-  }, [supplierId]);
+  }, [loadData]);
 
   const { supplierMeta = {}, kpis = {}, trendData: rawTrendData = [], delaySummary: rawDelaySummary = [], recentDeliveries: rawRecentDeliveries = [] } = data || {};
 

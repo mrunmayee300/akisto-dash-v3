@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { formatDate, formatTimestamp, getStatusPill } from './utils';
-
-const API_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
+import { apiRequest, clearAuthSession, getSessionToken, isUnauthorized } from './api';
 
 function TrailComponent({ data }) {
   const h = data.header || {};
@@ -61,7 +60,6 @@ function TrailComponent({ data }) {
             const label = i === 1 ? 'First' : i === 2 ? 'Second' : 'Third';
             const answered = comm[`${stageName}_reminder_call${i}_answered`];
             const outcome = comm[`${stageName}_reminder_call${i}_call_outcome`];
-            const isAnswered = answered === 'Yes';
             stageEvents.push({
               type: 'reminder_call',
               index: i,
@@ -112,7 +110,7 @@ function TrailComponent({ data }) {
               <span className="flex-1 h-[1px] bg-line"></span>
             </div>
             <div className="flex flex-col pl-[2px]">
-              {stageEvents.map((event, idx) => {
+              {stageEvents.map((event) => {
                 if (event.type === 'outreach') {
                   return (
                     <div className="flex gap-[13px] pb-[22px] relative group" key="outreach">
@@ -287,8 +285,7 @@ function PODetail() {
 
   useEffect(() => {
     const loadPODetail = async () => {
-      const token = localStorage.getItem('sessionToken');
-      if (!token) {
+      if (!getSessionToken()) {
         navigate('/login');
         return;
       }
@@ -300,25 +297,15 @@ function PODetail() {
       }
 
       try {
-        const response = await fetch(`${API_URL}?action=poDetails&commsGroupId=${encodeURIComponent(commsGroupId)}&sessionToken=${encodeURIComponent(token)}`);
-        if (!response.ok) throw new Error('Network response was not ok');
-        const json = await response.json();
-
-        console.log('PO Details API:', json);
-
-        if (json.success === false && json.error === 'Unauthorized') {
-          localStorage.removeItem('sessionToken');
-          localStorage.removeItem('userEmail');
-          localStorage.removeItem('companyName');
+        const json = await apiRequest(`/api/po/${encodeURIComponent(commsGroupId)}`);
+        setData(json);
+        setError(null);
+      } catch (err) {
+        if (isUnauthorized(err)) {
+          clearAuthSession();
           navigate('/login');
           return;
         }
-
-        if (json.success === false) {
-          throw new Error(json.message || 'API returned success: false');
-        }
-        setData(json);
-      } catch (err) {
         console.error('Failed to load PO:', err);
         setError('Unable to load PO details. Please try again.');
       } finally {

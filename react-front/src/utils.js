@@ -15,14 +15,15 @@ export function formatDate(value) {
 
     if (isNaN(d.getTime())) return value;
 
-    const hasTime = str.includes(':') || str.includes('T') || (str.includes(' ') && str.match(/\d{2}:\d{2}/));
+    const isMidnightUtcDate = /^\d{4}-\d{2}-\d{2}T00:00:00(?:\.000)?Z$/.test(str);
+    const hasTime = !isMidnightUtcDate && (str.includes(':') || str.includes('T') || (str.includes(' ') && str.match(/\d{2}:\d{2}/)));
     const timeZone = hasTime ? 'America/New_York' : 'UTC';
 
     const day = d.toLocaleDateString('en-US', { day: 'numeric', timeZone: timeZone });
     const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: timeZone });
     const year = d.toLocaleDateString('en-US', { year: 'numeric', timeZone: timeZone });
     return `${day} ${month} ${year}`;
-  } catch (e) {
+  } catch {
     return value;
   }
 }
@@ -70,12 +71,12 @@ export function formatTimestamp(ts) {
       if (tzPart) {
         tzLabel = tzPart.value;
       }
-    } catch (e) {
+    } catch {
       // fallback to EST
     }
 
     return `${datePart} · ${timePart} ${tzLabel}`;
-  } catch (e) {
+  } catch {
     return ts;
   }
 }
@@ -266,6 +267,4 @@ export function latestStatusText(po) {
 export function determineNextAction(po) {
   return po.next_action || '--';
 }
-
-
 

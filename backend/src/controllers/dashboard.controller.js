@@ -232,169 +232,130 @@ const determineNextAction = (comm, bandConfig, callsEnabled) => {
   return 'Waiting';
 };
 
+const toDashboardPO = (row) => {
+  const fields = [
+    'client_code', 'po_line_key', 'comms_group_id', 'po_number', 'po_line_item',
+    'supplier_code', 'supplier_name', 'material_code', 'material_name', 'quantity',
+    'unit_of_measure', 'po_status', 'ship_by_band', 'issue_date',
+    'ship_by_date_delivery_1', 'deliver_by_date_delivery_1', 'follow_up_stage',
+    'follow_up_status', 'needs_human_review', 'human_review_status',
+    'supplier_colleague_email', 'promised_revert_date', 'delivery_status_text', 'next_action',
+    'latest_update_text', 'latest_update_timestamp', 'sub_status',
+  ];
+
+  ['stage1', 'stage1_5', 'stage2', 'stage2_5', 'stage3'].forEach(stage => {
+    fields.push(
+      `${stage}_delivery_status_classification`,
+      `${stage}_delivery_status_text`,
+      `${stage}_supplier_reply_confidence`,
+      `${stage}_supplier_reply_status`,
+      `${stage}_reply_timestamp`,
+      `${stage}_promised_revert_date`,
+    );
+  });
+
+  return fields.reduce((result, field) => {
+    if (row[field] !== undefined) result[field] = row[field];
+    return result;
+  }, {});
+};
+
+const buildDashboardData = async (clientCode) => {
+  const sheetsData = await sheetsService.getMultipleSheetsObjects([
+    'PO consolidated data',
+    'Communication Logs',
+    'Bands Table',
+    'Client info'
+  ], clientCode);
+
+  const poData = sheetsData['PO consolidated data'] || [];
+  const commData = sheetsData['Communication Logs'] || [];
+  const bandsRows = sheetsData['Bands Table'] || [];
+  const clientInfoRows = sheetsData['Client info'] || [];
+
+  const clientCallsEnabledMap = {};
+  clientInfoRows.forEach(client => {
+    if (client.client_code) {
+      clientCallsEnabledMap[normalize(client.client_code)] = ['TRUE', 'Yes', 'true'].includes(client.calls_enabled);
+    }
+  });
+
+  const filteredPOs = poData.filter(po => normalize(po.client_code) === normalize(clientCode));
+  const commMap = {};
+  commData.forEach(row => {
+    if (row.po_line_key) commMap[row.po_line_key] = row;
+  });
+
+  const counts = { onTrack: 0, needsAttention: 0, awaitingReply: 0 };
+  const openPOs = filteredPOs.map(po => {
+    const mergedRow = { ...po, ...(commMap[po.po_line_key] || {}) };
+    const callsEnabled = clientCallsEnabledMap[normalize(mergedRow.client_code || clientCode)] === true;
+    const bandConfig = getBandConfig(bandsRows, mergedRow.ship_by_band, mergedRow.follow_up_stage || 'Stage1');
+
+    mergedRow.next_action = determineNextAction(mergedRow, bandConfig, callsEnabled);
+    const latestReply = getLatestSupplierReply(mergedRow);
+    mergedRow.latest_update_text = latestReply ? latestReply.text : null;
+    mergedRow.latest_update_timestamp = latestReply ? latestReply.rawTimestamp : null;
+
+    const { bucket, subStatus } = getPoStatusBucket(mergedRow);
+    mergedRow.sub_status = subStatus;
+    counts[bucket] += 1;
+    return toDashboardPO(mergedRow);
+  });
+
+  return {
+    openPOs,
+    summary: {
+      total: openPOs.length,
+      onTrack: counts.onTrack,
+      needsAttention: counts.needsAttention,
+      awaitingReply: counts.awaitingReply,
+    },
+    generatedAt: new Date().toISOString(),
+  };
+};
+
 const dashboardController = {
   getDashboardData: async (req, res) => {
     const clientCode = req.clientCode;
     const cacheKey = cacheService.generateKey('dashboard', clientCode);
-    const cachedData = cacheService.get(cacheKey);
-
-    if (cachedData) {
-      return res.json(cachedData);
-    }
 
     try {
-      const sheetsData = await sheetsService.getMultipleSheetsObjects([
-        'PO consolidated data',
-        'Communication Logs',
-        'Bands Table',
-        'Client info'
-      ], clientCode);
-
-      const poData = sheetsData['PO consolidated data'] || [];
-      const commData = sheetsData['Communication Logs'] || [];
-      const bandsRows = sheetsData['Bands Table'] || [];
-      const clientInfoRows = sheetsData['Client info'] || [];
-
-      // Map client_code to calls_enabled status
-      const clientCallsEnabledMap = {};
-      clientInfoRows.forEach(c => {
-        if (c.client_code) {
-          clientCallsEnabledMap[normalize(c.client_code)] = c.calls_enabled === 'TRUE' || c.calls_enabled === 'Yes' || c.calls_enabled === 'true';
-        }
-      });
-
-      // Filter POs by clientCode
-      let filteredPOs = poData;
-      if (clientCode) {
-        filteredPOs = poData.filter(po => normalize(po.client_code) === normalize(clientCode));
-      }
-
-      // Map communication logs by po_line_key
-      const commMap = {};
-      commData.forEach(row => {
-        if (row.po_line_key) {
-          commMap[row.po_line_key] = row;
-        }
-      });
-
-      const openPOs = [];
-      const onTrack = [];
-      const needsAttention = [];
-      const awaitingReply = [];
-
-      filteredPOs.forEach(po => {
-        const comm = commMap[po.po_line_key] || {};
-
-        // Merge PO and Communication Log data
-        const mergedRow = { ...po, ...comm };
-
-        const poClientCode = mergedRow.client_code || clientCode;
-        const callsEnabled = clientCallsEnabledMap[normalize(poClientCode)] === true;
-        const bandConfig = getBandConfig(bandsRows, mergedRow.ship_by_band, mergedRow.follow_up_stage || 'Stage1');
-
-        mergedRow.next_action = determineNextAction(mergedRow, bandConfig, callsEnabled);
-        
-        const latestReply = getLatestSupplierReply(mergedRow);
-        if (latestReply) {
-          mergedRow.latest_update_text = latestReply.text;
-          mergedRow.latest_update_timestamp = latestReply.rawTimestamp;
-        } else {
-          mergedRow.latest_update_text = null;
-          mergedRow.latest_update_timestamp = null;
-        }
-
-        openPOs.push(mergedRow);
-
-        const { bucket, subStatus } = getPoStatusBucket(mergedRow);
-        mergedRow.sub_status = subStatus;
-
-        if (bucket === 'onTrack') {
-          onTrack.push(mergedRow);
-        } else if (bucket === 'needsAttention') {
-          needsAttention.push(mergedRow);
-        } else {
-          awaitingReply.push(mergedRow);
-        }
-      });
-
-      const output = {
-        openPOs,
-        onTrack,
-        needsAttention,
-        awaitingReply,
-        generatedAt: new Date().toISOString()
-      };
-
-      // Cache dashboard data for 60 seconds
-      cacheService.set(cacheKey, output, 60);
-
-      return res.json(output);
+      const output = await cacheService.getOrSet(cacheKey, 60, () => buildDashboardData(clientCode));
+      return res.json({ success: true, ...output });
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      return res.status(500).json({
+      const status = error.status === 503 ? 503 : 500;
+      return res.status(status).json({
         success: false,
-        message: 'Failed to load dashboard data. Please try again.'
+        message: status === 503
+          ? 'Dashboard data is temporarily unavailable.'
+          : 'Failed to load dashboard data. Please try again.'
       });
     }
   },
 
   getSummary: async (req, res) => {
     const clientCode = req.clientCode;
-    const cacheKey = cacheService.generateKey('dashboard_summary', clientCode);
-    const cachedData = cacheService.get(cacheKey);
-
-    if (cachedData) {
-      return res.json(cachedData);
-    }
-
     try {
-      const poData = await sheetsService.getSheetObjects('PO consolidated data', clientCode);
-      const commData = await sheetsService.getSheetObjects('Communication Logs', clientCode);
-
-      let filteredPOs = poData;
-      if (clientCode) {
-        filteredPOs = poData.filter(po => normalize(po.client_code) === normalize(clientCode));
-      }
-
-      const commMap = {};
-      commData.forEach(row => {
-        if (row.po_line_key) commMap[row.po_line_key] = row;
-      });
-
-      let totalPOs = filteredPOs.length;
-      let onTrackCount = 0;
-      let needsAttentionCount = 0;
-      let awaitingReplyCount = 0;
-
-      filteredPOs.forEach(po => {
-        const comm = commMap[po.po_line_key] || {};
-        const mergedRow = { ...po, ...comm };
-        const { bucket } = getPoStatusBucket(mergedRow);
-
-        if (bucket === 'onTrack') {
-          onTrackCount++;
-        } else if (bucket === 'needsAttention') {
-          needsAttentionCount++;
-        } else {
-          awaitingReplyCount++;
-        }
-      });
-
-      const summary = {
-        totalPOs,
-        onTrackCount,
-        needsAttentionCount,
-        awaitingReplyCount,
+      const dashboardKey = cacheService.generateKey('dashboard', clientCode);
+      const dashboard = await cacheService.getOrSet(dashboardKey, 60, () => buildDashboardData(clientCode));
+      return res.json({
+        success: true,
+        totalPOs: dashboard.summary.total,
+        onTrackCount: dashboard.summary.onTrack,
+        needsAttentionCount: dashboard.summary.needsAttention,
+        awaitingReplyCount: dashboard.summary.awaitingReply,
         generatedAt: new Date().toISOString()
-      };
-
-      cacheService.set(cacheKey, summary, 60);
-      return res.json(summary);
+      });
     } catch (error) {
       console.error('Error loading dashboard summary:', error);
-      return res.status(500).json({
+      const status = error.status === 503 ? 503 : 500;
+      return res.status(status).json({
         success: false,
-        message: 'Failed to load dashboard summary.'
+        message: status === 503
+          ? 'Dashboard data is temporarily unavailable.'
+          : 'Failed to load dashboard summary.'
       });
     }
   }

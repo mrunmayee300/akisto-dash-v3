@@ -195,15 +195,51 @@ const determineNextAction = (comm, bandConfig, callsEnabled) => {
   return 'Waiting';
 };
 
+const toClientCommunication = (comm) => {
+  const fields = [
+    'issue_date', 'delivery_status_text', 'delivery_location',
+    'transit_time_days', 'promised_revert_date', 'supplier_colleague_name',
+    'supplier_colleague_email', 'follow_up_stage', 'follow_up_status',
+    'needs_human_review', 'human_review_status'
+  ];
+
+  ['stage1', 'stage1_5', 'stage2', 'stage2_5', 'stage3'].forEach(stage => {
+    fields.push(
+      `${stage}_outreach_timestamp`, `${stage}_reply_timestamp`,
+      `${stage}_mode_of_reply_received`, `${stage}_delivery_status_classification`,
+      `${stage}_delivery_status_text`, `${stage}_supplier_raw_statement`,
+      `${stage}_supplier_reply_confidence`, `${stage}_supplier_reply_status`,
+      `${stage}_promised_revert_date`, `${stage}_internal_escalation_sent`,
+      `${stage}_internal_escalation_timestamp`
+    );
+    for (let i = 1; i <= 3; i++) {
+      fields.push(
+        `${stage}_reminder_mail${i}_timestamp`,
+        `${stage}_reminder_call${i}_timestamp`,
+        `${stage}_reminder_call${i}_answered`,
+        `${stage}_reminder_call${i}_call_outcome`,
+        `${stage}_reminder_call${i}_delivery_status_classification`,
+        `${stage}_reminder_call${i}_delivery_status_text`,
+        `${stage}_reminder_call${i}_supplier_raw_statement`
+      );
+    }
+  });
+
+  return fields.reduce((result, field) => {
+    if (comm[field] !== undefined) result[field] = comm[field];
+    return result;
+  }, {});
+};
+
 const poController = {
   getPODetails: async (req, res) => {
-    const commsGroupId = req.query.commsGroupId || req.params.commsGroupId;
+    const commsGroupId = normalize(req.query.commsGroupId || req.params.commsGroupId);
     const clientCode = req.clientCode;
 
-    if (!commsGroupId) {
+    if (!commsGroupId || commsGroupId.length > 200 || /[\u0000-\u001f]/.test(commsGroupId)) {
       return res.status(400).json({
         success: false,
-        message: 'commsGroupId is required'
+        message: 'A valid commsGroupId is required'
       });
     }
 
@@ -230,7 +266,7 @@ const poController = {
 
       const poGroup = poRows.filter(row => {
         return normalize(row.comms_group_id) === normalize(commsGroupId) &&
-               (!clientCode || normalize(row.client_code) === normalize(clientCode));
+               normalize(row.client_code) === normalize(clientCode);
       });
 
       if (poGroup.length === 0) {
@@ -299,14 +335,16 @@ const poController = {
             quantity: row.quantity,
             uom: row.unit_of_measure,
             shipBy: row.ship_by_date_delivery_1,
-            deliverBy: row.deliver_by_date_delivery_1
+            deliverBy: row.deliver_by_date_delivery_1,
+            carrier: row.carrier || '',
+            trackingNumber: row.tracking_number || row.trackingNumber || ''
           };
         }),
 
         timeline: buildTimeline(comm),
         replies: buildReplies(comm),
         nextAction: determineNextAction(comm, bandConfig, callsEnabled),
-        communication: comm
+        communication: toClientCommunication(comm)
       };
 
       // Cache PO details for 300 seconds
@@ -315,9 +353,12 @@ const poController = {
       return res.json(output);
     } catch (error) {
       console.error(`Error loading PO details for ${commsGroupId}:`, error);
-      return res.status(500).json({
+      const status = error.status === 503 ? 503 : 500;
+      return res.status(status).json({
         success: false,
-        message: 'Failed to load PO details. Please try again.'
+        message: status === 503
+          ? 'PO data is temporarily unavailable.'
+          : 'Failed to load PO details. Please try again.'
       });
     }
   }

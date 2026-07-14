@@ -1,10 +1,16 @@
 const crypto = require('crypto');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sheetsService = require('./sheets.service');
+const {
+  getJwtSecret,
+  isLegacyPasswordEnabled,
+  timingSafeEqual,
+} = require('../config/env');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'akisto_super_secret_jwt_key_2026';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
+const JWT_ISSUER = process.env.JWT_ISSUER || 'akisto-api';
+const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'akisto-client-portal';
 
 const hashPasswordSha256 = (password) => {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -25,29 +31,51 @@ const authService = {
         if (match) return true;
       }
     } catch (error) {
-      console.warn('Bcrypt comparison failed, falling back to SHA-256:', error);
+      console.warn('Bcrypt comparison failed:', error.message);
     }
 
-    // 2. Fallback to SHA-256 or plain text comparison
-    const sha256Hash = hashPasswordSha256(password);
-    return storedHash === sha256Hash || storedHash === password;
+    // Optional, temporary migration path for legacy unsalted SHA-256 hashes.
+    // Plain-text passwords are never accepted.
+    if (isLegacyPasswordEnabled() && /^[a-f0-9]{64}$/i.test(storedHash)) {
+      return timingSafeEqual(storedHash.toLowerCase(), hashPasswordSha256(password));
+    }
+
+    return false;
   },
 
   generateToken: (user) => {
+    const userId = String(user.user_id || '').trim();
+    const email = String(user.email || '').trim().toLowerCase();
+    const clientCode = String(user.client_code || '').trim();
+    if (!userId || !email || !clientCode) {
+      throw new Error('Cannot issue token for an incomplete user record');
+    }
+
     const payload = {
-      userId: user.user_id,
-      email: user.email,
-      clientCode: user.client_code,
-      role: user.role,
+      userId,
+      email,
+      clientCode,
+      role: String(user.role || 'User').trim(),
       userName: user['User Name'] || user.userName || '',
       userRole: user['Role'] || user.userRole || ''
     };
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    return jwt.sign(payload, getJwtSecret(), {
+      algorithm: 'HS256',
+      audience: JWT_AUDIENCE,
+      expiresIn: JWT_EXPIRES_IN,
+      issuer: JWT_ISSUER,
+      jwtid: crypto.randomUUID(),
+      subject: userId,
+    });
   },
 
   verifyToken: (token) => {
     try {
-      return jwt.verify(token, JWT_SECRET);
+      return jwt.verify(token, getJwtSecret(), {
+        algorithms: ['HS256'],
+        audience: JWT_AUDIENCE,
+        issuer: JWT_ISSUER,
+      });
     } catch (error) {
       return null;
     }
@@ -64,9 +92,7 @@ const authService = {
 
       return (name1 && name1 === inputName) ||
              (name2 && name2 === inputName) ||
-             (name3 && name3 === inputName) ||
-             (name1 && name1.includes(inputName)) ||
-             (name3 && name3.includes(inputName));
+             (name3 && name3 === inputName);
     });
 
     if (!foundClient) {
@@ -76,7 +102,7 @@ const authService = {
     const clientCode = foundClient.client_code;
 
     // 2. Get users and find user by email, clientCode, and active status
-    const users = await sheetsService.getSheetObjects('Users');
+    const users = await sheetsService.getSheetObjects('Users', clientCode);
     const foundUser = users.find(u => {
       const uEmail = String(u.email || '').trim().toLowerCase();
       const inputEmail = String(email || '').trim().toLowerCase();
@@ -86,7 +112,7 @@ const authService = {
       const clientMatch = (uClient === clientCode);
 
       const uActive = String(u.active || '').trim().toUpperCase();
-      const activeMatch = (uActive === 'TRUE' || uActive === 'YES' || uActive === 'Y' || uActive === '1' || uActive === '');
+      const activeMatch = (uActive === 'TRUE' || uActive === 'YES' || uActive === 'Y' || uActive === '1');
 
       return clientMatch && activeMatch;
     });
@@ -96,7 +122,6 @@ const authService = {
     }
 
     // 3. Verify password hash
-    const storedHash = u => u.password_hash || u.password || u.password_hash_;
     const isPasswordValid = await authService.verifyPassword(password, foundUser.password_hash || foundUser.password || foundUser.password_hash_);
 
     if (!isPasswordValid) {

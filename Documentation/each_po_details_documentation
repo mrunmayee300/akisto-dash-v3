@@ -6,21 +6,21 @@ This document explains the data-fetching, backend aggregation, and frontend disp
 
 ## 1. Data-Fetching & Merging Workflow
 
-When a user visits a PO detail page (e.g., `/detail/:commsGroupId`), the frontend requests details from the Google Apps Script backend:
+When a user visits a PO detail page (for example, `/detail/:commsGroupId`), the frontend requests details from the Node API using a bearer token:
 
-$$\text{Request URL} = \text{APPS\_SCRIPT\_URL} + \text{?action=poDetails\&commsGroupId=\{commsGroupId\}\&sessionToken=\{token\}}$$
+`GET ${VITE_API_URL}/api/po/{commsGroupId}` with `Authorization: Bearer {token}`.
 
 ```mermaid
 sequenceDiagram
     participant React as React Frontend
-    participant GAS as Google Apps Script
+    participant API as Render Node API
     participant Sheets as Google Sheets
     
-    React->>GAS: fetch: action=poDetails & commsGroupId
-    GAS->>Sheets: Read "PO consolidated data", "Communication Logs", & "Material and Supplier Master Data"
-    Sheets-->>GAS: Return Rows
-    GAS->>GAS: Filter & Join Rows by comms_group_id & supplier_code
-    GAS-->>React: Return JSON Response
+    React->>API: GET /api/po/:commsGroupId with Bearer JWT
+    API->>Sheets: Read PO, communication, bands, client, and supplier data
+    Sheets-->>API: Return Rows
+    API->>API: Enforce tenant filter and join by comms_group_id
+    API-->>React: Return minimized JSON response
     React->>React: Render Tabs (Trail, Dates, Supplier)
 ```
 

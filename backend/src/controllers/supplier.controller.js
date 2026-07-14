@@ -32,11 +32,27 @@ const getThresholdMonth = (latestMonthStr, numMonths = 6) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
+const isAdmin = (req) => normalize(req.user && req.user.role).toLowerCase() === 'admin';
+
+const resolveBuyerName = (clientInfoRows, req, clientCode) => {
+  const email = normalize(req.user && req.user.email).toLowerCase();
+  const buyerRow = clientInfoRows.find(row => {
+    if (normalize(row.client_code) !== normalize(clientCode)) return false;
+    const buyerEmail = normalize(row.buyer_email || row.ai_agent_buyer_email).toLowerCase();
+    return email && buyerEmail === email;
+  });
+
+  return normalize(buyerRow && (buyerRow.buyer_name || buyerRow.ai_agent_buyer_name));
+};
+
+const errorStatus = (error) => error && error.status === 503 ? 503 : 500;
+
 const supplierController = {
   getSuppliers: async (req, res) => {
     const clientCode = req.clientCode;
     const userEmail = req.user && req.user.email || '';
-    const cacheKey = cacheService.generateKey('suppliers_performance', clientCode, userEmail);
+    const userRole = normalize(req.user && req.user.role).toLowerCase();
+    const cacheKey = cacheService.generateKey('suppliers_performance', clientCode, `${userRole}:${userEmail}`);
     const cachedData = cacheService.get(cacheKey);
 
     if (cachedData) {
@@ -68,39 +84,24 @@ const supplierController = {
       });
 
       // Resolve buyer name from Client info or req.user
-      const loggedInEmail = String(userEmail).trim().toLowerCase();
-      const loggedInName = String(req.user && req.user.userName || '').trim().toLowerCase();
-
-      const clientBuyerRow = clientInfoRows.find(c => 
-        normalize(c.client_code) === normalize(clientCode) && 
-        (String(c.buyer_email || c.ai_agent_buyer_email || '').trim().toLowerCase() === loggedInEmail ||
-         String(c.buyer_name || c.ai_agent_buyer_name || '').trim().toLowerCase() === loggedInName)
-      );
-
-      let buyerNameFilter = '';
-      if (clientBuyerRow) {
-        buyerNameFilter = clientBuyerRow.buyer_name || clientBuyerRow.ai_agent_buyer_name || '';
-      }
+      const buyerNameFilter = resolveBuyerName(clientInfoRows, req, clientCode);
 
       let filteredSuppliers = supplierStatsRows.filter(
         s => normalize(s.client_code) === normalize(clientCode)
       );
 
-      // Apply buyer filtering
-      if (buyerNameFilter) {
-        const checkFiltered = filteredSuppliers.filter(
+      // Admins may see the tenant; regular users must resolve to one buyer and
+      // never fall back to the tenant-wide list.
+      if (!isAdmin(req)) {
+        if (!buyerNameFilter) {
+          return res.status(403).json({
+            success: false,
+            message: 'No buyer scope is configured for this user'
+          });
+        }
+        filteredSuppliers = filteredSuppliers.filter(
           s => normalize(s.buyer_name).toLowerCase() === buyerNameFilter.toLowerCase()
         );
-        if (checkFiltered.length > 0) {
-          filteredSuppliers = checkFiltered;
-        }
-      } else if (loggedInName) {
-        const checkFiltered = filteredSuppliers.filter(
-          s => normalize(s.buyer_name).toLowerCase() === loggedInName
-        );
-        if (checkFiltered.length > 0) {
-          filteredSuppliers = checkFiltered;
-        }
       }
 
       // Map rows for the Reliability Table
@@ -271,25 +272,28 @@ const supplierController = {
       return res.json(responseData);
     } catch (error) {
       console.error('Error loading suppliers:', error);
-      return res.status(500).json({
+      return res.status(errorStatus(error)).json({
         success: false,
-        message: 'Failed to load suppliers.'
+        message: errorStatus(error) === 503
+          ? 'Supplier data is temporarily unavailable.'
+          : 'Failed to load suppliers.'
       });
     }
   },
 
   getSupplierByCode: async (req, res) => {
     const clientCode = req.clientCode;
-    const supplierCode = req.query.supplierCode || req.params.supplierCode;
+    const supplierCode = normalize(req.query.supplierCode || req.params.supplierCode);
 
-    if (!supplierCode) {
+    if (!supplierCode || supplierCode.length > 160 || /[\u0000-\u001f]/.test(supplierCode)) {
       return res.status(400).json({
         success: false,
-        message: 'supplierCode is required'
+        message: 'A valid supplierCode is required'
       });
     }
 
-    const cacheKey = cacheService.generateKey('supplier_detail', clientCode, supplierCode);
+    const userScope = isAdmin(req) ? 'admin' : normalize(req.user && req.user.email).toLowerCase();
+    const cacheKey = cacheService.generateKey('supplier_detail', clientCode, `${userScope}:${supplierCode}`);
     const cachedData = cacheService.get(cacheKey);
 
     if (cachedData) {
@@ -301,13 +305,15 @@ const supplierController = {
         'Supplier Stats',
         'Supplier Monthly Stats',
         'Delay Event Logs',
-        'Communication Logs'
+        'Communication Logs',
+        'Client info'
       ], clientCode);
 
       const supplierStatsRows = sheetsData['Supplier Stats'] || [];
       const supplierMonthlyStatsRows = sheetsData['Supplier Monthly Stats'] || [];
       const delayEventLogsRows = sheetsData['Delay Event Logs'] || [];
       const communicationLogs = sheetsData['Communication Logs'] || [];
+      const clientInfoRows = sheetsData['Client info'] || [];
 
       // Find Supplier Stats entry
       const foundSupplier = supplierStatsRows.find(
@@ -320,6 +326,17 @@ const supplierController = {
           success: false,
           message: 'Supplier performance stats not found'
         });
+      }
+
+      if (!isAdmin(req)) {
+        const buyerName = resolveBuyerName(clientInfoRows, req, clientCode);
+        const supplierBuyer = normalize(foundSupplier.buyer_name).toLowerCase();
+        if (!buyerName || supplierBuyer !== buyerName.toLowerCase()) {
+          return res.status(404).json({
+            success: false,
+            message: 'Supplier performance stats not found'
+          });
+        }
       }
 
       const rawOnTime = parseFloat(foundSupplier.on_time_rate || 0);
@@ -516,9 +533,11 @@ const supplierController = {
       return res.json(responseData);
     } catch (error) {
       console.error(`Error loading supplier ${supplierCode}:`, error);
-      return res.status(500).json({
+      return res.status(errorStatus(error)).json({
         success: false,
-        message: 'Failed to load supplier details.'
+        message: errorStatus(error) === 503
+          ? 'Supplier data is temporarily unavailable.'
+          : 'Failed to load supplier details.'
       });
     }
   }

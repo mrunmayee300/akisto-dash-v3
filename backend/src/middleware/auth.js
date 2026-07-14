@@ -1,23 +1,21 @@
 const authService = require('../services/auth.service');
+const { isLegacyQueryAuthEnabled } = require('../config/env');
 
 const authMiddleware = (req, res, next) => {
-  // Extract token from Authorization header, query parameter, or body
+  // Authorization headers are the only supported production transport.
   let token = null;
   
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.substring(7);
-  } else if (req.query && req.query.sessionToken) {
+  } else if (isLegacyQueryAuthEnabled() && req.query && req.query.sessionToken) {
     token = req.query.sessionToken;
-  } else if (req.body && req.body.sessionToken) {
+  } else if (isLegacyQueryAuthEnabled() && req.body && req.body.sessionToken) {
     token = req.body.sessionToken;
   }
 
-  const isAppsScript = req.query.action || req.body.action;
-  const status = isAppsScript ? 200 : 401;
-
   if (!token) {
-    return res.status(status).json({
+    return res.status(401).json({
       success: false,
       error: 'Unauthorized',
       message: 'Access denied. No session token provided.'
@@ -26,7 +24,7 @@ const authMiddleware = (req, res, next) => {
 
   const decoded = authService.verifyToken(token);
   if (!decoded) {
-    return res.status(status).json({
+    return res.status(401).json({
       success: false,
       error: 'Unauthorized',
       message: 'Access denied. Invalid or expired session token.'

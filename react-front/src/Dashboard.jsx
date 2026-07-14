@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatDate, formatTimestamp, quantityText, getStatus, latestSupplierUpdate, nextTouchPoint, resolvePoDashboardState, latestStatusText, determineNextAction } from './utils';
-
-const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
+import { formatDate, formatTimestamp, quantityText, resolvePoDashboardState, latestStatusText, determineNextAction } from './utils';
+import { apiRequest, clearAuthSession, getSessionToken, isUnauthorized } from './api';
 const PAGE_SIZE = 10;
 
 const labels = {
@@ -33,7 +32,7 @@ function formatCurrentDate() {
     if (tzPart) {
       tzLabel = tzPart.value;
     }
-  } catch (e) {
+  } catch {
     // fallback to EST
   }
 
@@ -55,7 +54,7 @@ function parseDateToMs(value) {
       d = new Date(value);
     }
     return isNaN(d.getTime()) ? 0 : d.getTime();
-  } catch (e) {
+  } catch {
     return 0;
   }
 }
@@ -76,7 +75,7 @@ function Dashboard() {
         track: 1,
         await: 1
       };
-    } catch (e) {
+    } catch {
       return {
         open: 1,
         attn: 1,
@@ -88,30 +87,23 @@ function Dashboard() {
   const [currentDateStr, setCurrentDateStr] = useState(formatCurrentDate());
 
   const userEmail = localStorage.getItem('userEmail');
-  const companyName = localStorage.getItem('companyName');
   const userName = localStorage.getItem('userName');
   const userRole = localStorage.getItem('userRole');
   const navigate = useNavigate();
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async (signal) => {
     try {
-      const token = localStorage.getItem('sessionToken');
-      if (!token) {
+      if (!getSessionToken()) {
         navigate('/login');
         return;
       }
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=dashboard&sessionToken=${encodeURIComponent(token)}`);
-      if (!response.ok) throw new Error('Network response was not ok');
-      const json = await response.json();
-
-      console.log('Dashboard API:', json);
-
-      if (json.success === false && json.error === 'Unauthorized') {
-        localStorage.removeItem('sessionToken');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('companyName');
-        localStorage.removeItem('userName');
-        localStorage.removeItem('userRole');
+      const json = await apiRequest('/api/dashboard', { signal });
+      setData(json);
+      setError(null);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      if (isUnauthorized(err)) {
+        clearAuthSession();
         sessionStorage.removeItem('dashboardActiveTab');
         sessionStorage.removeItem('dashboardPages');
         sessionStorage.removeItem('supplierPerformancePage');
@@ -122,22 +114,30 @@ function Dashboard() {
         navigate('/login');
         return;
       }
-
-      if (json.success === false) {
-        throw new Error(json.message || 'API returned success: false');
-      }
-      setData(json);
-    } catch (err) {
       console.error('Dashboard API Error:', err);
       setError('Unable to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
-    loadDashboard();
-    const interval = setInterval(loadDashboard, 30000); // Poll every 30 seconds
+    let inFlight = false;
+    let controller = null;
+    const refresh = async () => {
+      if (inFlight || document.visibilityState !== 'visible') return;
+      inFlight = true;
+      controller = new AbortController();
+      await loadDashboard(controller.signal);
+      inFlight = false;
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 60000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const timeInterval = setInterval(() => {
       setCurrentDateStr(formatCurrentDate());
@@ -146,15 +146,13 @@ function Dashboard() {
     return () => {
       clearInterval(interval);
       clearInterval(timeInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      controller?.abort();
     };
-  }, []);
+  }, [loadDashboard]);
 
   const handleLogout = () => {
-    localStorage.removeItem('sessionToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('companyName');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
+    clearAuthSession();
     sessionStorage.removeItem('dashboardActiveTab');
     sessionStorage.removeItem('dashboardPages');
     sessionStorage.removeItem('supplierPerformancePage');
@@ -496,20 +494,23 @@ function Dashboard() {
             </span>
             <span>Summary</span>
           </div>
-          <div className="text-[17px] font-extrabold text-darkgold leading-[1.34] mb-3">4 of the 20 stalled POs are awaiting your action, not the supplier's.</div>
+          <div className="text-[17px] font-extrabold text-darkgold leading-[1.34] mb-3">
+            {openPOs.length === 0
+              ? 'No open PO lines are currently tracked.'
+              : `${needsAttention.length} of ${openPOs.length} open PO lines need attention.`}
+          </div>
           <div className="flex flex-col gap-[9px]">
-            <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>3 held on unreleased payments</span></div>
-            <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>1 on an unsigned revised PO</span></div>
-            <div className="flex items-start gap-2.5 text-[15px] text-emerald font-bold leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-emerald">&#10003;</span><span>Clearing them frees 9 line items before their ship dates</span></div>
+            <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>{needsAttention.length} need buyer review or intervention</span></div>
+            <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>{awaitingReply.length} are awaiting supplier replies</span></div>
+            <div className="flex items-start gap-2.5 text-[15px] text-emerald font-bold leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-emerald">&#10003;</span><span>{onTrack.length} are currently on track</span></div>
           </div>
         </div>
         <div className="rounded-xl p-[15px] px-[18px] bg-[#F5F8F6] border border-line">
-          <div className="flex items-center gap-2 text-[12.5px] font-extrabold tracking-[1px] uppercase mb-[11px] text-muted"><span>What changed since yesterday</span></div>
+          <div className="flex items-center gap-2 text-[12.5px] font-extrabold tracking-[1px] uppercase mb-[11px] text-muted"><span>Data status</span></div>
           <div className="flex flex-col gap-[9px]">
-            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-red">&#9660;</span><span><b className="font-bold">3 POs</b> slipped to delayed</span></div>
-            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-bright">&#9650;</span><span><b className="font-bold">1 PO</b> recovered to on track</span></div>
-            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-gold">&#216;</span><span><b className="font-bold">2 suppliers</b> went silent past ship-by</span></div>
-            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-accent">&#43;</span><span><b className="font-bold">4 new replies</b> captured and classified</span></div>
+            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-bright">&#10003;</span><span><b className="font-bold">Last refreshed:</b> {formatTimestamp(data.generatedAt)}</span></div>
+            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-accent">&#8635;</span><span>Refreshes every 60 seconds while this tab is visible</span></div>
+            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-gold">&#9679;</span><span>Operational data is read from Google Sheets</span></div>
           </div>
         </div>
       </div>
