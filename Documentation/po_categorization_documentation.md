@@ -85,7 +85,7 @@ A PO is placed in **Needs Attention** if **any** of the following evaluate to tr
 - `needs_human_review` is `"yes"` (case-insensitive, trimmed)
 - `human_review_status` is `"pending"` (case-insensitive, trimmed)
 - `follow_up_status` is `"escalation_sent"` (case-insensitive, indicating a non-responsive supplier)
-- The active stage's classification matches `"delay"` or `"delay tbc"`
+- The active stage's classification matches `"delayed"` or `"delayed tbc"`
 - The active stage's classification confidence is `"low"`
 
 #### 2. Sub-status Resolution & UI Presentation
@@ -95,7 +95,7 @@ Once categorized under Needs Attention, the sub-status, label, and reason displa
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Unclear Response** | Classification is exactly `'unclear'` | `"Unclear response"` | `p-unclear` | Purple fill / purple text | Stage-specific delivery status text, or fallback: *"AI clarification attempts failed or unclear response received."* |
 | **Low Confidence** | Supplier reply confidence is `'low'` | `"Low confidence"` | `p-low-confidence` | Light canvas bg / gray-brown text | Stage-specific delivery status text, or fallback: *"AI classification confidence is Low; review required."* |
-| **Delayed** | Classification matches `"delay"` or `"delay tbc"` | `"Delayed"` | `p-delayed` | Red fill / red text | Stage-specific delivery status text, or fallback: *"Delivery delayed."* |
+| **Delayed** | Classification matches `"delayed"` or `"delayed tbc"` | `"Delayed"` | `p-delayed` | Red fill / red text | Stage-specific delivery status text, or fallback: *"Delivery delayed."* |
 | **No Response** | Status is `'escalation_sent'` | `"No Response"` | `p-no-response` | Gold fill / dark gold text | *"No reply despite repeated follow-up emails and calls."* |
 | **Needs Review** (Fallback) | Any other trigger (e.g. manual `needs_human_review === 'yes'`) | `"Needs review"` | `p-review` | Slate gray pill (`#F1F5F9` bg, `#475569` text) | Stage-specific delivery status text, or fallback: *"Flagged for reviewer audit."* |
 
@@ -109,17 +109,16 @@ This bucket contains orders that are progressing successfully without requiring 
 A PO is classified as **On Track** if it does not qualify for "Needs Attention", and matches the active-stage schedule confirmation rules:
 - **Active Stages** (`Stage1`, `Stage2`, `Stage3`): The active stage classification must be one of: `['on time', 'on time tbc']`.
 - **Passive Stages** (`Stage1.5`, `Stage2.5`):
-  - If **no reply** has been received yet (quiet monitoring phase), it is automatically classified as **On Track**.
+  - If **no reply** has been received yet (quiet monitoring phase), it is automatically classified as **On Track** (mapping to `"On time"`).
   - If a **reply has been received**, its active classification must be one of: `['on time', 'on time tbc']`.
 
 #### 2. Sub-status Resolution & UI Presentation
-On-track items are broken down into status variations:
+On-track items are broken down into status variations (only two UI categories exist):
 
 | Classification | Sub-status | UI Label | CSS Class | Color / Pill Style | Default Reason Text |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | Classification contains `'tbc'` | `Confirmed` | `"On time · TBC"` | `p-tbc` | Light green fill / green text | Stage-specific delivery status text, or fallback: *"Delivery is currently on schedule."* |
-| Passive stage with no reply | `Monitoring` | `"On track"` | `p-ontime` | Light green fill / green text | Stage-specific delivery status text, or fallback: *"Delivery is currently on schedule."* |
-| Standard confirmed on-time | `Confirmed` | `"On time"` | `p-ontime` | Light green fill / green text | Stage-specific delivery status text, or fallback: *"Delivery is currently on schedule."* |
+| Standard confirmed on-time OR Passive stage with no reply (Stage 1.5 / 2.5) | `Confirmed / Monitoring` | `"On time"` | `p-ontime` | Light green fill / green text | Stage-specific delivery status text, or fallback: *"Delivery is currently on schedule."* |
 
 ---
 
