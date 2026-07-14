@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
+import { apiRequest, clearAuthSession, getSessionToken, isUnauthorized } from './api';
 
 function formatCurrentDate() {
   const d = new Date();
@@ -48,41 +47,52 @@ function SupplierPerformance() {
   const userName = localStorage.getItem('userName');
   const userRole = localStorage.getItem('userRole');
 
-  const loadData = async () => {
+  const loadData = useCallback(async (signal) => {
     try {
-      const token = localStorage.getItem('sessionToken');
-      if (!token) {
+      if (!getSessionToken()) {
         navigate('/login');
         return;
       }
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=supplierPerformance&sessionToken=${encodeURIComponent(token)}`);
-      if (!response.ok) throw new Error('Failed to fetch supplier performance data');
-      const json = await response.json();
-
-      if (json.success === false && json.error === 'Unauthorized') {
-        localStorage.removeItem('sessionToken');
-        navigate('/login');
-        return;
-      }
-
-      if (json.success === false) {
-        throw new Error(json.message || 'API returned success: false');
-      }
-
+      const json = await apiRequest('/api/supplier', { signal });
       setData(json);
+      setError(null);
     } catch (err) {
+      if (err.name === 'AbortError') return;
+      if (isUnauthorized(err)) {
+        clearAuthSession();
+        navigate('/login');
+        return;
+      }
       console.error('Supplier Performance API Error:', err);
       setError('Unable to load supplier performance metrics. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 30000); // Poll every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+    let inFlight = false;
+    let controller = null;
+    const refresh = async () => {
+      if (inFlight || document.visibilityState !== 'visible') return;
+      inFlight = true;
+      controller = new AbortController();
+      await loadData(controller.signal);
+      inFlight = false;
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 60000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      controller?.abort();
+    };
+  }, [loadData]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);

@@ -1,10 +1,19 @@
 const authService = require('../services/auth.service');
 const sheetsService = require('../services/sheets.service');
+const { isLegacyQueryAuthEnabled } = require('../config/env');
+
+const normalizeInput = (value, maxLength) => {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, maxLength);
+};
+
+const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 const authController = {
   checkCompany: async (req, res) => {
-    const companyName = req.query.companyName || req.body.companyName;
-    if (!companyName) {
+    const body = req.body || {};
+    const companyName = normalizeInput(req.query.companyName || body.companyName, 120);
+    if (companyName.length < 2) {
       return res.status(400).json({ success: false, message: 'Company name is required' });
     }
 
@@ -18,9 +27,7 @@ const authController = {
 
         return (name1 && name1 === inputName) ||
                (name2 && name2 === inputName) ||
-               (name3 && name3 === inputName) ||
-               (name1 && name1.includes(inputName)) ||
-               (name3 && name3.includes(inputName));
+               (name3 && name3 === inputName);
       });
 
       return res.json({
@@ -29,22 +36,27 @@ const authController = {
       });
     } catch (error) {
       console.error('Error checking company:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
+      const status = error.status === 503 ? 503 : 500;
+      const message = status === 503 ? 'Company lookup is temporarily unavailable' : 'Internal server error';
+      return res.status(status).json({ success: false, message });
     }
   },
 
   login: async (req, res) => {
-    const { email, password, companyName } = req.body;
-    
-    // Support query parameters for backwards compatibility
-    const loginEmail = email || req.query.email;
-    const loginPassword = password || req.query.password;
-    const loginCompany = companyName || req.query.companyName;
+    res.set('Cache-Control', 'no-store');
 
-    if (!loginEmail || !loginPassword || !loginCompany) {
+    const body = req.body || {};
+    const legacyQuery = isLegacyQueryAuthEnabled() ? req.query : {};
+    const loginEmail = normalizeInput(body.email || legacyQuery.email, 254).toLowerCase();
+    const loginPassword = typeof (body.password || legacyQuery.password) === 'string'
+      ? (body.password || legacyQuery.password)
+      : '';
+    const loginCompany = normalizeInput(body.companyName || legacyQuery.companyName, 120);
+
+    if (!isValidEmail(loginEmail) || loginPassword.length < 8 || loginPassword.length > 256 || loginCompany.length < 2) {
       return res.status(400).json({
         success: false,
-        message: 'Email, password, and company name are required'
+        message: 'Valid email, password, and company name are required'
       });
     }
 
@@ -52,15 +64,20 @@ const authController = {
       const result = await authService.authenticateUser(loginEmail, loginPassword, loginCompany);
       return res.json(result);
     } catch (error) {
-      console.error('Login error:', error);
+      if (error.code === 'SHEETS_UNAVAILABLE') {
+        console.error('Login dependency error:', error.message);
+        return res.status(503).json({ success: false, message: 'Authentication service is temporarily unavailable' });
+      }
+      console.warn('Login rejected:', error.message);
       return res.status(401).json({
         success: false,
-        message: error.message || 'Authentication failed'
+        message: 'Invalid email, password, or company combination'
       });
     }
   },
 
   me: async (req, res) => {
+    res.set('Cache-Control', 'no-store');
     try {
       // req.user is attached by authMiddleware
       return res.json({

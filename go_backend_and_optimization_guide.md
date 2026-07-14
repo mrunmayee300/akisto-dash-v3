@@ -136,8 +136,8 @@ backend-go/
 The React app calls:
 
 ```
-GET ${VITE_APPS_SCRIPT_URL}?action=dashboard&sessionToken=...
-GET ${VITE_APPS_SCRIPT_URL}?action=login&companyName=...&email=...&password=...
+GET ${VITE_API_URL}/api/dashboard with Authorization: Bearer {token}
+POST ${VITE_API_URL}/api/auth/login with a JSON request body
 ```
 
 The Go server must preserve this **exact contract**:
@@ -479,3 +479,6 @@ Step 6 (only if needed)      → Go rewrite for runtime efficiency on top of fix
 ---
 
 *Planning document only. Pairs with `dashboard_capacity_and_deployment_guide.md` for full system capacity analysis.*
+# Historical Go migration notes
+
+> This is an older alternative-backend proposal and references the retired query-string API. It is not the current implementation or deployment runbook.

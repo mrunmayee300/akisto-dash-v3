@@ -1,8 +1,6 @@
 const clientFilterMiddleware = (req, res, next) => {
   if (!req.user || !req.user.clientCode) {
-    const isAppsScript = req.query.action || req.body.action;
-    const status = isAppsScript ? 200 : 403;
-    return res.status(status).json({
+    return res.status(403).json({
       success: false,
       error: 'Forbidden',
       message: 'Access denied. Client code not associated with user session.'

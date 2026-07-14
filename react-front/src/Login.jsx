@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const API_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
+import { apiRequest, hasSession } from './api';
 
 function Login() {
   const [step, setStep] = useState(1);
@@ -13,8 +12,7 @@ function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('sessionToken');
-    if (token) {
+    if (hasSession()) {
       navigate('/dashboard');
     }
   }, [navigate]);
@@ -23,8 +21,9 @@ function Login() {
     event.preventDefault();
     setErrorMessage('');
     try {
-      const response = await fetch(`${API_URL}?action=checkCompany&companyName=${encodeURIComponent(companyName)}`);
-      const data = await response.json();
+      const data = await apiRequest(`/api/auth/check-company?companyName=${encodeURIComponent(companyName)}`, {
+        auth: false,
+      });
 
       if (data.success) {
         setConfirmedCompany(data.companyName);
@@ -42,8 +41,11 @@ function Login() {
     event.preventDefault();
     setErrorMessage('');
     try {
-      const response = await fetch(`${API_URL}?action=login&companyName=${encodeURIComponent(confirmedCompany)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
-      const data = await response.json();
+      const data = await apiRequest('/api/auth/login', {
+        auth: false,
+        method: 'POST',
+        body: { companyName: confirmedCompany, email, password },
+      });
 
       if (data.success) {
         localStorage.setItem('sessionToken', data.token);

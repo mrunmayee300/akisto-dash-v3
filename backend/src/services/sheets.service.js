@@ -1,14 +1,40 @@
 const { google } = require('googleapis');
 const { getGoogleAuth, spreadsheetId } = require('../config/google');
 const cacheService = require('./cache.service');
+const { isMockDataEnabled } = require('../config/env');
+
+const SHEET_RANGE = process.env.GOOGLE_SHEETS_RANGE || 'A1:IZ';
+
+const isTenantScopedSheet = (sheetName) => {
+  return [
+    'PO consolidated data',
+    'Communication Logs',
+    'Supplier Stats',
+    'Supplier Monthly Stats',
+    'Delay Event Logs',
+    'Client Stats',
+    'Client info',
+    'Client information',
+    'Users',
+    'Material and Supplier Master Data',
+    'Material and Supplier Master Da',
+  ].some(name => sheetName === name || sheetName.startsWith(name));
+};
+
+const createSheetsError = (message, cause) => {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.status = 503;
+  error.code = 'SHEETS_UNAVAILABLE';
+  return error;
+};
 
 // Mock data for fallback mode
 const mockClients = [
-  { client_code: 'C0', client_company_name_full: 'Emerald Enterprises', client_company_name: 'Emerald', company_name: 'Emerald' },
   {
     client_code: 'C1',
-    client_company_name_full: 'Akisto Corporation Ltd',
-    client_company_name: 'Akisto Corp',
+    client_company_name_full: 'Demo Manufacturing Ltd',
+    client_company_name: 'Demo Manufacturing',
+    company_name: 'Demo Manufacturing',
     client_industry: 'Manufacturing',
     client_hq_location: 'New York, USA',
     client_time_zone: 'EST',
@@ -16,20 +42,26 @@ const mockClients = [
     test_mode: 'FALSE',
     calls_enabled: 'TRUE',
     email_send_mode_direct_or_draft: 'direct',
-    ai_agent_buyer_name: 'Dan Whitaker',
+    ai_agent_buyer_name: 'Demo Buyer',
     ai_agent_buyer_position: 'Senior Buyer',
-    ai_agent_buyer_email: 'dan@company.com',
-    buyer_name: 'Dan Whitaker',
-    buyer_email: 'dan@company.com'
-  },
-  { client_code: 'C2', client_company_name_full: 'NTPC Sipat', client_company_name: 'Sipat', company_name: 'Sipat' }
+    ai_agent_buyer_email: 'buyer@example.com',
+    buyer_name: 'Demo Buyer',
+    buyer_email: 'buyer@example.com'
+  }
 ];
 
 const mockUsers = [
-  { user_id: '1', 'User Name': 'Mrunmayee S', 'Role': 'Intern', email: 'mrunmayeesangode@gmail.com', password_hash: '$2b$10$X8C9mUfVb6qSrnKzPqfB6uXp9vS1D.gB2P9vW6pSrnKzPqfB6uXp9vS1D.gB', client_code: 'C0', role: 'Admin', active: 'TRUE' }, // password123
-  { user_id: '2', 'User Name': 'Mrunmayee S', 'Role': 'Intern', email: 'mrunusangode@gmail.com', password_hash: '$2b$10$X8C9mUfVb6qSrnKzPqfB6uXp9vS1D.gB2P9vW6pSrnKzPqfB6uXp9vS1D.gB', client_code: 'C0', role: 'User', active: 'TRUE' }, // password123
-  { user_id: '3', 'User Name': 'Mrunmayee Sangode', 'Role': 'Intern', email: 'bt23ece030@iiitn.ac.in', password_hash: '$2b$10$X8C9mUfVb6qSrnKzPqfB6uXp9vS1D.gB2P9vW6pSrnKzPqfB6uXp9vS1D.gB', client_code: 'C1', role: 'Admin', active: 'TRUE' }, // password123
-  { user_id: '4', 'User Name': 'Dan Whitaker', 'Role': 'Buyer', email: 'dan@company.com', password_hash: '$2b$10$X8C9mUfVb6qSrnKzPqfB6uXp9vS1D.gB2P9vW6pSrnKzPqfB6uXp9vS1D.gB', client_code: 'C1', role: 'User', active: 'TRUE' } // password123
+  {
+    user_id: 'demo-user-1',
+    'User Name': 'Demo Buyer',
+    'Role': 'Buyer',
+    email: 'buyer@example.com',
+    // Development-only password: change-me-in-development
+    password_hash: '$2b$10$Vh3SL8odzKhNyIH9sn7t4.LxblMw37qSq4Cuw.cSsT4n5XhEQqB9.',
+    client_code: 'C1',
+    role: 'Admin',
+    active: 'TRUE'
+  }
 ];
 
 const mockPOs = [
@@ -335,7 +367,7 @@ const mockDelayEventLogs = [
   { event_id: 'DEL_06', po_line_key: 'C1_S14_1', client_code: 'C1', supplier_code: 'S14', buyer_name: 'Dan Whitaker', buyer_email: 'dan@company.com', timestamp: '2026-06-16T08:00:00Z', delay_origin: 'supplier', delay_reason_category: 'In-transit delay', delay_evidence: 'Truck mechanical failure', delay_confidence: 'high' }
 ];
 
-const getObjects = (rows, clientCode = null) => {
+const getObjects = (rows, clientCode = null, options = {}) => {
   if (!rows || rows.length === 0) return [];
   const headers = rows[0].map(h => String(h).trim());
   
@@ -343,6 +375,9 @@ const getObjects = (rows, clientCode = null) => {
   let clientCodeIndex = -1;
   if (clientCode) {
     clientCodeIndex = headers.findIndex(h => h.toLowerCase() === 'client_code');
+    if (options.requireClientColumn && clientCodeIndex === -1) {
+      throw createSheetsError('Tenant-scoped sheet is missing the client_code column');
+    }
   }
 
   const data = [];
@@ -350,12 +385,10 @@ const getObjects = (rows, clientCode = null) => {
 
   for (let i = 1; i < rows.length; i++) {
     // If clientCode filter is active, skip rows that belong to other clients
-    if (clientCodeIndex !== -1 && rows[i][clientCodeIndex] !== undefined) {
-      const rowVal = String(rows[i][clientCodeIndex]).trim().toLowerCase();
-      // If row has a client code, and it does not match, skip it
-      if (rowVal && rowVal !== normClientCode) {
-        continue;
-      }
+    if (clientCodeIndex !== -1) {
+      const rowVal = String(rows[i][clientCodeIndex] ?? '').trim().toLowerCase();
+      // Tenant data fails closed: blank and mismatched client codes are excluded.
+      if (!rowVal || rowVal !== normClientCode) continue;
     }
 
     const row = {};
@@ -432,6 +465,9 @@ const sheetsService = {
         const batchResults = {};
         
         if (!auth || !spreadsheetId) {
+          if (!isMockDataEnabled()) {
+            throw createSheetsError('Google Sheets is not configured');
+          }
           console.info(`Using mock data for sheets: ${sheetsToFetch.join(', ')}`);
           sheetsToFetch.forEach(name => {
             const rows = getRawMockData(name);
@@ -458,7 +494,7 @@ const sheetsService = {
             const isAuthError = metaErr.status === 403 || metaErr.code === 403 || 
                                 (metaErr.message && metaErr.message.toLowerCase().includes('permission')) ||
                                 (metaErr.message && metaErr.message.toLowerCase().includes('api key'));
-            if (isAuthError) {
+            if (isAuthError && isMockDataEnabled()) {
               console.warn('Google Sheets API permission error on metadata fetch. Falling back to mock data.');
               sheetsToFetch.forEach(name => {
                 const rows = getRawMockData(name);
@@ -468,6 +504,7 @@ const sheetsService = {
               });
               return batchResults;
             }
+            throw createSheetsError('Unable to read Google Sheets metadata', metaErr);
           }
         }
 
@@ -494,8 +531,7 @@ const sheetsService = {
         try {
           const ranges = sheetsToFetch.map(name => {
             const resolvedName = resolveSheetName(name);
-            let cols = 'A1:IZ'; 
-            return `${resolvedName}!${cols}`;
+            return `${resolvedName}!${SHEET_RANGE}`;
           });
 
           const response = await sheets.spreadsheets.values.batchGet({
@@ -516,7 +552,7 @@ const sheetsService = {
           const isAuthError = error.status === 403 || error.code === 403 || 
                               (error.message && error.message.toLowerCase().includes('permission')) ||
                               (error.message && error.message.toLowerCase().includes('api key'));
-          if (isAuthError) {
+          if (isAuthError && isMockDataEnabled()) {
             sheetsToFetch.forEach(name => {
               const rows = getRawMockData(name);
               const cacheKey = `raw_sheet:${name}`;
@@ -527,12 +563,13 @@ const sheetsService = {
           }
 
           console.warn('Attempting sequential fallback read...');
+          const fallbackErrors = [];
           for (const name of sheetsToFetch) {
             try {
               const resolvedName = resolveSheetName(name);
               const res = await sheets.spreadsheets.values.get({
                 spreadsheetId,
-                range: `${resolvedName}!A1:Z`,
+                range: `${resolvedName}!${SHEET_RANGE}`,
               });
               const rows = res.data.values || [];
               const cacheKey = `raw_sheet:${name}`;
@@ -542,13 +579,16 @@ const sheetsService = {
               console.error(`Fallback read failed for sheet ${name}:`, fallbackError);
               const isFallbackAuthError = fallbackError.status === 403 || fallbackError.code === 403 ||
                                           (fallbackError.message && fallbackError.message.toLowerCase().includes('permission'));
-              if (isFallbackAuthError) {
+              if (isFallbackAuthError && isMockDataEnabled()) {
                 const rows = getRawMockData(name);
                 batchResults[name] = rows;
               } else {
-                batchResults[name] = [];
+                fallbackErrors.push(fallbackError);
               }
             }
+          }
+          if (fallbackErrors.length > 0) {
+            throw createSheetsError('Google Sheets batch and sequential reads failed', fallbackErrors[0]);
           }
           return batchResults;
         }
@@ -577,7 +617,9 @@ const sheetsService = {
     const rawDataMap = await sheetsService.getMultipleSheets(sheetNames);
     const results = {};
     sheetNames.forEach(name => {
-      results[name] = getObjects(rawDataMap[name] || [], clientCode);
+      results[name] = getObjects(rawDataMap[name] || [], clientCode, {
+        requireClientColumn: Boolean(clientCode && isTenantScopedSheet(name)),
+      });
     });
     return results;
   },
@@ -589,7 +631,9 @@ const sheetsService = {
 
   getSheetObjects: async (sheetName, clientCode = null) => {
     const rawDataMap = await sheetsService.getMultipleSheets([sheetName]);
-    return getObjects(rawDataMap[sheetName] || [], clientCode);
+    return getObjects(rawDataMap[sheetName] || [], clientCode, {
+      requireClientColumn: Boolean(clientCode && isTenantScopedSheet(sheetName)),
+    });
   }
 };
 

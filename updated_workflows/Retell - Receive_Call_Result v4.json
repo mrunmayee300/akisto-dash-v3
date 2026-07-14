@@ -3717,7 +3717,7 @@
         16
       ],
       "id": "d6b85af8-904a-4418-955e-dbd8526b01f6",
-      "name": "Webhook",
+      "name": "Webhook (disabled legacy)",
       "webhookId": "2f228e35-c4dd-4154-9303-b73181b024f6",
       "disabled": true
     },
@@ -3832,7 +3832,7 @@
         320
       ],
       "id": "07e25c76-a4a5-44cf-9955-5537c26ff308",
-      "name": "Webhook1",
+      "name": "Webhook",
       "webhookId": "121c509c-3ec7-407a-9fd0-e3b867072f42"
     }
   ],
@@ -3976,7 +3976,7 @@
         ]
       ]
     },
-    "Webhook": {
+    "Webhook (disabled legacy)": {
       "main": [
         []
       ]
@@ -4014,7 +4014,7 @@
         ]
       ]
     },
-    "Webhook1": {
+    "Webhook": {
       "main": [
         [
           {
@@ -4026,7 +4026,7 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
