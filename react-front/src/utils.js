@@ -107,7 +107,11 @@ export function resolvePoDashboardState(po) {
     } else if (isLowConfidence) {
       subStatus = 'Low Confidence';
     } else if (classificationLower.includes('delay') || classificationLower.includes('late')) {
-      subStatus = 'Delayed';
+      if (classificationLower.includes('tbc')) {
+        subStatus = 'Delayed TBC';
+      } else {
+        subStatus = 'Delayed';
+      }
     } else if (isEscalated) {
       subStatus = 'No Response';
     }
@@ -128,6 +132,10 @@ export function resolvePoDashboardState(po) {
       label = 'Delayed';
       cls = 'p-delayed';
       reason = po[prefix + 'delivery_status_text'] || 'Delivery delayed.';
+    } else if (subStatus === 'Delayed TBC') {
+      label = 'Delayed · TBC';
+      cls = 'p-delayed-tbc';
+      reason = po[prefix + 'delivery_status_text'] || 'Delivery delayed (TBC).';
     } else if (subStatus === 'No Response') {
       label = 'No Response';
       cls = 'p-no-response';
@@ -155,7 +163,7 @@ export function resolvePoDashboardState(po) {
     (isPassiveStage && hasReply && confirmedClassifications.includes(classificationLower));
 
   if (isOnTrackState) {
-    let label = isPassiveStage && !hasReply ? 'On track' : 'On time';
+    let label = 'On time';
     let cls = 'p-ontime';
 
     if (classificationLower.includes('tbc') || classificationLower.includes('soft') || classificationLower.includes('warning') || classificationLower.includes('shipped')) {

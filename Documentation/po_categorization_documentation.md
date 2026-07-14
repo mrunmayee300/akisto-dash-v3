@@ -95,7 +95,8 @@ Once categorized under Needs Attention, the sub-status, label, and reason displa
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Unclear Response** | Classification is exactly `'unclear'` | `"Unclear response"` | `p-unclear` | Purple fill / purple text | Stage-specific delivery status text, or fallback: *"AI clarification attempts failed or unclear response received."* |
 | **Low Confidence** | Supplier reply confidence is `'low'` | `"Low confidence"` | `p-low-confidence` | Light canvas bg / gray-brown text | Stage-specific delivery status text, or fallback: *"AI classification confidence is Low; review required."* |
-| **Delayed** | Classification matches `"delayed"` or `"delayed tbc"` | `"Delayed"` | `p-delayed` | Red fill / red text | Stage-specific delivery status text, or fallback: *"Delivery delayed."* |
+| **Delayed** | Classification matches `"delayed"` | `"Delayed"` | `p-delayed` | Red fill / red text | Stage-specific delivery status text, or fallback: *"Delivery delayed."* |
+| **Delayed TBC** | Classification matches `"delayed tbc"` | `"Delayed · TBC"` | `p-delayed-tbc` | Red fill / red text | Stage-specific delivery status text, or fallback: *"Delivery delayed (TBC)."* |
 | **No Response** | Status is `'escalation_sent'` | `"No Response"` | `p-no-response` | Gold fill / dark gold text | *"No reply despite repeated follow-up emails and calls."* |
 | **Needs Review** (Fallback) | Any other trigger (e.g. manual `needs_human_review === 'yes'`) | `"Needs review"` | `p-review` | Slate gray pill (`#F1F5F9` bg, `#475569` text) | Stage-specific delivery status text, or fallback: *"Flagged for reviewer audit."* |
 
