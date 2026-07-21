@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Akisto Supplier Detail</title>
+<style>
+  :root{
+    --darkE:#0B3D2E;--emerald:#0E5C44;--accent:#127A5A;--bright:#1D9E75;--pale:#DDF0E7;
+    --gold:#C79A2E;--darkgold:#8A6516;--goldfill:#FBF4E2;
+    --red:#B23B2E;--redfill:#F7E7E3;--purple:#6B3FA0;--purplefill:#F1E9F5;
+    --body:#2C2C2A;--muted:#6B6F73;--line:#E7EAE8;--canvas:#EEF1EF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Aptos','Segoe UI',-apple-system,sans-serif;background:var(--canvas);color:var(--body);padding:30px;}
+  .app{width:1360px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+
+  .back{padding:14px 28px 0;font-size:13px;color:var(--accent);font-weight:700;}
+
+  .ph{padding:14px 28px 20px;border-bottom:1px solid var(--line);}
+  .ph .top{display:flex;align-items:flex-start;justify-content:space-between;}
+  .ph .nm{font-size:21px;font-weight:800;color:var(--emerald);letter-spacing:-0.3px;}
+  .ph .nm span{font-size:14px;color:var(--muted);font-weight:600;}
+  .ph .cat{font-size:13px;color:var(--muted);margin-top:3px;}
+  .flag{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:0.4px;}
+  .f-watch{background:var(--redfill);color:var(--red);}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;padding:18px 28px 6px;}
+  .kpi{border:1px solid var(--line);border-radius:11px;padding:13px 15px;}
+  .kpi .lab{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+  .kpi .num{font-size:28px;font-weight:800;color:var(--body);margin-top:3px;letter-spacing:-1px;}
+  .kpi .num.bad{color:var(--red);}
+
+  .chartwrap{padding:14px 28px 8px;}
+  .card{border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+  .card.flush{border:none;padding:0;}
+  .card .ct{font-size:14px;font-weight:800;color:var(--body);margin-bottom:2px;}
+  .card .cs{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+  svg{display:block;width:100%;overflow:visible;}
+  .axlab{font-size:10.5px;fill:var(--muted);}
+  .gridline{stroke:#EEF1EF;stroke-width:1;}
+
+  .section{padding:20px 28px 4px;}
+  .section h2{font-size:16px;font-weight:800;color:var(--emerald);}
+  .section .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);font-weight:700;text-align:left;padding:10px 28px;border-bottom:1px solid var(--line);}
+  thead th.r{text-align:right;}
+  tbody td{padding:12px 28px;border-bottom:1px solid #F2F4F2;font-size:13.5px;vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr.click{cursor:pointer;}
+  tbody tr.click:hover{background:#FAFBFA;}
+  .po{font-weight:800;color:var(--emerald);white-space:nowrap;}
+  .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;}
+  .pill{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+  .p-ontime{background:var(--pale);color:var(--emerald);}
+  .p-delayed{background:var(--redfill);color:var(--red);}
+  .p-review{background:var(--purplefill);color:var(--purple);}
+
+  .reasons{display:flex;flex-direction:column;gap:11px;margin-top:6px;}
+  .rrow{display:flex;align-items:center;gap:12px;}
+  .rrow .rn{font-size:13px;color:var(--body);font-weight:600;width:210px;flex-shrink:0;display:flex;align-items:center;gap:8px;}
+  .rrow .rn .src{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+  .src-sup{background:var(--accent);}.src-int{background:var(--gold);}
+  .rrow .rb{flex:1;height:18px;background:#EEF1EF;border-radius:5px;overflow:hidden;}
+  .rrow .rb i{display:block;height:100%;border-radius:5px;}
+  .rrow .rb i.sup{background:var(--accent);}.rrow .rb i.int{background:var(--gold);}
+  .rrow .rv{font-size:12.5px;font-weight:800;color:var(--body);width:34px;text-align:right;}
+  .legend2{display:flex;gap:18px;margin-top:14px;font-size:12px;color:var(--muted);}
+  .legend2 span{display:inline-flex;align-items:center;gap:6px;}
+  .legend2 .sw{width:11px;height:11px;border-radius:3px;}
+
+  .contactwrap{padding:10px 28px 6px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px 28px;}
+  .cf{display:flex;flex-direction:column;}
+  .cl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+  .cv{font-size:14px;color:var(--body);font-weight:600;}
+  .cv a{color:var(--body);text-decoration:none;}
+  .cv a:hover{color:var(--accent);}
+</style></head>
+<body>
+<div class="app">
+
+  <div class="back">&larr; Back to supplier performance</div>
+
+  <div class="ph">
+    <div class="top">
+      <div>
+        <div class="nm">Gulf Chem <span>&middot; S17</span></div>
+        <div class="cat">177 PO lines over the trailing 6 months &middot; primary contact on file</div>
+      </div>
+      <span class="flag f-watch">Watch</span>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lab">On-time rate</div><div class="num bad">54%</div></div>
+    <div class="kpi"><div class="lab">Avg days late</div><div class="num">6.2</div></div>
+    <div class="kpi"><div class="lab">Avg response time</div><div class="num">3.1 d</div></div>
+    <div class="kpi"><div class="lab">Escalated to buyer</div><div class="num">21%</div></div>
+  </div>
+
+  <div class="chartwrap">
+    <div class="card">
+      <div class="ct">On-time rate over time</div>
+      <div class="cs">This supplier's monthly on-time rate, trending down over the trailing 6 months</div>
+      <svg viewBox="0 0 900 260" height="260" style="max-width:760px;margin:0 auto;">
+        <text class="axlab" x="2" y="28">100%</text>
+        <text class="axlab" x="8" y="92">75%</text>
+        <text class="axlab" x="8" y="156">50%</text>
+        <text class="axlab" x="8" y="220">25%</text>
+        <polyline fill="none" stroke="#B23B2E" stroke-width="3" points="120,62 264,70 408,78 552,104 696,120 840,136"/>
+        <polygon fill="#B23B2E" opacity="0.07" points="120,62 264,70 408,78 552,104 696,120 840,136 840,232 120,232"/>
+        <circle cx="120" cy="62" r="4" fill="#8A6516"/>
+        <circle cx="264" cy="70" r="4" fill="#8A6516"/>
+        <circle cx="408" cy="78" r="4" fill="#8A6516"/>
+        <circle cx="552" cy="104" r="4" fill="#8A6516"/>
+        <circle cx="696" cy="120" r="4" fill="#8A6516"/>
+        <circle cx="840" cy="136" r="5" fill="#B23B2E"/>
+        <text class="axlab" x="108" y="252">Jan</text>
+        <text class="axlab" x="252" y="252">Feb</text>
+        <text class="axlab" x="396" y="252">Mar</text>
+        <text class="axlab" x="540" y="252">Apr</text>
+        <text class="axlab" x="684" y="252">May</text>
+        <text class="axlab" x="828" y="252">Jun</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="section"><h2>Delay analysis</h2><div class="sub">Root cause of this supplier's delayed PO lines, by where the delay originated</div></div>
+  <div class="chartwrap" style="padding-top:6px;">
+    <div class="card flush">
+      <div class="reasons">
+        <div class="rrow"><span class="rn"><span class="src src-sup"></span>Raw material shortage</span><span class="rb"><i class="sup" style="width:41%"></i></span><span class="rv">41%</span></div>
+        <div class="rrow"><span class="rn"><span class="src src-sup"></span>Production / capacity</span><span class="rb"><i class="sup" style="width:29%"></i></span><span class="rv">29%</span></div>
+        <div class="rrow"><span class="rn"><span class="src src-int"></span>Payment / invoice hold</span><span class="rb"><i class="int" style="width:18%"></i></span><span class="rv">18%</span></div>
+        <div class="rrow"><span class="rn"><span class="src src-sup"></span>Logistics / transit</span><span class="rb"><i class="sup" style="width:12%"></i></span><span class="rv">12%</span></div>
+      </div>
+      <div class="legend2">
+        <span><span class="sw" style="background:var(--gold)"></span>Internal</span>
+        <span><span class="sw" style="background:var(--accent)"></span>Supplier</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section"><h2>Supplier contact</h2><div class="sub">Who to reach about this supplier</div></div>
+  <div class="contactwrap">
+    <div class="cf"><span class="cl">Contact name</span><span class="cv">Lokesh Reddy</span></div>
+    <div class="cf"><span class="cl">Email</span><span class="cv"><a href="#">lokesh@gulfchem.in</a></span></div>
+    <div class="cf"><span class="cl">Phone</span><span class="cv">&ndash;</span></div>
+    <div class="cf"><span class="cl">Source location</span><span class="cv">Mumbai, Maharashtra</span></div>
+  </div>
+
+  <div class="section"><h2>Recent deliveries</h2><div class="sub">Most recent completed line items for this supplier. Click one to open its full trail</div></div>
+  <table>
+    <thead>
+      <tr><th>PO</th><th>Material</th><th class="r">Need by</th><th class="r">Delivered</th><th class="r">Days late</th><th>Outcome</th></tr>
+    </thead>
+    <tbody>
+      <tr class="click"><td class="po">300519</td><td>Citric acid &middot; CA-08</td><td class="num">14 Jun</td><td class="num">20 Jun</td><td class="num">+6</td><td><span class="pill p-delayed">Delayed</span></td></tr>
+      <tr class="click"><td class="po">300487</td><td>Sodium citrate &middot; SC-11</td><td class="num">2 Jun</td><td class="num">2 Jun</td><td class="num">0</td><td><span class="pill p-ontime">On time</span></td></tr>
+      <tr class="click"><td class="po">300455</td><td>Citric acid &middot; CA-08</td><td class="num">24 May</td><td class="num">29 May</td><td class="num">+5</td><td><span class="pill p-delayed">Delayed</span></td></tr>
+      <tr class="click"><td class="po">300401</td><td>Sodium citrate &middot; SC-11</td><td class="num">15 May</td><td class="num">15 May</td><td class="num">0</td><td><span class="pill p-ontime">On time</span></td></tr>
+      <tr class="click"><td class="po">300388</td><td>Citric acid &middot; CA-08</td><td class="num">10 May</td><td class="num">10 May</td><td class="num">0</td><td><span class="pill p-ontime">On time</span></td></tr>
+    </tbody>
+  </table>
+
+</div>
+</body></html>
