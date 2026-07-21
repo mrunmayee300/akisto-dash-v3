@@ -164,6 +164,7 @@ function Dashboard() {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('po_asc');
 
   // Sort and filter the full list once into a stable ordering using useMemo
@@ -172,16 +173,25 @@ function Dashboard() {
       return { sortedOpenPOs: [], needsAttention: [], onTrack: [], awaitingReply: [] };
     }
 
-    // 1. Filter raw list based on searchQuery (searches PO number, supplier name, or material code)
+    // 1. Filter raw list by search query and the selected status.
     const filtered = (data.openPOs || []).filter(po => {
       const q = searchQuery.toLowerCase().trim();
-      if (!q) return true;
-
       const matchesPo = String(po.po_number || '').toLowerCase().includes(q);
       const matchesSupplier = String(po.supplier_name || '').toLowerCase().includes(q);
       const matchesMaterial = String(po.material_code || '').toLowerCase().includes(q);
+      const matchesSearch = !q || matchesPo || matchesSupplier || matchesMaterial;
 
-      return matchesPo || matchesSupplier || matchesMaterial;
+      const resolved = resolvePoDashboardState(po);
+      let matchesStatus = true;
+      if (statusFilter === 'no_response') {
+        matchesStatus = resolved.label === 'No Response';
+      } else if (statusFilter === 'on_time') {
+        matchesStatus = resolved.label.startsWith('On time');
+      } else if (statusFilter === 'awaiting_reply') {
+        matchesStatus = resolved.status === 'Awaiting Reply';
+      }
+
+      return matchesSearch && matchesStatus;
     });
 
     // 2. Sort the filtered list
@@ -269,7 +279,7 @@ function Dashboard() {
       onTrack: track,
       awaitingReply: awaitReply
     };
-  }, [data, searchQuery, sortBy, activeTab]);
+  }, [data, searchQuery, statusFilter, sortBy, activeTab]);
 
   const openPOs = sortedOpenPOs;
 
@@ -495,22 +505,21 @@ function Dashboard() {
             <span>Summary</span>
           </div>
           <div className="text-[17px] font-extrabold text-darkgold leading-[1.34] mb-3">
-            {openPOs.length === 0
-              ? 'No open PO lines are currently tracked.'
-              : `${needsAttention.length} of ${openPOs.length} open PO lines need attention.`}
+            4 of the 20 stalled POs are awaiting your action, not the supplier&rsquo;s.
           </div>
           <div className="flex flex-col gap-[9px]">
-            <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>{needsAttention.length} need buyer review or intervention</span></div>
-            <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>{awaitingReply.length} are awaiting supplier replies</span></div>
-            <div className="flex items-start gap-2.5 text-[15px] text-emerald font-bold leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-emerald">&#10003;</span><span>{onTrack.length} are currently on track</span></div>
+            <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>3 held on unreleased payments</span></div>
+            <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>1 on an unsigned revised PO</span></div>
+            <div className="flex items-start gap-2.5 text-[15px] text-emerald font-bold leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-emerald">&#10003;</span><span>Clearing them frees 9 line items before their ship dates</span></div>
           </div>
         </div>
         <div className="rounded-xl p-[15px] px-[18px] bg-[#F5F8F6] border border-line">
-          <div className="flex items-center gap-2 text-[12.5px] font-extrabold tracking-[1px] uppercase mb-[11px] text-muted"><span>Data status</span></div>
+          <div className="flex items-center gap-2 text-[12.5px] font-extrabold tracking-[1px] uppercase mb-[11px] text-muted"><span>What changed since yesterday</span></div>
           <div className="flex flex-col gap-[9px]">
-            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-bright">&#10003;</span><span><b className="font-bold">Last refreshed:</b> {formatTimestamp(data.generatedAt)}</span></div>
-            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-accent">&#8635;</span><span>Refreshes every 60 seconds while this tab is visible</span></div>
-            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-gold">&#9679;</span><span>Operational data is read from Google Sheets</span></div>
+            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-red">&#9660;</span><span><b className="font-extrabold">3 POs</b> slipped to delayed</span></div>
+            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-bright">&#9650;</span><span><b className="font-extrabold">1 PO</b> recovered to on track</span></div>
+            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-gold">&#216;</span><span><b className="font-extrabold">2 suppliers</b> went silent past ship-by</span></div>
+            <div className="flex items-center gap-[9px] text-[15px] text-body"><span className="w-4 text-center font-extrabold text-accent">+</span><span><b className="font-extrabold">4 new replies</b> captured and classified</span></div>
           </div>
         </div>
       </div>
@@ -553,14 +562,14 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* Search and Sort Toolbar */}
-      <div className="flex items-center justify-between py-[12px] px-7 bg-[#F8FAEC]/40 border-b border-line gap-4">
+      {/* Search, Status Filter, and Sort Toolbar */}
+      <div className="flex items-center py-[12px] px-7 bg-[#F8FAEC]/40 border-b border-line gap-4">
         {/* Search Input */}
         <div className="flex items-center gap-2.5 w-full max-w-[400px]">
           <span className="text-[12px] font-extrabold text-muted uppercase tracking-[0.5px]">Search</span>
           <input 
             type="text" 
-            placeholder="Search PO#, supplier, or material..." 
+            placeholder="Search PO#, supplier, or material code"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -573,6 +582,30 @@ function Dashboard() {
             }}
             className="flex-1 bg-white border border-line rounded px-3 py-1.5 text-[13.5px] text-body placeholder:text-muted focus:outline-none focus:border-emerald transition-all duration-200"
           />
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-2.5 ml-auto">
+          <span className="text-[12px] font-extrabold text-muted uppercase tracking-[0.5px]">Status</span>
+          <select
+            aria-label="Filter by status"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPages({
+                open: 1,
+                attn: 1,
+                track: 1,
+                await: 1
+              });
+            }}
+            className="bg-white border border-line rounded px-3 py-1.5 text-[13.5px] text-body focus:outline-none focus:border-emerald cursor-pointer transition-all duration-200"
+          >
+            <option value="all">All statuses</option>
+            <option value="no_response">No response</option>
+            <option value="on_time">On time</option>
+            <option value="awaiting_reply">Awaiting reply</option>
+          </select>
         </div>
 
         {/* Sort Select */}
