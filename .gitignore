@@ -1,0 +1,63 @@
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Production builds
+dist/
+**/dist/
+
+# Local environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor / System files
+.vscode/
+.idea/
+.playwright-cli/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Ignore non-project folders and reference files in the workspace root
+/dashed/
+/dashed - reference/
+/*.xlsx
+/*.html
+
+# Only allow backend and react-front folders
+!/backend/
+!/react-front/
+
+/updates/
+backend/count_by_client.js
+akisto_brainstorm.md
+changes10.md
+frontend.md
+data sheet.xlsx
+Copy of PO_data and communication logs v3 (2).xlsx
+Po_data v3.xlsx
+PO_data and communication logs v3.xlsx
+data sheet.xlsx
+changes10.md
+frontend0.md
+frontend1.md
+po_classification_documentation_v3.docx
+po_classification_documentation.md
+info/

@@ -1,0 +1,534 @@
+{
+  "name": "PO Followup Actions - All v3",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        368
+      ],
+      "id": "f8ac79e4-c7e7-49fd-a6a5-d9e3ef74a6e0",
+      "name": "1_Trigger Manually"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c51bd758-5747-4a2d-91e6-0976f6cd52bf",
+              "leftValue": "={{ $input.all().filter(item => item.json.comms_group_id).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -432,
+        368
+      ],
+      "id": "fe61cf10-e95e-4c07-bcdf-605327713805",
+      "name": "3_Check - Any Open POs"
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -64,
+        352
+      ],
+      "id": "77c404fe-2790-4a13-8ccb-2ad5423cc864",
+      "name": "4_Loop – Over Each PO"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "x3rThWT2rMQwC5sa",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/x3rThWT2rMQwC5sa"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        368
+      ],
+      "id": "ab83423c-1e96-4859-9de4-9a78d29935c7",
+      "name": "5_Call – Each PO Followup Action"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=Client info",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "client_code",
+              "lookupValue": "={{ $('1_Trigger Manually').item.json.client_code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1184,
+        368
+      ],
+      "id": "5e7354aa-fcb0-44a1-82d4-3c1c2557350a",
+      "name": "1b_Read - Client list",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU",
+          "mode": "list",
+          "cachedResultName": "Akisto System Settings Danish",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1424,
+        368
+      ],
+      "id": "cc733a6a-22d8-41da-85c3-ffa8b2273747",
+      "name": "1a_Read – Akisto System Settings",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1716007832,
+          "mode": "list",
+          "cachedResultName": "PO consolidated data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I1y4Aq_mmDufthcDLi5rmqJ4225nurlNbTuE0JKTe4I/edit#gid=1716007832"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "client_code",
+              "lookupValue": "={{ $('1_Trigger Manually').item.json.client_code }}"
+            },
+            {
+              "lookupColumn": "po_status",
+              "lookupValue": "Open"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -960,
+        368
+      ],
+      "id": "8db2091a-5172-4324-9775-ac46f48bd164",
+      "name": "1c_Read - All Open POs",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allRows = $input.all();\n\n// Collect unique comms_group_ids\nconst seen = new Set();\nconst uniqueGroups = [];\n\nfor (const row of allRows) {\n  const groupId = row.json.comms_group_id;\n  if (groupId && !seen.has(groupId)) {\n    seen.add(groupId);\n    uniqueGroups.push({\n      json: {\n        comms_group_id: groupId,\n        // also pass client_code for downstream logging if needed\n        client_code: row.json.client_code,\n      }\n    });\n  }\n}\n\nreturn uniqueGroups;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        368
+      ],
+      "id": "b7c249a4-3558-42a7-a5ae-9cdade150cf0",
+      "name": "2a_Get - Unique_Groups"
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $('1_Trigger Manually').first().json;\nconst client = $('1b_Read - Client list').first().json;\n\nreturn [{\n  json: {\n    client_code: trigger.client_code,\n    client_company_short_name: client.client_company_short_name || client.client_company_name,\n    run_id: 'RUN_' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14),\n    run_timestamp: new Date().toISOString(),\n    trigger_type: 'Manual',\n    open_po_count: 0,\n    status: 'No open POs',\n    notes: 'Workflow ran but no open POs found — nothing to process',\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        688
+      ],
+      "id": "fc637c95-760f-4c3c-beb3-3ab018f7edff",
+      "name": "3a_Prepare - Log_Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $('1_Trigger Manually').first().json;\nconst client = $('1b_Read - Client list').first().json;\nconst openPOs = $('1c_Read - All Open POs').all();\nconst uniqueGroups = $('2a_Get - Unique_Groups').all();\n\nreturn [{\n  json: {\n    client_code: trigger.client_code,\n    client_company_short_name: client.client_company_short_name || client.client_company_name,\n    run_id: 'RUN_' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14),\n    run_timestamp: new Date().toISOString(),\n    trigger_type: 'Manual',\n    open_po_count: openPOs.length,\n    unique_groups_count: uniqueGroups.length,\n    status: 'Completed',\n    notes: 'All open POs processed successfully',\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        48
+      ],
+      "id": "50dfa0c0-4600-449a-8afa-6b08ceb5afe5",
+      "name": "6a_Prepare - Log_Fields"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2065405484,
+          "mode": "list",
+          "cachedResultName": "PO Followup Run Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I1y4Aq_mmDufthcDLi5rmqJ4225nurlNbTuE0JKTe4I/edit#gid=2065405484"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_company_name",
+              "displayName": "client_company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_timestamp",
+              "displayName": "run_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "trigger_type",
+              "displayName": "trigger_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "open_po_count",
+              "displayName": "open_po_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1168,
+        688
+      ],
+      "id": "8a3ded8b-92d1-42df-bc93-e35271f083f7",
+      "name": "3b_Log - PO Followup Run",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4e8ae4de-c2d6-4e9f-974c-2e54da5b67ec",
+              "name": "comms_group_id",
+              "value": "={{ $json.comms_group_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "47fce36d-3033-4f19-b82c-61b4c811b406",
+      "name": "4b_Edit Fields – Prepare PO Input"
+    }
+  ],
+  "pinData": {
+    "1_Trigger Manually": [
+      {
+        "json": {
+          "client_code": "C1"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "1_Trigger Manually": {
+      "main": [
+        [
+          {
+            "node": "1a_Read – Akisto System Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3_Check - Any Open POs": {
+      "main": [
+        [
+          {
+            "node": "4_Loop – Over Each PO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "3a_Prepare - Log_Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4_Loop – Over Each PO": {
+      "main": [
+        [
+          {
+            "node": "6a_Prepare - Log_Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5_Call – Each PO Followup Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5_Call – Each PO Followup Action": {
+      "main": [
+        [
+          {
+            "node": "4_Loop – Over Each PO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1b_Read - Client list": {
+      "main": [
+        [
+          {
+            "node": "1c_Read - All Open POs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1a_Read – Akisto System Settings": {
+      "main": [
+        [
+          {
+            "node": "1b_Read - Client list",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1c_Read - All Open POs": {
+      "main": [
+        [
+          {
+            "node": "2a_Get - Unique_Groups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2a_Get - Unique_Groups": {
+      "main": [
+        [
+          {
+            "node": "3_Check - Any Open POs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3a_Prepare - Log_Fields": {
+      "main": [
+        [
+          {
+            "node": "3b_Log - PO Followup Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6a_Prepare - Log_Fields": {
+      "main": [
+        [
+          {
+            "node": "3b_Log - PO Followup Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "52580aa4-43e2-487d-adaf-499de8615138",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4ee474ecbdbe20bb5eaed48e0f4d58c1ffb0805814011251d6c608a835c16bbd"
+  },
+  "nodeGroups": [],
+  "id": "L7Jp3JGsBdjyd6BC",
+  "tags": []
+}

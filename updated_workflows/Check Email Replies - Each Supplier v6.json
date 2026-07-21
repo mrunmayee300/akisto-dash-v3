@@ -1,0 +1,3469 @@
+{
+  "name": "Check Email Replies - Each Supplier v6",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PO consolidated data",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=supplier_code",
+              "lookupValue": "={{ $('Triggered by another workflow').item.json.supplier_code }}"
+            },
+            {
+              "lookupColumn": "=po_status",
+              "lookupValue": "Open"
+            },
+            {
+              "lookupColumn": "=primary_email",
+              "lookupValue": "={{ $('Triggered by another workflow').item.json.primary_email }}"
+            },
+            {
+              "lookupColumn": "=client_code",
+              "lookupValue": "={{ $('Triggered by another workflow').item.json.client_code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4608,
+        112
+      ],
+      "id": "624250ca-0640-475e-b0ca-5e7df8d84af2",
+      "name": "Read - Open POs for Supplier",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Check email workflow per supplier log",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=supplier_code",
+              "lookupValue": "={{ $(\"Triggered by another workflow\").first().json.supplier_code }}"
+            },
+            {
+              "lookupColumn": "=primary_emails",
+              "lookupValue": "={{ $(\"Triggered by another workflow\").first().json.primary_email }}"
+            },
+            {
+              "lookupColumn": "=client_code",
+              "lookupValue": "={{ $('Triggered by another workflow').item.json.client_code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4416,
+        112
+      ],
+      "id": "aceea30e-c5d7-4fda-9c60-782656bd5177",
+      "name": "Read - Last Run Timestamp",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_4155453630421609932"
+          ],
+          "receivedAfter": "={{ $json.last_run_timestamp }}",
+          "sender": "={{ $json.sender_filter }}"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -2864,
+        112
+      ],
+      "id": "a86af1db-4a51-4479-baa6-a61e17d97a7e",
+      "name": "Search - Supplier Emails in Gmail since Last Run",
+      "webhookId": "0659d68f-ced9-428c-845c-566ca9faa214",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "nhKpWGE4UBbdpgtC",
+          "name": "Danish's Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -5008,
+        112
+      ],
+      "id": "b997c642-108c-42ec-acec-4e31b3ad996b",
+      "name": "Triggered by another workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailsRaw = $('Merge - Emails').all();\nconst openPOs = $('Read - Open POs for Supplier').all();\nconst materialRows = $('Read - Material Master').all();\nconst trigger = $('Triggered by another workflow').first().json;\nconst clientTimezone = $('Read - Client Time Zone').first().json.client_timezone || $('Read - Client Time Zone').first().json.client_time_zone || 'Asia/Kolkata';\n\nconst materialMap = {};\nfor (const row of materialRows) {\n  materialMap[row.json.material_code] = row.json.material_name;\n}\n\nconst supplierRow = materialRows[0].json;\n\nfunction parseDate(dateVal) {\n  if (!dateVal) return new Date(0);\n  const date = new Date(dateVal);\n  return isNaN(date.getTime()) ? new Date(0) : date;\n}\n\n// Format date including the weekday in UTC (e.g. 2026-06-29 10:00 UTC (Monday))\nfunction formatEmailDate(dateVal) {\n  if (!dateVal) return 'unknown';\n  const date = new Date(dateVal);\n  if (isNaN(date.getTime())) return 'unknown';\n  try {\n    const weekday = date.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });\n    return date.toISOString().replace('T', ' ').substring(0, 16) + ' UTC (' + weekday + ')';\n  } catch (e) { return 'unknown'; }\n}\n\nconst getMessageId = (e) => {\n  if (e.messageId) return e.messageId;\n  if (e.headers && e.headers['message-id']) {\n    const val = e.headers['message-id'];\n    const match = val.match(/<([^>]+)>/);\n    return match ? `<${match[1]}>` : val.replace(/^Message-ID:\\s*/i, '').trim();\n  }\n  const headers = e.payload?.headers || [];\n  const msgIdHeader = headers.find(h => h.name.toLowerCase() === 'message-id');\n  if (msgIdHeader) return msgIdHeader.value;\n  return e.id ? `<${e.id}@mail.gmail.com>` : '';\n};\n\nconst getSubject = (e) => {\n  if (e.subject) return e.subject;\n  if (e.Subject) return e.Subject;\n  if (e.headers && e.headers['subject']) {\n    return e.headers['subject'].replace(/^Subject:\\s*/i, '').trim();\n  }\n  const headers = e.payload?.headers || [];\n  const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject');\n  return subjectHeader ? subjectHeader.value : '';\n};\n\nconst getFromAddress = (e) => {\n  if (e.from?.value?.[0]?.address) return e.from.value[0].address;\n  if (e.headers && e.headers['from']) {\n    const val = e.headers['from'];\n    const match = val.match(/<([^>]+)>/);\n    return match ? match[1] : val.replace(/^From:\\s*/i, '').trim();\n  }\n  const headers = e.payload?.headers || [];\n  const fromHeader = headers.find(h => h.name.toLowerCase() === 'from');\n  if (fromHeader) {\n    const match = fromHeader.value.match(/<([^>]+)>/);\n    return match ? match[1] : fromHeader.value;\n  }\n  if (e.From) {\n    const match = e.From.match(/<([^>]+)>/);\n    return match ? match[1] : e.From;\n  }\n  return 'unknown';\n};\n\nconst getBodyText = (e) => {\n  if (e.email_text) return e.email_text;\n  if (e.text) return e.text;\n  if (e.snippet) return e.snippet;\n  \n  const findTextPart = (parts) => {\n    for (const part of parts) {\n      if (part.mimeType === 'text/plain' && part.body?.data) {\n        return part.body.data;\n      }\n      if (part.parts) {\n        const text = findTextPart(part.parts);\n        if (text) return text;\n      }\n    }\n    return null;\n  };\n  \n  const rawData = e.payload?.body?.data || (e.payload?.parts ? findTextPart(e.payload.parts) : null);\n  if (rawData) {\n    const base64 = rawData.replace(/-/g, '+').replace(/_/g, '/');\n    return Buffer.from(base64, 'base64').toString('utf8');\n  }\n  return '(no text body)';\n};\n\n// 1. REGROUP: Group all parsed items by unique Email ID\nconst emailGroups = {};\nfor (const item of emailsRaw) {\n  const e = item.json;\n  const id = e.id || getMessageId(e) || 'unknown';\n  \n  if (!emailGroups[id]) {\n    emailGroups[id] = {\n      json: {\n        ...e,\n        extracted_texts: [],\n        has_binary_attachment: false\n      },\n      binary: {}\n    };\n  }\n  \n  const group = emailGroups[id];\n  \n  // Aggregate parsed attachment text (Excel/Word/CSV tables)\n  if (e.extracted_text) {\n    group.json.extracted_texts.push(e.extracted_text);\n  }\n  \n  // Aggregate binary files (e.g. data_0, data_1)\n  if (item.binary) {\n    for (const key of Object.keys(item.binary)) {\n      if (key.startsWith('data_')) {\n        group.binary[key] = item.binary[key];\n        group.json.has_binary_attachment = true;\n      }\n    }\n  }\n}\n\n// 2. CONSOLIDATE: Convert grouped email objects back to a flat array\nconst emails = Object.values(emailGroups).map(group => {\n  if (group.json.extracted_texts.length > 0) {\n    group.json.extracted_text = group.json.extracted_texts.join('\\n\\n---\\n\\n');\n  }\n  delete group.json.extracted_texts;\n  return group;\n});\n\nconst sortedEmails = emails\n  .map(e => e.json)\n  .sort((a, b) => {\n    const timeA = a.internalDate ? parseInt(a.internalDate) : parseDate(a.date).getTime();\n    const timeB = b.internalDate ? parseInt(b.internalDate) : parseDate(b.date).getTime();\n    return timeA - timeB;\n  });\n\nconst formattedEmails = sortedEmails.map((email, index) => {\n  const emailDate = email.internalDate ? new Date(parseInt(email.internalDate)) : parseDate(email.date);\n  const receivedAt = formatEmailDate(emailDate);\n  const messageId = getMessageId(email);\n  const threadId = email.threadId || null;\n  const subject = getSubject(email);\n  const from = getFromAddress(email);\n  const body = getBodyText(email);\n  \n  let emailText = `Email ${index + 1} (received ${receivedAt}):\\nMessage-Id: ${messageId || 'not available'}\\nThread-Id: ${threadId || 'not available'}\\nSubject: ${subject}\\nFrom: ${from}\\nBody:\\n${body}`;\n  \n  if (email.extracted_text) {\n    emailText += `\\n\\n[ATTACHMENT CONTENT - Parsed content from file attachments (Excel/Word/Text)]:\\n${email.extracted_text}\\n[END OF ATTACHMENT CONTENT]`;\n  }\n  else if (email.has_binary_attachment) {\n    emailText += `\\n\\n[ATTACHMENT INFO]: This email contains attached PDF or image documents. Please analyze the attached files for PO details associated with this message.`;\n  }\n  \n  return emailText;\n}).join('\\n\\n---\\n\\n');\n\nconst formattedPOs = openPOs.map(po => {\n  const p = po.json;\n  const materialName = materialMap[p.material_code] || p.material_code;\n  return `- PO Number: ${p.po_number} | Line Item: ${p.po_line_item} | Material: ${materialName} (${p.material_code}) | Quantity: ${p.quantity} ${p.unit} | PO Issue Date: ${p.issue_date} | Must Ship By: ${p.ship_by_date_delivery_1 || 'not specified'} | Deliver By: ${p.deliver_by_date_delivery_1 || p.communicated_delivery_date_1} | Production Needed By: ${p.production_date_1 || 'not specified'}`;\n}).join('\\n');\n\nconst currentDateVal = new Date().toLocaleDateString('en-CA', { timeZone: clientTimezone });\nconst currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: clientTimezone });\n\nconst payload = {\n  json: {\n    supplier_code: trigger.supplier_code,\n    supplier_name: supplierRow.supplier_name,\n    supplier_name_short: supplierRow.supplier_name_short,\n    primary_contact_name: supplierRow.primary_contact_names,\n    primary_email: trigger.primary_email,\n    ai_agent_buyer_name: supplierRow.ai_agent_buyer_name,\n    ai_agent_buyer_position: supplierRow.ai_agent_buyer_position,\n    ai_agent_buyer_email: supplierRow.ai_agent_buyer_email,\n    client_buyer_name: supplierRow.client_buyer_name,\n    client_buyer_email: supplierRow.client_buyer_email,\n    email_count: sortedEmails.length,\n    po_count: openPOs.length,\n    client_timezone: clientTimezone,\n    // Formats as e.g. \"2026-06-29 (Monday)\"\n    current_date: `${currentDateVal} (${currentDayName})`,\n    formatted_emails: formattedEmails,\n    formatted_pos: formattedPOs,\n    open_pos_raw: openPOs.map(po => po.json)\n  }\n};\n\n// Re-propagate binary attachments to the outer payload\nlet outputBinaryCount = 0;\nfor (const email of emails) {\n  if (email.binary) {\n    for (const key of Object.keys(email.binary)) {\n      if (key.startsWith('data_')) {\n        if (!payload.binary) payload.binary = {};\n        payload.binary[`data_${outputBinaryCount}`] = email.binary[key];\n        outputBinaryCount++;\n      }\n    }\n  }\n}\n\nreturn [payload];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1792,
+        112
+      ],
+      "id": "634da693-5be9-4972-b3ad-90dfc878289b",
+      "name": "Prepare - Email and PO Context for Claude",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Client info",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=client_code",
+              "lookupValue": "={{ $('Triggered by another workflow').first().json.client_code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2000,
+        112
+      ],
+      "id": "64aed957-e567-47fb-bfd9-57876644a510",
+      "name": "Read - Client Time Zone",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const claudeResponse = $input.first().json.content[0].text;\nconst cleaned = claudeResponse.replace(/```json|```/g, '').trim();\nconst parsed = JSON.parse(cleaned);\nconst d = $('Prepare - Email and PO Context for Claude').first().json;\nconst supplierCode = d.supplier_code;\nconst allPos = d.open_pos_raw;\nconst clientCode = allPos[0]?.client_code;\n\n// Fetch all raw emails found by Gmail search\nconst emails = $('Search - Supplier Emails in Gmail since Last Run').all();\nconst sortedEmails = emails.map(e => e.json);\n\n// Resolve the supplier's email directly from context to avoid uncatchable node reference errors\nlet supplierEmail = '';\ntry {\n  supplierEmail = $('Prepare - Email and PO Context for Claude').first().json.primary_email || $('Prepare - Email and PO Context for Claude').first().json.supplier_email;\n} catch (e) {\n  // Fallback\n}\n\n// Helper to get sender email address (casing and format agnostic)\nconst getFromAddress = (e) => {\n  if (e.from?.value?.[0]?.address) return e.from.value[0].address;\n  if (e.headers && e.headers['from']) {\n    const val = e.headers['from'];\n    const match = val.match(/<([^>]+)>/);\n    return match ? match[1] : val.replace(/^From:\\s*/i, '').trim();\n  }\n  const headers = e.payload?.headers || [];\n  const fromHeader = headers.find(h => h.name.toLowerCase() === 'from');\n  if (fromHeader) {\n    const match = fromHeader.value.match(/<([^>]+)>/);\n    return match ? match[1] : fromHeader.value;\n  }\n  if (e.From) {\n    const match = e.From.match(/<([^>]+)>/);\n    return match ? match[1] : e.From;\n  }\n  return 'unknown';\n};\n\n// Helper to get CC email addresses dynamically from message headers\nconst getCcEmails = (e) => {\n  let val = '';\n  if (e.headers && e.headers['cc']) {\n    val = e.headers['cc'];\n  } else {\n    const headers = e.payload?.headers || [];\n    const ccHeader = headers.find(h => h.name.toLowerCase() === 'cc');\n    if (ccHeader) val = ccHeader.value;\n  }\n  if (!val) return [];\n    const matches = val.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/g) || [];\n  return matches.map(m => m.toLowerCase().trim());\n};\n\n// Set of public domains that must not be matched domain-wide\nconst publicDomains = new Set([\n  'gmail.com', \n  'yahoo.com', 'yahoo.co.in', 'yahoo.co.uk',\n  'hotmail.com', 'outlook.com', 'live.com', 'icloud.com',\n  'aol.com', 'zoho.com', 'zoho.in', 'protonmail.com',\n  'proton.me', 'mail.com', 'gmx.com', 'yandex.com', 'rediffmail.com'\n]);\n\nfunction getRootDomain(emailAddr) {\n  const parts = emailAddr.trim().toLowerCase().split('@');\n  if (parts.length !== 2) return '';\n  const fullDomain = parts[1];\n  \n  const domainParts = fullDomain.split('.');\n  if (domainParts.length <= 2) {\n    return fullDomain;\n  }\n  \n  const multipartSuffixes = [\n    'co.in', 'net.in', 'org.in', 'firm.in', 'gen.in', 'ind.in', 'nic.in', 'ac.in', 'edu.in', 'res.in', 'gov.in', 'mil.in',\n    'co.uk', 'me.uk', 'org.uk', 'net.uk', 'ltd.uk', 'plc.uk', 'sch.uk', 'nhs.uk', 'police.uk', 'mod.uk', 'ac.uk',\n    'com.sg', 'org.sg', 'net.sg', 'edu.sg', 'gov.sg', 'per.sg',\n    'com.au', 'net.au', 'org.au', 'asn.au', 'id.au', 'gov.au',\n    'co.jp', 'ne.jp', 'or.jp', 'go.jp', 'ac.jp', 'ad.jp',\n    'com.br', 'co.za', 'com.mx', 'co.nz', 'com.tw', 'com.hk'\n  ];\n  \n  const lastTwo = domainParts.slice(-2).join('.');\n  if (multipartSuffixes.includes(lastTwo)) {\n    return domainParts.slice(-3).join('.');\n  } else {\n    return domainParts.slice(-2).join('.');\n  }\n}\n\n// Filter sorted emails to include those matching the supplier domain-wide (or exact public email)\nconst supplierEmails = sortedEmails.filter(e => {\n  if (!supplierEmail) return true;\n  const fromHeader = getFromAddress(e).toLowerCase().trim();\n  const primaryEmailLower = supplierEmail.toLowerCase().trim();\n  \n  if (fromHeader.includes(primaryEmailLower)) return true;\n  \n  const fromParts = fromHeader.split('@');\n  const primaryParts = primaryEmailLower.split('@');\n  \n  if (fromParts.length === 2 && primaryParts.length === 2) {\n    const fromDomain = fromParts[1];\n    const primaryDomain = primaryParts[1];\n    \n    if (!publicDomains.has(primaryDomain)) {\n      const fromRoot = getRootDomain(fromHeader);\n      const primaryRoot = getRootDomain(primaryEmailLower);\n      return fromRoot === primaryRoot && fromRoot !== '';\n    }\n  }\n  return false;\n});\n\n// Helper to clean message IDs for robust matching\nconst clean = (id) => (id || '').replace(/[<>]/g, '').trim().toLowerCase();\n\n// Helper to get message ID (casing and format agnostic)\nconst getMessageId = (e) => {\n  if (e.messageId) return e.messageId;\n  if (e.headers && e.headers['message-id']) {\n    const val = e.headers['message-id'];\n    const match = val.match(/<([^>]+)>/);\n    return match ? `<${match[1]}>` : val.replace(/^Message-ID:\\s*/i, '').trim();\n  }\n  const headers = e.payload?.headers || [];\n  const msgIdHeader = headers.find(h => h.name.toLowerCase() === 'message-id');\n  if (msgIdHeader) return msgIdHeader.value;\n  return e.id ? `<${e.id}@mail.gmail.com>` : '';\n};\n\n// Helper to get subject (casing and format agnostic)\nconst getSubject = (e) => {\n  if (e.subject) return e.subject;\n  if (e.Subject) return e.Subject;\n  if (e.headers && e.headers['subject']) {\n    return e.headers['subject'].replace(/^Subject:\\s*/i, '').trim();\n  }\n  const headers = e.payload?.headers || [];\n  const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject');\n  return subjectHeader ? subjectHeader.value : '';\n};\n\n// ============================================================\n// DETERMINISTIC DATE ENGINE HELPERS\n// ============================================================\nfunction addWorkingDays(startDateStr, daysOffset) {\n  const date = new Date(startDateStr);\n  if (isNaN(date.getTime())) return null;\n  let count = 0;\n  const direction = daysOffset >= 0 ? 1 : -1;\n  const absOffset = Math.abs(daysOffset);\n  const workingDays = [1, 2, 3, 4, 5, 6];\n\n  while (count < absOffset) {\n    date.setDate(date.getDate() + direction);\n    const day = date.getDay();\n    if (workingDays.includes(day)) {\n      count++;\n    }\n  }\n  return date.toISOString().substring(0, 10);\n}\n\nfunction addCalendarDays(startDateStr, daysOffset) {\n  const date = new Date(startDateStr);\n  if (isNaN(date.getTime())) return null;\n  date.setDate(date.getDate() + daysOffset);\n  return date.toISOString().substring(0, 10);\n}\n\nfunction parseAndCalculateDate(dateStr) {\n  if (!dateStr || typeof dateStr !== 'string') return dateStr || null;\n  const trimmed = dateStr.trim();\n  if (!trimmed.toUpperCase().startsWith('CALC:')) {\n    return dateStr;\n  }\n  const calcRegex = /^CALC:\\s*(\\d{4}-\\d{2}-\\d{2})([^+-]*)\\s*([+-])\\s*(\\d+)\\s*(working|calendar|days|day|working_days|work|business|business_days)?/i;\n  const match = trimmed.match(calcRegex);\n  if (!match) return null;\n  const baseDate = match[1];\n  const operator = match[3];\n  const offsetValue = parseInt(match[4], 10);\n  const offset = offsetValue * (operator === '-' ? -1 : 1);\n  const type = (match[5] || 'calendar').toLowerCase();\n  const isWorkingDays = type.startsWith('work') || type.startsWith('bus');\n  \n  if (isWorkingDays) {\n    return addWorkingDays(baseDate, offset);\n  } else {\n    return addCalendarDays(baseDate, offset);\n  }\n}\n\n// ============================================================\n\nreturn parsed.extractions.map(extraction => {\n  const poRow = allPos.find(p => \n    String(p.po_number) === String(extraction.po_number) && \n    String(p.po_line_item) === String(extraction.po_line_item)\n  );\n\n  const msgId = extraction.supplier_reply_message_id;\n  let matchedEmail = null;\n  \n  if (extraction.email_found && msgId) {\n    matchedEmail = supplierEmails.find(e => {\n      const emailMsgId = getMessageId(e);\n      return clean(emailMsgId) === clean(msgId);\n    });\n    if (!matchedEmail && supplierEmails.length > 0) {\n      matchedEmail = supplierEmails[supplierEmails.length - 1];\n    }\n  } else if (extraction.email_found && supplierEmails.length > 0) {\n    matchedEmail = supplierEmails[supplierEmails.length - 1];\n  }\n  \n  const replySubject = matchedEmail ? getSubject(matchedEmail) : '';\n  const replyThreadId = matchedEmail ? (matchedEmail.threadId || '') : '';\n  const replyMessageId = matchedEmail ? getMessageId(matchedEmail) : '';\n  const replySenderEmail = matchedEmail ? getFromAddress(matchedEmail) : '';\n\n  // Resolve CC email routing details\n  const ccEmails = matchedEmail ? getCcEmails(matchedEmail) : [];\n  const primaryEmailLower = (supplierEmail || '').toLowerCase().trim();\n  const buyerEmailLower = (d.client_buyer_email || '').toLowerCase().trim();\n  const agentEmailLower = (d.ai_agent_buyer_email || '').toLowerCase().trim();\n  \n  const colleagueEmails = ccEmails.filter(email => {\n    return email !== primaryEmailLower && email !== buyerEmailLower && email !== agentEmailLower;\n  });\n  const colleagueEmail = colleagueEmails.length > 0 ? colleagueEmails[0] : '';\n\n  // Intercept and calculate dates deterministically\n  const rawDeliveryDate = extraction.delivery_date_provided ?? extraction.delivery_date ?? null;\n  const rawShipDate = extraction.ship_date_provided ?? extraction.ship_date ?? null;\n  const rawPromisedRevertDate = extraction.promised_revert_date_provided ?? extraction.promised_revert_date ?? null;\n\n  let finalShipDate = null;\n  let finalDeliveryDate = null;\n  let finalPromisedRevertDate = null;\n\n  const isShipDependent = rawShipDate && typeof rawShipDate === 'string' && rawShipDate.toUpperCase().includes('DELIVERY_DATE');\n  const isDeliveryDependent = rawDeliveryDate && typeof rawDeliveryDate === 'string' && rawDeliveryDate.toUpperCase().includes('SHIP_DATE');\n\n  if (isShipDependent && isDeliveryDependent) {\n    finalShipDate = null;\n    finalDeliveryDate = null;\n  } else if (isDeliveryDependent) {\n    finalShipDate = parseAndCalculateDate(rawShipDate);\n    if (finalShipDate) {\n      const resolvedExpr = rawDeliveryDate.replace(/ship_date/i, finalShipDate);\n      finalDeliveryDate = parseAndCalculateDate(resolvedExpr);\n    } else {\n      finalDeliveryDate = null;\n    }\n  } else if (isShipDependent) {\n    finalDeliveryDate = parseAndCalculateDate(rawDeliveryDate);\n    if (finalDeliveryDate) {\n      const resolvedExpr = rawShipDate.replace(/delivery_date/i, finalDeliveryDate);\n      finalShipDate = parseAndCalculateDate(resolvedExpr);\n    } else {\n      finalShipDate = null;\n    }\n  } else {\n    finalShipDate = parseAndCalculateDate(rawShipDate);\n    finalDeliveryDate = parseAndCalculateDate(rawDeliveryDate);\n  }\n\n  // Parse Promised Revert Date\n  finalPromisedRevertDate = parseAndCalculateDate(rawPromisedRevertDate);\n\n  return {\n    json: {\n      ...extraction,\n      delivery_date: finalDeliveryDate,\n      ship_date: finalShipDate,\n      promised_revert_date: finalPromisedRevertDate,\n      supplier_code: supplierCode,\n      client_code: clientCode,\n      po_line_key: `${clientCode}_${extraction.po_number}_${extraction.po_line_item}`,\n      deliver_by_date: poRow ? (poRow.deliver_by_date_delivery_1 || poRow.communicated_delivery_date_1 || null) : null,\n      ship_by_date: poRow ? (poRow.ship_by_date_delivery_1 || null) : null,\n      supplier_reply_subject: replySubject,\n      supplier_reply_thread_id: replyThreadId,\n      supplier_reply_message_id: replyMessageId,\n      supplier_reply_from: replySenderEmail,\n      supplier_colleague_email: colleagueEmail\n    },\n    pairedItem: {\n      item: 0\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1232,
+        112
+      ],
+      "id": "6fe5f560-8378-4772-b4ed-109f42ed6f26",
+      "name": "Parse - Claude Extraction Response"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "claude-sonnet-4-6",
+          "mode": "list",
+          "cachedResultName": "claude-sonnet-4-6"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert procurement analyst assistant supporting a procurement team. Your role is to carefully read supplier emails and extract delivery status information with precision. You extract only what is explicitly or clearly implicitly stated — you never guess or assume beyond reasonable professional inference. You always respond with valid JSON only. No markdown, no code fences, no backticks, no explanations. Raw JSON only.\n\nToday's date: {{ $json.current_date }}, {{ new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: $json.client_timezone }) }} ({{ $json.client_timezone }})\nIMPORTANT: For relative dates, the base date must be the calendar date the supplier actually sent/stated the message (e.g., the date of receipt shown in \"Email X (received YYYY-MM-DD)\" or the call timestamp). If no message receipt date is visible, fall back to today's date: {{ $json.current_date }}. Do not attempt calendar math yourself; format the math as a command (see rules below).\n\nYOUR TASK:\nRead the supplier emails below and extract factual delivery information for each open purchase order and line item listed. Extract facts only — do not classify or make judgments. A separate system handles classification based on your extractions.\n\nEXTRACTION RULES:\n\n1. MATCHING EMAILS TO POs\n- PO number is the primary match identifier. Always use it when present.\n- If the email does not mention a PO number, also try matching by material code or material name/description. Suppliers often use shortened or partial versions of material names — match using your best judgment as a procurement professional would.\n- If an email references multiple POs or line items, extract information separately for each PO and line item combination. Tag each extraction carefully to the correct PO and line item.\n- If multiple emails reference the same PO and line item, use the most recent email that contains relevant delivery information as the basis for extraction. More recent emails take precedence over older ones.\n- If earlier and later emails contain contradictory delivery information about the same PO and line item, note both in raw_supplier_statement and base field extractions on the most recent substantive statement.\n- AMBIGUITY: If you cannot confidently match an email to a specific PO and line item — for example because the supplier referenced only a material name and there are multiple open POs for that material — still produce an extraction, set confidence to Low, and explain the ambiguity in raw_supplier_statement.\n\n2. reasoning (string)\nBefore assigning any field values, reason through the following in order:\n\na. PO MATCHING: How did you identify which PO this email refers to? Was it by PO number, material code, or material name? If by name, is the match unambiguous or are there multiple open POs for this material?\n\nb. DATE CALCULATIONS: For any relative date expression found, formulate the CALC command using the message receipt date (or call date) as the anchor. State the expression, the anchor date, and the resolved CALC command. If no relative dates appear write \"No relative date expressions.\"\n\nc. TIMING STATUS: Why are you setting supplier_stated_on_time or supplier_stated_delayed to true or null? Quote the exact phrase from the email that drove this decision.\n\nd. PARTIAL SHIPMENT: Is there any indication of partial delivery? Quote the exact phrase if yes, otherwise write \"No partial shipment indication.\"\n\ne. CONFIDENCE: Based on the above reasoning, explain why you are assigning High or Low confidence. State: (1) how the PO was matched and whether any ambiguity exists, (2) whether any date calculations involved uncertainty, (3) whether any professional inference was required beyond what was clearly stated. Conclude with your confidence assignment and the single most important reason for it.\n\nOnly after completing all five reasoning steps should you assign values to the extraction fields.\n\n3. email_found (true/false)\n- true: at least one email references or clearly relates to this specific PO and line item combination\n- false: no email mentions this PO and line item at all\n\n4. supplier_stated_on_time (true/null — never use false)\n- true: supplier explicitly OR clearly implicitly confirmed order is on track or will be delivered on time\n- Examples of what counts as true: \"as agreed\", \"on schedule\", \"no issues\", \"will meet the deadline\", \"everything is on track\", \"confirmed for [date]\", \"no delays expected\"\n- Examples of what does NOT count: \"we are working on it\", \"will keep you posted\", \"noted\", \"thank you\", \"received your message\", \"will update you soon\"\n- null: supplier made no statement about timing, or statement was too ambiguous to determine\n\n5. supplier_stated_delayed (true/null — never use false)\n- true: supplier explicitly OR clearly implicitly indicated a delay, problem, or issue affecting delivery\n- Examples of what counts as true: \"there will be a delay\", \"facing production issues\", \"unable to meet the original date\", \"will be late\", \"new date is [later date]\"\n- null: supplier made no statement about delay\n- CRITICAL: supplier_stated_on_time and supplier_stated_delayed cannot both be true. If both seem true, set the one reflecting the most recent definitive statement to true and the other to null.\n\n6. delivery_date_provided (YYYY-MM-DD, CALC string, or null)\nThe specific date supplier stated goods will arrive at the destination.\n- Specific dates → convert to YYYY-MM-DD (e.g. \"2026-07-15\")\n- Resolvable relative dates and ranges → Do NOT calculate the absolute calendar date yourself. Instead, format this field as a calculation command using the syntax:\n  \"CALC: <base_date> <operator> <offset_days> <type>\"\n  \n  Syntax components:\n  - <base_date>: The anchor date in YYYY-MM-DD (e.g., the date the email was received \"2026-06-22\"), OR a dependent field name (\"ship_date\" or \"delivery_date\") if one date is relative to the other.\n  - <operator>: \"+\" or \"-\"\n  - <offset_days>: The integer number of days to offset.\n  - <type>: \"working\" (if the supplier specifies business/working days) or \"calendar\" (for standard days/default).\n  \n  Examples:\n  - Supplier says: \"we will deliver in 3 days\" (Email received: 2026-06-22)\n    --> \"CALC: 2026-06-22 + 3 calendar\"\n  - Supplier says: \"delivery in 5 working days\" (Email received: 2026-06-22)\n    --> \"CALC: 2026-06-22 + 5 working\"\n  - Supplier says: \"will deliver 2 days before original delivery date\" (Original delivery: 2026-07-15)\n    --> \"CALC: 2026-07-15 - 2 calendar\"\n  - Supplier says: \"dispatch in 5 working days from today [2026-06-24], and delivery takes an additional 2 calendar days after shipment\"\n    --> ship_date_provided: \"CALC: 2026-06-24 + 5 working\"\n    --> delivery_date_provided: \"CALC: ship_date + 2 calendar\"\n  - For ranges, use the LATER end as the conservative estimate:\n    - \"within 3-4 days\" (Email received: 2026-06-22) --> \"CALC: 2026-06-22 + 4 calendar\"\n    - \"in 2-3 weeks\" (Email received: 2026-06-22) --> \"CALC: 2026-06-22 + 21 calendar\"\n- Vague unresolvable expressions → return null, capture in approximate_date_expression instead:\n  - \"next week\", \"end of month\", \"soon\", \"shortly\", \"in a few days\", \"within 2 weeks\"\n- No delivery date mentioned → null\n\n7. ship_date_provided (YYYY-MM-DD, CALC string, or null)\nThe specific date supplier stated goods will be shipped or dispatched from their facility. Apply exactly the same extraction rules and CALC syntax as delivery_date_provided above.\n- Example where ship_date is relative to delivery_date:\n  - Supplier says: \"will arrive on April 15th [2026-04-15], shipment happens 3 working days before delivery\"\n    --> delivery_date_provided: \"2026-04-15\"\n    --> ship_date_provided: \"CALC: delivery_date - 3 working\"\n\n8. promised_revert_date_provided (YYYY-MM-DD, CALC string, or null)\nThe specific date or weekday by which the supplier promised to check, reply, get back, or provide updates on this purchase order (e.g. 'will check on Monday', 'will get back by 15-July', 'remind me tomorrow').\n- If relative (e.g., 'Monday', 'tomorrow', 'within 3 days'), format it using the deterministic calculation protocol CALC: <base_date> <operator> <offset_days> <type> relative to the email's receipt date or call timestamp (e.g. CALC: 2026-06-29 + 1 working).\n- If the supplier does not promise to check/revert by any specific date or day of the week, set this field to null.\n- CRITICAL PROMPT GUARD: If the supplier only promises to check, revert, or get back later without committing to an actual delivery or ship date, you MUST set supplier_stated_on_time and supplier_stated_delayed to null. These are commitments to communicate, not commitments to delivery dates. For these cases, they must remain null.\n\n9. is_delegated_to_colleague (boolean)\n- true: the supplier contact explicitly or clearly implicitly delegates the query/PO check to a colleague (e.g., CC'ing Rajesh and writing \"Rajesh, please check this\", \"please check with my colleague Rajesh\", or \"adding Rajesh to follow up\").\n- false: the supplier does not delegate the query to any colleague.\n\n10. approximate_date_expression (string or null)\nIf supplier mentioned a vague timeframe that could not be converted to a specific date, capture the exact phrase here (e.g. \"next week\", \"end of April\", \"within 2 weeks\"). Return null if a specific date was successfully extracted OR if no timeframe was mentioned at all.\n\n11. is_partial_shipment (true/false)\n- true: supplier indicated only part of the ordered quantity will be delivered now, with the remainder coming later\n- false: otherwise\n\n12. tracking_number (string or null)\nExtract tracking number if supplier provided one. null if not mentioned.\n\n13. carrier (string or null)\nExtract carrier or courier name if supplier mentioned one (e.g. DTDC, FedEx, DHL, Blue Dart). null if not mentioned.\n\n14. confidence (High/Low)\nThis field determines whether a human operator reviews this extraction before it is acted on. Be conservative — when in doubt, use Low.\n- High: ALL of the following are true: PO match is certain — either by explicit PO number, OR by material code/name where you have confirmed only one open PO exists for that material in the list above. The supplier's statement clearly addresses this PO and line item. Your date calculations (if any) are based on explicit dates or unambiguous relative expressions. You have no meaningful uncertainty about any extracted field.\n- Low: ANY of the following are true: You matched the PO by material name/code but multiple open POs exist for that material and no PO number was given. The supplier referenced a PO number that does not match any open PO in the list. The email could plausibly relate to a different PO than the one you assigned it to. A date was provided in an ambiguous format and you are not certain of your interpretation. The supplier's statement is so indirect or implicit that you are uncertain whether your extraction reflects what they actually meant. You had to make a professional inference that goes beyond what was clearly stated or clearly implied. There is any contradiction between emails that you could not cleanly resolve.\n- Note: Do not use Low confidence just because the supplier was vague about their delivery — use Low when YOU are uncertain about your own extraction. Unclear classification already handles cases where the supplier gave no useful delivery information.\n\n15. raw_supplier_statement (string)\nOne to two sentences in your own words summarizing what the supplier said about this PO and line item. Include: what they confirmed, any dates mentioned including vague ones, any issues raised, contradictions between emails, tracking details if provided, and any ambiguity in PO matching. If no email addressed this PO and line item, write exactly: \"No supplier response received for this PO.\"\n\n16. delay_reason (string or null)\nIf supplier indicated a delay, capture the specific reason they gave in a few words (e.g. \"production issue\", \"machine breakdown\", \"raw material shortage\", \"port congestion\"). If no reason was given write exactly: \"Delay reason not provided\". If no delay was indicated return null.\n\n17. supplier_reply_message_id (string or null)\nThis field is used to send a reply email back to the supplier in the correct email thread. Copy the Message-Id exactly as it appears in the email header — including angle brackets if present. Use the Message-Id of the specific email you used as the primary basis for this extraction. If no email was found for this PO and line item combination, return null.\n\n18. supplier_reply_thread_id (string or null)\nThe Gmail thread ID of the email you used as the primary basis for this extraction. This is used to ensure acknowledgment emails are placed in the correct Gmail thread. Copy the threadId exactly as provided in the email metadata. If no email was found for this PO and line item combination, return null.\n\nOPEN PURCHASE ORDERS TO EXTRACT FOR:\n{{ $json.formatted_pos }}\n\nSUPPLIER EMAILS (sorted oldest to newest — more recent emails with substantive delivery information take precedence):\n{{ $json.formatted_emails }}\n\nEXAMPLE OUTPUT (fictional data for format reference only — do not use this data in your actual extraction):\n{\n  \"extractions\": [\n    {\n      \"reasoning\": \"a. PO MATCHING: Email subject references PO-2025-099 directly — unambiguous match by PO number. b. DATE CALCULATIONS: Supplier stated 'by March 15th' — specific date, no calculation needed, resolves to 2025-03-15. c. TIMING STATUS: Supplier said 'delivered by March 15th as originally agreed' — matches 'confirmed for [date]' and 'as agreed' criteria, setting supplier_stated_on_time = true. d. PARTIAL SHIPMENT: No partial shipment indication. e. CONFIDENCE: PO matched by explicit PO number — no ambiguity. Date is explicit with no calculation uncertainty. No inference required beyond what was clearly stated. Confidence = High.\",\n      \"po_number\": \"PO-2025-099\",\n      \"po_line_item\": \"10\",\n      \"email_found\": true,\n      \"supplier_stated_on_time\": true,\n      \"supplier_stated_delayed\": null,\n      \"delivery_date_provided\": \"2025-03-15\",\n      \"ship_date_provided\": null,\n      \"promised_revert_date_provided\": null,\n      \"is_delegated_to_colleague\": false,\n      \"approximate_date_expression\": null,\n      \"is_partial_shipment\": false,\n      \"tracking_number\": null,\n      \"carrier\": null,\n      \"confidence\": \"High\",\n      \"raw_supplier_statement\": \"Supplier confirmed delivery by March 15th as originally agreed with no issues.\",\n      \"delay_reason\": null\n    },\n    {\n      \"reasoning\": \"a. PO MATCHING: Email body references PO-2025-100 directly — unambiguous match by PO number. b. DATE CALCULATIONS: Supplier stated 'April 1st' — specific date, resolves to 2025-04-01. No relative date expressions. c. TIMING STATUS: Supplier said 'facing production issue causing delay' and 'revised delivery date April 1st instead of March 20th' — matches 'unable to meet the original date' criteria, setting supplier_stated_delayed = true. d. PARTIAL SHIPMENT: No partial shipment indication. e. CONFIDENCE: PO matched by explicit PO number — no ambiguity. Date is explicit. Delay reason clearly stated. No inference required. Confidence = High.\",\n      \"po_number\": \"PO-2025-100\",\n      \"po_line_item\": \"20\",\n      \"email_found\": true,\n      \"supplier_stated_on_time\": null,\n      \"supplier_stated_delayed\": true,\n      \"delivery_date_provided\": \"2025-04-01\",\n      \"ship_date_provided\": null,\n      \"promised_revert_date_provided\": null,\n      \"is_delegated_to_colleague\": false,\n      \"approximate_date_expression\": null,\n      \"is_partial_shipment\": false,\n      \"tracking_number\": null,\n      \"carrier\": null,\n      \"confidence\": \"High\",\n      \"raw_supplier_statement\": \"Supplier indicated production issue causing delay, revised delivery date April 1st instead of March 20th.\",\n      \"delay_reason\": \"production issue\",\n      \"supplier_reply_message_id\": \"<CABxyz001@mail.gmail.com>\",\n      \"supplier_reply_thread_id\": \"18abc123def45678\"\n    },\n    {\n      \"reasoning\": \"a. PO MATCHING: Email subject says 'Polypropylene update' with no PO number. Checking open POs — only one open PO for Polypropylene Sheets (PO-2025-101), so match is unambiguous by material name. b. DATE CALCULATIONS: Supplier stated 'in 5 days' — relative date. Base date is the email receipt date 2025-03-20. Formatting as CALC command: CALC: 2025-03-20 + 5 calendar. Supplier also said 'end of next week' for delivery — vague, cannot resolve to specific date, captured in approximate_date_expression. c. TIMING STATUS: Supplier made no explicit on-time or delayed statement — setting both to null. d. PARTIAL SHIPMENT: No partial shipment indication. e. CONFIDENCE: PO matched by material name with no PO number — however only one open PO exists for this material so match is unambiguous. Date calculation is represented as a deterministic CALC command. Confidence = High.\",\n      \"po_number\": \"PO-2025-101\",\n      \"po_line_item\": \"10\",\n      \"email_found\": true,\n      \"supplier_stated_on_time\": null,\n      \"supplier_stated_delayed\": null,\n      \"delivery_date_provided\": null,\n      \"ship_date_provided\": \"CALC: 2025-03-20 + 5 calendar\",\n      \"promised_revert_date_provided\": null,\n      \"is_delegated_to_colleague\": false,\n      \"approximate_date_expression\": \"end of next week\",\n      \"is_partial_shipment\": false,\n      \"tracking_number\": \"DTDC-2025-12345\",\n      \"carrier\": \"DTDC\",\n      \"confidence\": \"High\",\n      \"raw_supplier_statement\": \"Supplier confirmed dispatch in 5 days via DTDC tracking DTDC-2025-12345 but gave vague delivery timeframe of end of next week.\",\n      \"delay_reason\": null,\n      \"supplier_reply_message_id\": \"<CABxyz002@mail.gmail.com>\",\n      \"supplier_reply_thread_id\": \"18abc123def32843\"\n    },\n    {\n      \"reasoning\": \"a. PO MATCHING: Email subject says 'Plastic Sheets update' with no PO number. Checking open POs — two open POs exist for ABS Plastic Sheets: PO-2025-102 (400kg) and PO-2025-103 (250kg). Cannot determine which PO this email refers to without a PO number or quantity. Assigning to PO-2025-102 as best guess but ambiguity exists. b. DATE CALCULATIONS: Supplier stated 'by end of next month' — vague, cannot resolve to specific date, captured in approximate_date_expression. c. TIMING STATUS: Supplier said 'production is on track' — matches 'on schedule' criteria, setting supplier_stated_on_time = true. d. PARTIAL SHIPMENT: No partial shipment indication. e. CONFIDENCE: PO matched by material name but two open POs exist for ABS Plastic Sheets and no PO number or quantity was given — cannot confirm which PO this refers to. This is the primary uncertainty. Confidence = Low.\",\n      \"po_number\": \"PO-2025-102\",\n      \"po_line_item\": \"10\",\n      \"email_found\": true,\n      \"supplier_stated_on_time\": true,\n      \"supplier_stated_delayed\": null,\n      \"delivery_date_provided\": null,\n      \"ship_date_provided\": null,\n      \"promised_revert_date_provided\": null,\n      \"is_delegated_to_colleague\": false,\n      \"approximate_date_expression\": \"end of next month\",\n      \"is_partial_shipment\": false,\n      \"tracking_number\": null,\n      \"carrier\": null,\n      \"confidence\": \"Low\",\n      \"raw_supplier_statement\": \"Supplier stated ABS Plastic Sheets production is on track with delivery expected end of next month, but email did not reference a PO number and two open POs exist for this material — assignment to PO-2025-102 is uncertain.\",\n      \"delay_reason\": null,\n      \"supplier_reply_message_id\": \"<CABxyz003@mail.gmail.com>\",\n      \"supplier_reply_thread_id\": \"18abc435def67890\"\n    }\n  ]\n}\n\nYou always respond with valid JSON only. No markdown, no code fences, no backticks, no preamble, no explanations. The very first character of your response must be { and the very last must be }.\n\n- Differentiate between the raw email body (written directly by the sender) and the content extracted from attachments. \n- Content parsed from Excel sheets, Word documents, or text files will be enclosed within \"[ATTACHMENT CONTENT - Parsed content from file attachments]\" and \"[END OF ATTACHMENT CONTENT]\" tags.\n- Use the tabular data inside these attachment tags to confirm purchase order line items, quantities, and delivery schedules.\n- If the email body says \"Please see attached sheet,\" look inside the attachment content tags to extract the delivery details.\n\n==================================================\nADDITIONAL ATTACHMENTS INSTRUCTIONS:\nIf there is a PDF document or image attached to this message, it is a document sent by the supplier related to the open purchase orders (e.g. shipping updates, delivery confirmations, or production schedules).\n- Read the attached PDF or image carefully.\n- Extract any relevant delivery dates, quantities, and timing status statements from the attachment just as you would from the email text body.\n- Some attachments may be company logo images, signature banners, or social icons (like Facebook or LinkedIn icons). If an attachment is a logo, icon, or contains no business details related to purchase orders, ignore it completely.\n- If there is a contradiction between the email text body and the attached PDF/image, the information in the attached PDF/image takes precedence, as it represents the official status document.\n- In your \"reasoning\" field, note if the facts were extracted from the attached file (e.g. \"Facts extracted from attached PDF/image\").\n==================================================\n"
+            }
+          ]
+        },
+        "addAttachments": true,
+        "attachmentsInputType": "binary",
+        "binaryPropertyName": "={{ Object.keys($binary || {}).filter(k => k.startsWith('data_')).join(',') }}",
+        "simplify": false,
+        "options": {
+          "maxTokens": 32000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        112
+      ],
+      "id": "9b02a629-a3dd-4b84-abfd-637ad4827245",
+      "name": "Extract - Supplier Email Facts via Claude",
+      "credentials": {
+        "anthropicApi": {
+          "id": "2spKdEDmZNisn7in",
+          "name": "Anthropic account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6812ae9d-8c79-49b7-88fe-e72db3fab39d",
+              "leftValue": "={{ $json.confidence }}",
+              "rightValue": "Low",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "0d963350-c1c8-46b1-858a-fc7c223e25c9",
+              "leftValue": "={{ $json.needs_human_review }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -784,
+        112
+      ],
+      "id": "57d684c2-b934-485d-bd19-da522a5b9ff4",
+      "name": "Check - Confidence and Route"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dda93ecf-bd3e-4ae8-b0e1-9742559f0f54",
+              "name": "needs_human_review",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "cd752b57-2dbe-468c-be5a-ac3295e1450f",
+              "name": "classification",
+              "value": "Human Review Needed",
+              "type": "string"
+            },
+            {
+              "id": "ad727176-b91a-4730-88ae-caa72dbe637b",
+              "name": "classification_detail",
+              "value": "={{ $json.classification_detail }} — flagged for human review due to low confidence or partial shipment",
+              "type": "string"
+            },
+            {
+              "id": "0adf9661-91e4-4f81-b5a2-4e651c37f414",
+              "name": "po_line_key",
+              "value": "={{ $json.po_line_key }}",
+              "type": "string"
+            },
+            {
+              "id": "0fbadfb5-be10-4a98-9192-489aa06ab9a9",
+              "name": "po_number",
+              "value": "={{ $json.po_number }}",
+              "type": "string"
+            },
+            {
+              "id": "80ea1600-4464-4cf4-a859-032c598087d5",
+              "name": "po_line_item",
+              "value": "={{ $json.po_line_item }}",
+              "type": "string"
+            },
+            {
+              "id": "bcbf4555-7de8-4371-9135-e77419d57b50",
+              "name": "supplier_code",
+              "value": "={{ $json.supplier_code }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -480,
+        16
+      ],
+      "id": "61251003-871b-4e72-9dd2-3933c5f57343",
+      "name": "Set - Human Review Flag"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "88840520-7449-4c7b-bc5f-69eb18cb95c8",
+              "leftValue": "={{ $json.email_found }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -480,
+        256
+      ],
+      "id": "c154b5b2-714e-4b75-bc82-071e8ae964c1",
+      "name": "Check - Email Found"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=Communication Logs",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "po_line_key",
+              "lookupValue": "={{ $json.po_line_key }}"
+            },
+            {
+              "lookupColumn": "po_line_item",
+              "lookupValue": "={{ $json.po_line_item }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        112,
+        256
+      ],
+      "id": "5de896a4-5d13-4cda-b305-ef04be1e055f",
+      "name": "Read - Communication Logs Row Number",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=Communication Logs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "po_line_key"
+          ],
+          "schema": [
+            {
+              "id": "po_line_key",
+              "displayName": "po_line_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_company_name",
+              "displayName": "client_company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comms_group_id",
+              "displayName": "comms_group_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_number",
+              "displayName": "po_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_code",
+              "displayName": "supplier_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_name",
+              "displayName": "supplier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_line_item",
+              "displayName": "po_line_item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_code",
+              "displayName": "material_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_name",
+              "displayName": "material_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "follow_up_stage",
+              "displayName": "follow_up_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "follow_up_status",
+              "displayName": "follow_up_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_sent",
+              "displayName": "stage1_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_mail_subject",
+              "displayName": "stage1_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_body",
+              "displayName": "stage1_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_thread_id",
+              "displayName": "stage1_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_message_id",
+              "displayName": "stage1_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_timestamp",
+              "displayName": "stage1_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail1_sent",
+              "displayName": "stage1_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail1_body",
+              "displayName": "stage1_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail1_timestamp",
+              "displayName": "stage1_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail2_sent",
+              "displayName": "stage1_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail2_body",
+              "displayName": "stage1_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail2_timestamp",
+              "displayName": "stage1_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail3_sent",
+              "displayName": "stage1_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail3_body",
+              "displayName": "stage1_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail3_timestamp",
+              "displayName": "stage1_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_sent",
+              "displayName": "stage1_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_timestamp",
+              "displayName": "stage1_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_answered",
+              "displayName": "stage1_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_call_outcome",
+              "displayName": "stage1_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_delivery_status_classification",
+              "displayName": "stage1_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_delivery_status_text",
+              "displayName": "stage1_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_supplier_raw_statement",
+              "displayName": "stage1_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_sent",
+              "displayName": "stage1_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_timestamp",
+              "displayName": "stage1_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_answered",
+              "displayName": "stage1_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_call_outcome",
+              "displayName": "stage1_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_delivery_status_classification",
+              "displayName": "stage1_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_delivery_status_text",
+              "displayName": "stage1_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_supplier_raw_statement",
+              "displayName": "stage1_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_sent",
+              "displayName": "stage1_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_timestamp",
+              "displayName": "stage1_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_answered",
+              "displayName": "stage1_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_call_outcome",
+              "displayName": "stage1_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_delivery_status_classification",
+              "displayName": "stage1_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_delivery_status_text",
+              "displayName": "stage1_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_supplier_raw_statement",
+              "displayName": "stage1_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_internal_escalation_sent",
+              "displayName": "stage1_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_internal_escalation_timestamp",
+              "displayName": "stage1_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_reply_status",
+              "displayName": "stage1_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reply_timestamp",
+              "displayName": "stage1_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_reply_confidence",
+              "displayName": "stage1_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_delivery_status_classification",
+              "displayName": "stage1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_delivery_status_text",
+              "displayName": "stage1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_raw_statement",
+              "displayName": "stage1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_mode_of_reply_received",
+              "displayName": "stage1_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_reply_message_id",
+              "displayName": "stage1_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_reply_thread_id",
+              "displayName": "stage1_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_acknowledgment_sent",
+              "displayName": "stage1_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_status",
+              "displayName": "stage1_5_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_reply_timestamp",
+              "displayName": "stage1_5_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_confidence",
+              "displayName": "stage1_5_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_delivery_status_classification",
+              "displayName": "stage1_5_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_delivery_status_text",
+              "displayName": "stage1_5_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_raw_statement",
+              "displayName": "stage1_5_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_mode_of_reply_received",
+              "displayName": "stage1_5_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_message_id",
+              "displayName": "stage1_5_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_thread_id",
+              "displayName": "stage1_5_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_acknowledgment_sent",
+              "displayName": "stage1_5_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_sent",
+              "displayName": "stage2_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_mail_subject",
+              "displayName": "stage2_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_body",
+              "displayName": "stage2_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_thread_id",
+              "displayName": "stage2_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_message_id",
+              "displayName": "stage2_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_timestamp",
+              "displayName": "stage2_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail1_sent",
+              "displayName": "stage2_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail1_body",
+              "displayName": "stage2_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail1_timestamp",
+              "displayName": "stage2_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail2_sent",
+              "displayName": "stage2_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail2_body",
+              "displayName": "stage2_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail2_timestamp",
+              "displayName": "stage2_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail3_sent",
+              "displayName": "stage2_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail3_body",
+              "displayName": "stage2_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail3_timestamp",
+              "displayName": "stage2_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_sent",
+              "displayName": "stage2_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_timestamp",
+              "displayName": "stage2_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_answered",
+              "displayName": "stage2_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_call_outcome",
+              "displayName": "stage2_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_delivery_status_classification",
+              "displayName": "stage2_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_delivery_status_text",
+              "displayName": "stage2_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_supplier_raw_statement",
+              "displayName": "stage2_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_sent",
+              "displayName": "stage2_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_timestamp",
+              "displayName": "stage2_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_answered",
+              "displayName": "stage2_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_call_outcome",
+              "displayName": "stage2_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_delivery_status_classification",
+              "displayName": "stage2_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_delivery_status_text",
+              "displayName": "stage2_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_supplier_raw_statement",
+              "displayName": "stage2_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_sent",
+              "displayName": "stage2_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_timestamp",
+              "displayName": "stage2_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_answered",
+              "displayName": "stage2_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_call_outcome",
+              "displayName": "stage2_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_delivery_status_classification",
+              "displayName": "stage2_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_delivery_status_text",
+              "displayName": "stage2_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_supplier_raw_statement",
+              "displayName": "stage2_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_internal_escalation_sent",
+              "displayName": "stage2_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_internal_escalation_timestamp",
+              "displayName": "stage2_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_reply_status",
+              "displayName": "stage2_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_reply_confidence",
+              "displayName": "stage2_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reply_timestamp",
+              "displayName": "stage2_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_delivery_status_classification",
+              "displayName": "stage2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_delivery_status_text",
+              "displayName": "stage2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_raw_statement",
+              "displayName": "stage2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_mode_of_reply_received",
+              "displayName": "stage2_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_reply_message_id",
+              "displayName": "stage2_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_reply_thread_id",
+              "displayName": "stage2_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_acknowledgment_sent",
+              "displayName": "stage2_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_status",
+              "displayName": "stage2_5_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_confidence",
+              "displayName": "stage2_5_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_reply_timestamp",
+              "displayName": "stage2_5_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_delivery_status_classification",
+              "displayName": "stage2_5_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_delivery_status_text",
+              "displayName": "stage2_5_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_raw_statement",
+              "displayName": "stage2_5_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_mode_of_reply_received",
+              "displayName": "stage2_5_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_message_id",
+              "displayName": "stage2_5_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_thread_id",
+              "displayName": "stage2_5_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_acknowledgment_sent",
+              "displayName": "stage2_5_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_sent",
+              "displayName": "stage3_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_mail_subject",
+              "displayName": "stage3_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_body",
+              "displayName": "stage3_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_thread_id",
+              "displayName": "stage3_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_message_id",
+              "displayName": "stage3_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_timestamp",
+              "displayName": "stage3_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail1_sent",
+              "displayName": "stage3_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail1_body",
+              "displayName": "stage3_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail1_timestamp",
+              "displayName": "stage3_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail2_sent",
+              "displayName": "stage3_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail2_body",
+              "displayName": "stage3_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail2_timestamp",
+              "displayName": "stage3_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail3_sent",
+              "displayName": "stage3_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail3_body",
+              "displayName": "stage3_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail3_timestamp",
+              "displayName": "stage3_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_sent",
+              "displayName": "stage3_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_timestamp",
+              "displayName": "stage3_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_answered",
+              "displayName": "stage3_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_call_outcome",
+              "displayName": "stage3_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_delivery_status_classification",
+              "displayName": "stage3_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_delivery_status_text",
+              "displayName": "stage3_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_supplier_raw_statement",
+              "displayName": "stage3_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_sent",
+              "displayName": "stage3_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_timestamp",
+              "displayName": "stage3_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_answered",
+              "displayName": "stage3_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_call_outcome",
+              "displayName": "stage3_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_delivery_status_classification",
+              "displayName": "stage3_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_delivery_status_text",
+              "displayName": "stage3_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_supplier_raw_statement",
+              "displayName": "stage3_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_sent",
+              "displayName": "stage3_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_timestamp",
+              "displayName": "stage3_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_answered",
+              "displayName": "stage3_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_call_outcome",
+              "displayName": "stage3_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_delivery_status_classification",
+              "displayName": "stage3_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_delivery_status_text",
+              "displayName": "stage3_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_supplier_raw_statement",
+              "displayName": "stage3_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_internal_escalation_sent",
+              "displayName": "stage3_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_internal_escalation_timestamp",
+              "displayName": "stage3_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_reply_status",
+              "displayName": "stage3_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_reply_confidence",
+              "displayName": "stage3_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reply_timestamp",
+              "displayName": "stage3_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_delivery_status_classification",
+              "displayName": "stage3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_delivery_status_text",
+              "displayName": "stage3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_raw_statement",
+              "displayName": "stage3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_mode_of_reply_received",
+              "displayName": "stage3_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_reply_message_id",
+              "displayName": "stage3_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_reply_thread_id",
+              "displayName": "stage3_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_acknowledgment_sent",
+              "displayName": "stage3_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "needs_human_review",
+              "displayName": "needs_human_review",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "human_review_status",
+              "displayName": "human_review_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action_timestamp",
+              "displayName": "last_action_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        528,
+        256
+      ],
+      "id": "40f7b524-34b8-43b1-90b6-ee940ce7a8b6",
+      "name": "Update - Communication Logs Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=Check email workflow per supplier log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "supplier_email_key"
+          ],
+          "schema": [
+            {
+              "id": "supplier_email_key",
+              "displayName": "supplier_email_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_company_name",
+              "displayName": "client_company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_code",
+              "displayName": "supplier_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_name",
+              "displayName": "supplier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "primary_contact_names",
+              "displayName": "primary_contact_names",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "primary_emails",
+              "displayName": "primary_emails",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_run_timestamp",
+              "displayName": "last_run_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1312,
+        752
+      ],
+      "id": "5c9b633d-346b-4583-986e-b738824ca327",
+      "name": "Update - Last Run Timestamp",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $('Triggered by another workflow').first().json;\n\nreturn {\n  json: {\n    supplier_email_key: `${trigger.client_code}_${trigger.supplier_code}_${trigger.primary_email}`,\n    last_run_timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        752
+      ],
+      "id": "fe948ee0-3bea-444a-a9bc-329127e6092c",
+      "name": "Prepare - Last Run Timestamp Update",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const sheetRow = item.json;\n  \n  let classification = null;\n  try {\n    classification = $('Call - Classify - Delivery Status').all().find(\n      c => c.json.po_line_key === sheetRow.po_line_key\n    ).json;\n  } catch (e) {\n    classification = $('Call - Classify - Delivery Status').all().find(\n      c => String(c.json.po_number) === String(sheetRow.po_number) && \n           String(c.json.po_line_item) === String(sheetRow.po_line_item)\n    )?.json;\n  }\n\n  if (!classification || classification.classification === 'No reply yet') {\n    continue;\n  }\n\n  const parsedItem = $('Parse - Claude Extraction Response').all().find(pi => {\n    const parsedKey = pi.json.po_line_key;\n    const sheetKey = sheetRow.po_line_key;\n    return (parsedKey && sheetKey && parsedKey.toString().trim() === sheetKey.toString().trim()) ||\n           (String(pi.json.po_number) === String(sheetRow.po_number) && \n            String(pi.json.po_line_item) === String(sheetRow.po_line_item));\n  });\n\n  const replySubject = parsedItem ? (parsedItem.json.supplier_reply_subject || '') : '';\n  const replyThreadId = parsedItem ? (parsedItem.json.supplier_reply_thread_id || '') : '';\n  const replyMessageId = parsedItem \n    ? (parsedItem.json.supplier_reply_message_id || classification.supplier_reply_message_id || '') \n    : (classification.supplier_reply_message_id || '');\n  const replyFrom = parsedItem ? (parsedItem.json.supplier_reply_from || '') : '';\n  const colleagueEmail = parsedItem ? (parsedItem.json.supplier_colleague_email || '') : '';\n  const colleagueName = parsedItem ? (parsedItem.json.supplier_colleague_name || '') : '';\n\n  const promisedRevertDate = parsedItem ? parsedItem.json.promised_revert_date : null;\n  const finalStatement = classification.raw_supplier_statement || '';\n\n  const prefixMap = {\n    'Stage1': 'stage1',\n    'Stage1.5': 'stage1_5',\n    'Stage2': 'stage2',\n    'Stage2.5': 'stage2_5',\n    'Stage3': 'stage3'\n  };\n\n  const prefix = prefixMap[sheetRow.follow_up_stage];\n  if (!prefix) {\n    throw new Error(`Unknown follow_up_stage: ${sheetRow.follow_up_stage}`);\n  }\n\n  const now = new Date().toISOString();\n\n  output.push({\n    json: {\n      po_line_key: sheetRow.po_line_key,\n      po_number: sheetRow.po_number,\n      po_line_item: String(sheetRow.po_line_item),\n      supplier_code: sheetRow.supplier_code,\n      \n      [`${prefix}_supplier_reply_status`]: 'Received',\n      [`${prefix}_reply_timestamp`]: now,\n      [`${prefix}_delivery_status_classification`]: classification.classification,\n      [`${prefix}_delivery_status_text`]: classification.classification_detail,\n      [`${prefix}_supplier_raw_statement`]: finalStatement,\n      [`${prefix}_mode_of_reply_received`]: 'email',\n      [`${prefix}_supplier_reply_confidence`]: classification.confidence || '',\n      [`${prefix}_supplier_reply_message_id`]: replyMessageId,\n      [`${prefix}_supplier_reply_thread_id`]: replyThreadId,\n      [`${prefix}_supplier_reply_subject`]: replySubject || '',\n      [`${prefix}_supplier_reply_from`]: replyFrom || '',\n      [`${prefix}_supplier_colleague_email`]: colleagueEmail,\n      [`${prefix}_supplier_colleague_name`]: colleagueName,\n      [`${prefix}_promised_revert_date`]: promisedRevertDate || '',\n      \n      // Global logs columns\n      supplier_colleague_email: colleagueEmail,\n      supplier_colleague_name: colleagueName,\n      promised_revert_date: promisedRevertDate || '',\n      needs_human_review: classification.needs_human_review ? 'Yes' : 'No',\n      follow_up_status: 'Replied',\n      last_action_timestamp: now,\n      human_review_status: classification.needs_human_review ? 'Pending' : '',\n    }\n  });\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        256
+      ],
+      "id": "8de126a8-6cb8-4d84-ad10-a8cf0301af05",
+      "name": "Prepare - Communication Logs Update Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        784,
+        544
+      ],
+      "id": "f289e294-db3a-4e48-95a9-75fc8a8212e5",
+      "name": "Merge"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -176,
+        144
+      ],
+      "id": "b6b5c460-c8d3-4ddd-a5f6-68fcdafa290a",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const emails = $input.all();\nconst validEmails = emails.filter(item => item.json.id !== undefined && item.json.id !== null && item.json.id !== '');\n\nreturn [{\n  json: {\n    email_count: validEmails.length,\n    has_emails: validEmails.length > 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2592,
+        480
+      ],
+      "id": "f647407f-d174-41ca-924c-6bf44f10b140",
+      "name": "Check - Email Count"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3e79f52b-d8df-44db-831b-6cb762e117e9",
+              "leftValue": "={{ $json.has_emails }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1856,
+        480
+      ],
+      "id": "21e07748-4bde-48d8-8f99-c2ce786f7241",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3016f89f-aafb-420d-bc1c-51cb6796b9c4",
+              "leftValue": "={{ $json.row_exists }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -4064,
+        112
+      ],
+      "id": "305fa90a-4b84-4b6e-847a-0247cdb792cd",
+      "name": "Check - Supplier Row Exists"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=Check email workflow per supplier log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "supplier_email_key": "={{ $('Triggered by another workflow').item.json.client_code }}_{{ $('Triggered by another workflow').first().json.supplier_code }}_{{ $('Triggered by another workflow').first().json.primary_email }}",
+            "supplier_code": "={{ $('Triggered by another workflow').first().json.supplier_code }}",
+            "primary_emails": "={{ $('Triggered by another workflow').first().json.primary_email }}",
+            "last_run_timestamp": "={{ new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() }}",
+            "supplier_name": "={{ $('Read - Open POs for Supplier').item.json.supplier_name }}",
+            "primary_contact_names": "=",
+            "client_code": "={{ $('Read - Open POs for Supplier').item.json.client_code }}",
+            "client_company_name": "={{ $('Read - Open POs for Supplier').item.json.client_company_name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "supplier_email_key",
+              "displayName": "supplier_email_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client_company_name",
+              "displayName": "client_company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_code",
+              "displayName": "supplier_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_name",
+              "displayName": "supplier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "primary_contact_names",
+              "displayName": "primary_contact_names",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "primary_emails",
+              "displayName": "primary_emails",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_run_timestamp",
+              "displayName": "last_run_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3760,
+        560
+      ],
+      "id": "3a4782df-4995-4c02-aee9-89b4562d01a8",
+      "name": "Create - Supplier Row in Workflow Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nconst exists = row.supplier_email_key !== undefined && \n               row.supplier_email_key !== null && \n               row.supplier_email_key !== '';\n\nreturn [{\n  json: {\n    row_exists: exists,\n    last_run_timestamp: exists ? row.last_run_timestamp : null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4256,
+        112
+      ],
+      "id": "cb221728-45e4-4920-9c05-19bcd6ecee16",
+      "name": "Check - Supplier Row Exists1"
+    },
+    {
+      "parameters": {
+        "content": "Things to check in next run\nstageN_supplier_reply_message_id — if empty, we need to extract it upstream\nstageN_supplier_reply_confidence — if empty, the classifier isn't outputting confidence",
+        "height": 112,
+        "width": 704
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "78edb8ff-f357-47a9-b701-2eb52b1d0c25",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "qz77VVaDgmt8dwMi",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/qz77VVaDgmt8dwMi"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -1024,
+        112
+      ],
+      "id": "2a42c59b-2b3d-40e5-98c3-8f1b54b1608c",
+      "name": "Call - Classify - Delivery Status"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Material and Supplier Master Data"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=supplier_email_key",
+              "lookupValue": "={{ $('Triggered by another workflow').item.json.client_code }}_{{ $('Triggered by another workflow').item.json.supplier_code }}_{{ $('Triggered by another workflow').item.json.primary_email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4176,
+        560
+      ],
+      "id": "a656ba1c-b0e8-4fa8-9c36-1d598e5c47ad",
+      "name": "Read - Supplier master sheet",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU",
+          "mode": "list",
+          "cachedResultName": "Akisto System Settings Danish",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4800,
+        112
+      ],
+      "id": "86f913c9-6ec6-403d-85cc-ebc55ddc7408",
+      "name": "1a_Read – Akisto System Settings",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $('Triggered by another workflow').first().json;\nconst po = $('Read - Open POs for Supplier').first().json;\n\nreturn [{\n  json: {\n    supplier_email_key: `${trigger.client_code}_${trigger.supplier_code}_${trigger.primary_email}`,\n    client_code: po.client_code,\n    client_company_name: po.client_company_name,\n    supplier_code: trigger.supplier_code,\n    supplier_name: po.supplier_name,\n    primary_emails: trigger.primary_email,\n    last_run_timestamp: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3984,
+        560
+      ],
+      "id": "1c059ca8-0ad0-481a-8c98-53ff4c47faf8",
+      "name": "Prepare - Supplier Row Fields"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Material and Supplier Master Data",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=client_code",
+              "lookupValue": "={{ $('Triggered by another workflow').first().json.client_code }}"
+            },
+            {
+              "lookupColumn": "=supplier_code",
+              "lookupValue": "={{ $('Triggered by another workflow').first().json.supplier_code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2208,
+        112
+      ],
+      "id": "c799a87f-96fe-4c5e-a59c-4173b0457ef8",
+      "name": "Read - Material Master",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.attachment_type }}",
+                    "rightValue": "xlsx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "4e741926-ad3b-435b-8420-011277eca3e0"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "982a9450-7188-48de-a9ba-9f1e5ebb7e7e",
+                    "leftValue": "={{ $json.attachment_type }}",
+                    "rightValue": "xls",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "86ed168b-3fb7-45f0-b8d5-1f0c0134bb07",
+                    "leftValue": "={{ $json.attachment_type }}",
+                    "rightValue": "word",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3bbbc4de-aaff-4a92-8e0e-f127af44565e",
+                    "leftValue": "={{$json.attachment_type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a09a2f58-a23d-4dcd-8ee9-17e61c996e69",
+                    "leftValue": "={{ $json.attachment_type }}",
+                    "rightValue": "binary",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4432e77f-4b25-48cb-99e1-4653da358e67",
+                    "leftValue": "={{ $json.attachment_type }}",
+                    "rightValue": "none",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3680,
+        1984
+      ],
+      "id": "f34f1ed6-9ddd-4ca2-a497-cbd7a19753e8",
+      "name": "Check - Attachment Type"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -2288,
+        1088
+      ],
+      "id": "de846def-ae36-4f34-ad4b-5ade6dad35a6",
+      "name": "Read - XLSX Sheet"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $('Read - XLSX Sheet').all();\nconst email = $('Extract - Standardize Attachments').first().json;\n\nif (rows.length === 0) {\n  return [{ json: { ...email, text: email.email_text } }];\n}\n\nconst headers = Object.keys(rows[0].json);\nlet markdownTable = `| ${headers.join(' | ')} |\\n`;\nmarkdownTable += `| ${headers.map(() => '---').join(' | ')} |\\n`;\n\nfor (const rowItem of rows) {\n  const row = headers.map(h => rowItem.json[h] !== undefined ? String(rowItem.json[h]) : \"\");\n  markdownTable += `| ${row.join(' | ')} |\\n`;\n}\n\nreturn [{\n  json: {\n    ...email,\n    extracted_text: markdownTable,\n    text: email.email_text\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2032,
+        1072
+      ],
+      "id": "d34c9ce4-b37a-476e-ae4a-ff9b5d36e588",
+      "name": "Format - XLSX Output"
+    },
+    {
+      "parameters": {
+        "operation": "xls",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -2288,
+        1344
+      ],
+      "id": "94a81c11-2263-46c3-8df4-2b813acc7999",
+      "name": "Read - XLS Sheet"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $('Read - XLS Sheet').all();\nconst email = $('Extract - Standardize Attachments').first().json;\n\nif (rows.length === 0) {\n  return [{ json: { ...email, text: email.email_text } }];\n}\n\nconst headers = Object.keys(rows[0].json);\nlet markdownTable = `| ${headers.join(' | ')} |\\n`;\nmarkdownTable += `| ${headers.map(() => '---').join(' | ')} |\\n`;\n\nfor (const rowItem of rows) {\n  const row = headers.map(h => rowItem.json[h] !== undefined ? String(rowItem.json[h]) : \"\");\n  markdownTable += `| ${row.join(' | ')} |\\n`;\n}\n\nreturn [{\n  json: {\n    ...email,\n    extracted_text: markdownTable,\n    text: email.email_text\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2032,
+        1312
+      ],
+      "id": "00816eb9-323f-4c76-a918-bc39abf5931c",
+      "name": "Format - XLS Output"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        -2272,
+        1536
+      ],
+      "id": "9c87aeb0-dee4-400d-a7cf-db655a1be170",
+      "name": "Decompress Word Doc"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst email = $('Extract - Standardize Attachments').first().json;\n\nif (items.length === 0) {\n  return [{\n    json: {\n      ...email,\n      extracted_text: \"(Word doc empty or unreadable)\",\n      text: email.email_text\n    }\n  }];\n}\n\n// Find the item index and the binary key containing document.xml\nlet docXmlKey = null;\nlet foundItemIndex = -1;\nlet filesFound = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  if (item.binary) {\n    for (const key of Object.keys(item.binary)) {\n      const fileMeta = item.binary[key];\n      const filename = (fileMeta.fileName || fileMeta.filename || '');\n      filesFound.push(`${key}: ${filename}`);\n      const normalized = filename.toLowerCase().replace(/\\\\/g, '/');\n      if (normalized === 'document.xml' || normalized.endsWith('/document.xml') || normalized === 'word/document.xml' || normalized.endsWith('/word/document.xml')) {\n        docXmlKey = key;\n        foundItemIndex = i;\n        break;\n      }\n    }\n  }\n  if (docXmlKey) break;\n}\n\nif (!docXmlKey || foundItemIndex === -1) {\n  return [{\n    json: {\n      ...email,\n      extracted_text: `(Word doc structure invalid or missing word/document.xml. Files found: ${filesFound.join(', ')})`,\n      text: email.email_text\n    }\n  }];\n}\n\n// Read binary buffer of document.xml (Passing the index number now!)\nconst rawBuffer = await helpers.getBinaryDataBuffer(foundItemIndex, docXmlKey);\nconst xmlContent = rawBuffer.toString('utf-8');\n\n// Extract text within <w:t> tags (Word text runs)\nconst matches = [...xmlContent.matchAll(/<w:t[^>]*>(.*?)<\\/w:t>/g)];\nlet plainText = matches.map(m => m[1]).join(' ');\n\n// Simple XML entity decoder\nconst decodeXml = (str) => {\n  return str\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"')\n    .replace(/&apos;/g, \"'\");\n};\n\nreturn [{\n  json: {\n    ...email,\n    extracted_text: plainText.trim() ? decodeXml(plainText) : `[DEBUG] XML Length: ${xmlContent.length}, Matches Count: ${matches.length}, Raw XML Start: ${xmlContent.substring(0, 300)}`,\n    text: email.email_text\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2032,
+        1520
+      ],
+      "id": "c72a07e1-0f74-4c55-95ac-6a2f27086ccc",
+      "name": "Extract - Word Text"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allowedBinary = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];\nconst allowedExcel = ['xlsx', 'xls'];\nconst allowedWord = ['docx'];\nconst allowedText = ['csv', 'txt'];\n\n// Low-threshold filter: drops tiny social icons to save tokens, letting Claude's vision handle the rest\nconst isSignatureIcon = (file) => {\n  const name = (file.fileName || '').toLowerCase();\n  const size = file.fileSize || 0;\n  const mime = (file.mimeType || '').toLowerCase();\n  \n  if (mime.startsWith('image/')) {\n    if (size < 5120) return true; // Ignore tiny graphics under 5KB (social icons)\n    const sigKeywords = ['fb', 'facebook', 'linkedin', 'twitter', 'instagram', 'youtube', 'pinterest', 'avatar', 'button', 'icon'];\n    if (sigKeywords.some(kw => name.includes(kw))) return true;\n  }\n  return false;\n};\n\nconst outputItems = [];\nconst items = $input.all();\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const emailJson = { ...item.json };\n  if (emailJson.text) {\n    emailJson.email_text = emailJson.text;\n  }\n  \n  const mainItem = {\n    json: {\n      ...emailJson,\n      has_binary_attachment: false,\n      attachment_type: 'none'\n    },\n    binary: {},\n    pairedItem: {\n      item: i // Link this output item back to the original email index\n    }\n  };\n  \n  let binaryCount = 0;\n  \n  if (item.binary) {\n    for (const key of Object.keys(item.binary)) {\n      const file = item.binary[key];\n      const ext = (file.fileName || '').split('.').pop().toLowerCase();\n      \n      if (isSignatureIcon(file)) {\n        continue;\n      }\n      \n      // 1. Multimodal files (PDF, Images) go directly onto the main item\n      if (allowedBinary.includes(ext)) {\n        mainItem.binary[`data_${binaryCount}`] = { ...file };\n        binaryCount++;\n        mainItem.json.has_binary_attachment = true;\n        mainItem.json.attachment_type = 'binary';\n      }\n      // 2. Spreadsheets (Excel) -> Output as separate item\n      else if (allowedExcel.includes(ext)) {\n        outputItems.push({\n          json: {\n            ...emailJson,\n            attachment_type: ext\n          },\n          binary: {\n            data: { ...file }\n          },\n          pairedItem: {\n            item: i\n          }\n        });\n      }\n      // 3. Word Documents -> Output as separate item (and rename to .zip for Decompress)\n      else if (allowedWord.includes(ext)) {\n        outputItems.push({\n          json: {\n            ...emailJson,\n            attachment_type: 'word'\n          },\n          binary: {\n            data: {\n              ...file,\n              fileName: (file.fileName || 'document.docx').replace(/\\.docx$/i, '.zip'),\n              fileExtension: 'zip',\n              mimeType: 'application/zip'\n            }\n          },\n          pairedItem: {\n            item: i\n          }\n        });\n      }\n      // 4. CSV / Plain Text -> Output as separate item\n      else if (allowedText.includes(ext)) {\n        outputItems.push({\n          json: {\n            ...emailJson,\n            attachment_type: 'text'\n          },\n          binary: {\n            data: { ...file }\n          },\n          pairedItem: {\n            item: i\n          }\n        });\n      }\n    }\n  }\n  \n  // Always include the main email item (with text body + PDF/images) in the output list\n  outputItems.push(mainItem);\n}\n\nreturn outputItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3344,
+        1376
+      ],
+      "id": "92218ad2-3eb1-4e28-abad-0be7bf319d55",
+      "name": "Extract - Standardize Attachments"
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('Extract - Standardize Attachments').first().json;\n\n// Read the binary buffer (index 0, field name 'data') asynchronously\nconst rawBuffer = await helpers.getBinaryDataBuffer(0, 'data');\n\nreturn [{\n  json: {\n    ...email,\n    extracted_text: rawBuffer.toString('utf-8'),\n    text: email.email_text\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1984,
+        1728
+      ],
+      "id": "226a5e51-fffa-4e87-9830-8a8fbf441f24",
+      "name": "Format - Plain Text"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1024,
+        1888
+      ],
+      "id": "ed615c44-d8f1-4278-a050-5369c8aaf330",
+      "name": "Merge - Emails"
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $('Triggered by another workflow').first().json;\nconst timestampRow = $('Read - Last Run Timestamp').first().json;\n\nconst email = (trigger.primary_email || '').trim().toLowerCase();\nconst lastRunTimestamp = timestampRow.last_run_timestamp;\n\n// List of common country-code multi-part suffixes (e.g. .co.in, .co.uk)\nconst multipartSuffixes = [\n  'co.in', 'net.in', 'org.in', 'firm.in', 'gen.in', 'ind.in', 'nic.in', 'ac.in', 'edu.in', 'res.in', 'gov.in', 'mil.in',\n  'co.uk', 'me.uk', 'org.uk', 'net.uk', 'ltd.uk', 'plc.uk', 'sch.uk', 'nhs.uk', 'police.uk', 'mod.uk', 'ac.uk',\n  'com.sg', 'org.sg', 'net.sg', 'edu.sg', 'gov.sg', 'per.sg',\n  'com.au', 'net.au', 'org.au', 'asn.au', 'id.au', 'gov.au',\n  'co.jp', 'ne.jp', 'or.jp', 'go.jp', 'ac.jp', 'ad.jp',\n  'com.br', 'co.za', 'com.mx', 'co.nz', 'com.tw', 'com.hk'\n];\n\n// Set of public domains that must not be matched domain-wide\nconst publicDomains = new Set([\n  'gmail.com',\n  'yahoo.com', 'yahoo.co.in', 'yahoo.co.uk',\n  'hotmail.com', 'outlook.com', 'live.com', 'icloud.com',\n  'aol.com', 'zoho.com', 'zoho.in', 'protonmail.com',\n  'proton.me', 'mail.com', 'gmx.com', 'yandex.com', 'rediffmail.com'\n]);\n\nfunction getRootDomain(emailAddr) {\n  const parts = emailAddr.split('@');\n  if (parts.length !== 2) return '';\n  const fullDomain = parts[1];\n  \n  const domainParts = fullDomain.split('.');\n  if (domainParts.length <= 2) {\n    return fullDomain;\n  }\n  \n  const lastTwo = domainParts.slice(-2).join('.');\n  if (multipartSuffixes.includes(lastTwo)) {\n    return domainParts.slice(-3).join('.');\n  } else {\n    return domainParts.slice(-2).join('.');\n  }\n}\n\nlet senderFilter = '';\nconst emailParts = email.split('@');\n\nif (emailParts.length === 2) {\n  const domain = emailParts[1];\n  if (publicDomains.has(domain)) {\n    // Public domain: Search ONLY for the specific email address\n    senderFilter = email;\n  } else {\n    // Corporate domain: Robustly extract root domain and search\n    const rootDomain = getRootDomain(email);\n    senderFilter = rootDomain;\n  }\n} else {\n  senderFilter = email;\n}\n\nreturn [{\n  json: {\n    sender_filter: senderFilter,\n    last_run_timestamp: lastRunTimestamp\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3280,
+        112
+      ],
+      "id": "92ebe3d0-b1a6-4af8-ac80-0e2ef4f3cfd8",
+      "name": "Prepare - Gmail Search Query"
+    }
+  ],
+  "pinData": {
+    "Triggered by another workflow": [
+      {
+        "json": {
+          "client_code": "C0",
+          "supplier_code": "S1",
+<<<<<<< HEAD
+          "primary_email": "danishsiddiqui2486@gmail.com"
+=======
+          "primary_email": "supplier@example.com"
+>>>>>>> 41a46295cff09dc196c1f4bdafc142e1fd3ac88b
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Read - Open POs for Supplier": {
+      "main": [
+        [
+          {
+            "node": "Read - Last Run Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read - Last Run Timestamp": {
+      "main": [
+        [
+          {
+            "node": "Check - Supplier Row Exists1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Triggered by another workflow": {
+      "main": [
+        [
+          {
+            "node": "1a_Read – Akisto System Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search - Supplier Emails in Gmail since Last Run": {
+      "main": [
+        [
+          {
+            "node": "Extract - Standardize Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read - Client Time Zone": {
+      "main": [
+        [
+          {
+            "node": "Prepare - Email and PO Context for Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare - Email and PO Context for Claude": {
+      "main": [
+        [
+          {
+            "node": "Extract - Supplier Email Facts via Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse - Claude Extraction Response": {
+      "main": [
+        [
+          {
+            "node": "Call - Classify - Delivery Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract - Supplier Email Facts via Claude": {
+      "main": [
+        [
+          {
+            "node": "Parse - Claude Extraction Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check - Confidence and Route": {
+      "main": [
+        [
+          {
+            "node": "Set - Human Review Flag",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check - Email Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check - Email Found": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read - Communication Logs Row Number": {
+      "main": [
+        [
+          {
+            "node": "Prepare - Communication Logs Update Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update - Communication Logs Sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare - Last Run Timestamp Update": {
+      "main": [
+        [
+          {
+            "node": "Update - Last Run Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Human Review Flag": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare - Communication Logs Update Fields": {
+      "main": [
+        [
+          {
+            "node": "Update - Communication Logs Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Prepare - Last Run Timestamp Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Read - Communication Logs Row Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check - Email Count": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Read - Material Master",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare - Last Run Timestamp Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check - Supplier Row Exists": {
+      "main": [
+        [
+          {
+            "node": "Prepare - Gmail Search Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read - Supplier master sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check - Supplier Row Exists1": {
+      "main": [
+        [
+          {
+            "node": "Check - Supplier Row Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create - Supplier Row in Workflow Log": {
+      "main": [
+        [
+          {
+            "node": "Prepare - Gmail Search Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call - Classify - Delivery Status": {
+      "main": [
+        [
+          {
+            "node": "Check - Confidence and Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read - Supplier master sheet": {
+      "main": [
+        [
+          {
+            "node": "Prepare - Supplier Row Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1a_Read – Akisto System Settings": {
+      "main": [
+        [
+          {
+            "node": "Read - Open POs for Supplier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare - Supplier Row Fields": {
+      "main": [
+        [
+          {
+            "node": "Create - Supplier Row in Workflow Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read - Material Master": {
+      "main": [
+        [
+          {
+            "node": "Read - Client Time Zone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check - Attachment Type": {
+      "main": [
+        [
+          {
+            "node": "Read - XLSX Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read - XLS Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Decompress Word Doc",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format - Plain Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge - Emails",
+            "type": "main",
+            "index": 3
+          }
+        ],
+        [
+          {
+            "node": "Merge - Emails",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Read - XLSX Sheet": {
+      "main": [
+        [
+          {
+            "node": "Format - XLSX Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format - XLSX Output": {
+      "main": [
+        [
+          {
+            "node": "Merge - Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read - XLS Sheet": {
+      "main": [
+        [
+          {
+            "node": "Format - XLS Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decompress Word Doc": {
+      "main": [
+        [
+          {
+            "node": "Extract - Word Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract - Standardize Attachments": {
+      "main": [
+        [
+          {
+            "node": "Check - Attachment Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format - Plain Text": {
+      "main": [
+        [
+          {
+            "node": "Merge - Emails",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Extract - Word Text": {
+      "main": [
+        [
+          {
+            "node": "Merge - Emails",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Format - XLS Output": {
+      "main": [
+        [
+          {
+            "node": "Merge - Emails",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge - Emails": {
+      "main": [
+        [
+          {
+            "node": "Check - Email Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare - Gmail Search Query": {
+      "main": [
+        [
+          {
+            "node": "Search - Supplier Emails in Gmail since Last Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "03210e54-4400-41ef-a0b0-718ec360b4ba",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4ee474ecbdbe20bb5eaed48e0f4d58c1ffb0805814011251d6c608a835c16bbd"
+  },
+  "nodeGroups": [],
+  "id": "fjL3XwTTpLQ7JGPb",
+  "tags": []
+<<<<<<< HEAD
+}
+=======
+}
+>>>>>>> 41a46295cff09dc196c1f4bdafc142e1fd3ac88b

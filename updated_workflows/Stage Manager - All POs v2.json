@@ -1,0 +1,378 @@
+{
+  "name": "Stage Manager - All POs v2",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "=PO consolidated data",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=client_code",
+              "lookupValue": "={{ $json.client_code }}"
+            },
+            {
+              "lookupColumn": "=po_status",
+              "lookupValue": "Open"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -880,
+        336
+      ],
+      "id": "3350e385-8b10-4fd1-b529-179672119c8b",
+      "name": "2_Read - All Open POs",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c51bd758-5747-4a2d-91e6-0976f6cd52bf",
+              "leftValue": "={{ $input.all().filter(item => item.json.po_number).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -672,
+        336
+      ],
+      "id": "0f8c6d44-f9b9-4ba6-84bd-90bedc3b29a0",
+      "name": "3_Check - Any Open POs"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        336
+      ],
+      "id": "80f599f2-4e8c-4664-85bb-387edca9e8ae",
+      "name": "1_Manual Trigger"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -256,
+        320
+      ],
+      "id": "c49aba2f-12ea-4aa2-ba53-820e11e589bf",
+      "name": "5a_Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        608
+      ],
+      "id": "a7585349-a176-4687-9636-b42515c20a30",
+      "name": "5b_No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "YjohTo1eulUF7G00",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/YjohTo1eulUF7G00"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        336
+      ],
+      "id": "a5c9ee97-a8f6-4ff1-bb02-e69804dcdacc",
+      "name": "6_Execute - Each PO Stage Manager"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "58350048-60ab-4b4a-9881-8953bd247202",
+      "name": "7_No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e505e2ec-1cbd-4673-a7bf-c85ff549e52f",
+              "name": "po_line_key",
+              "value": "={{ $json.po_line_key }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -48,
+        336
+      ],
+      "id": "dd2b0499-dcf5-4c9e-9ddd-d99476e3486e",
+      "name": "5b_Set - PO line key"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU",
+          "mode": "list",
+          "cachedResultName": "Akisto System Settings Danish",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1344,
+        336
+      ],
+      "id": "fc540756-511c-4686-a262-fa6da8ef1d4d",
+      "name": "1a_Read – Akisto System Settings",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 279270887,
+          "mode": "list",
+          "cachedResultName": "Client info",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I1y4Aq_mmDufthcDLi5rmqJ4225nurlNbTuE0JKTe4I/edit#gid=279270887"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=client_code",
+              "lookupValue": "={{ $('1_Manual Trigger').item.json.client_code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1088,
+        336
+      ],
+      "id": "094d64b7-f0e0-4888-baf1-f96efa559fe4",
+      "name": "1b_Read - Client list",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "1_Manual Trigger": [
+      {
+        "json": {
+          "client_code": "C1"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "2_Read - All Open POs": {
+      "main": [
+        [
+          {
+            "node": "3_Check - Any Open POs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1_Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "1a_Read – Akisto System Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3_Check - Any Open POs": {
+      "main": [
+        [
+          {
+            "node": "5a_Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5b_No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5a_Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "7_No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5b_Set - PO line key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6_Execute - Each PO Stage Manager": {
+      "main": [
+        [
+          {
+            "node": "5a_Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5b_Set - PO line key": {
+      "main": [
+        [
+          {
+            "node": "6_Execute - Each PO Stage Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1b_Read - Client list": {
+      "main": [
+        [
+          {
+            "node": "2_Read - All Open POs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1a_Read – Akisto System Settings": {
+      "main": [
+        [
+          {
+            "node": "1b_Read - Client list",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "414682e4-18ba-4e97-814e-0affb35d5edf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4ee474ecbdbe20bb5eaed48e0f4d58c1ffb0805814011251d6c608a835c16bbd"
+  },
+  "nodeGroups": [],
+  "id": "I4nl6FVRvml6m5uh",
+  "tags": []
+}
