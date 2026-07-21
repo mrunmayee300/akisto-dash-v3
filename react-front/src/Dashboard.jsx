@@ -167,6 +167,30 @@ function Dashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('po_asc');
 
+  // Keep the overview counts tied to the complete dataset. Search and status
+  // filters below are table controls and must not change these totals.
+  const overviewCounts = React.useMemo(() => {
+    const counts = {
+      open: data?.openPOs?.length || 0,
+      needsAttention: 0,
+      onTrack: 0,
+      awaitingReply: 0
+    };
+
+    (data?.openPOs || []).forEach(po => {
+      const resolved = resolvePoDashboardState(po);
+      if (resolved.status === 'Needs Attention') {
+        counts.needsAttention += 1;
+      } else if (resolved.status === 'On Track') {
+        counts.onTrack += 1;
+      } else {
+        counts.awaitingReply += 1;
+      }
+    });
+
+    return counts;
+  }, [data]);
+
   // Sort and filter the full list once into a stable ordering using useMemo
   const { sortedOpenPOs, needsAttention, onTrack, awaitingReply } = React.useMemo(() => {
     if (!data) {
@@ -531,38 +555,38 @@ function Dashboard() {
       <div className="grid grid-cols-4 gap-[13px] pt-[14px] px-7 pb-[6px]">
         <div className="border border-line rounded-[11px] py-[13px] px-[16px]">
           <div className="text-[14px] text-muted font-semibold flex items-center gap-[7px]"><span className="w-[9px] h-[9px] rounded-full inline-block bg-[#B9C2BD]"></span>Open POs</div>
-          <div className="text-[35px] font-extrabold text-body mt-[2px] tracking-[-1px]">{openPOs.length}</div>
+          <div className="text-[35px] font-extrabold text-body mt-[2px] tracking-[-1px]">{overviewCounts.open}</div>
           <div className="text-[13px] text-muted mt-[1px]">Tracked end to end</div>
         </div>
         <div className="border border-line rounded-[11px] py-[13px] px-[16px]">
           <div className="text-[14px] text-muted font-semibold flex items-center gap-[7px]"><span className="w-[9px] h-[9px] rounded-full inline-block bg-bright"></span>On track</div>
-          <div className="text-[35px] font-extrabold text-body mt-[2px] tracking-[-1px]">{onTrack.length}</div>
+          <div className="text-[35px] font-extrabold text-body mt-[2px] tracking-[-1px]">{overviewCounts.onTrack}</div>
           <div className="text-[13px] text-muted mt-[1px]">Confirmed, no action</div>
         </div>
         <div className="border border-line rounded-[11px] py-[13px] px-[16px]">
           <div className="text-[14px] text-muted font-semibold flex items-center gap-[7px]"><span className="w-[9px] h-[9px] rounded-full inline-block bg-[#C7B273]"></span>Awaiting reply</div>
-          <div className="text-[35px] font-extrabold text-body mt-[2px] tracking-[-1px]">{awaitingReply.length}</div>
+          <div className="text-[35px] font-extrabold text-body mt-[2px] tracking-[-1px]">{overviewCounts.awaitingReply}</div>
           <div className="text-[13px] text-muted mt-[1px]">Chasing, within window</div>
         </div>
         <div className="border border-[#E6CFC9] bg-[#FDF7F6] rounded-[11px] py-[13px] px-[16px]">
           <div className="text-[14px] text-muted font-semibold flex items-center gap-[7px]"><span className="w-[9px] h-[9px] rounded-full inline-block bg-red"></span>Need attention</div>
-          <div className="text-[35px] font-extrabold text-red mt-[2px] tracking-[-1px]">{needsAttention.length}</div>
+          <div className="text-[35px] font-extrabold text-red mt-[2px] tracking-[-1px]">{overviewCounts.needsAttention}</div>
           <div className="text-[13px] text-muted mt-[1px]">Need buyer&rsquo;s intervention</div>
         </div>
       </div>
 
       <div className="flex gap-1 pt-[14px] px-7 pb-0 border-b border-line">
         <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'open' ? '!text-emerald !border-emerald' : ''}`} onClick={() => handleTabClick('open')}>
-          Open POs <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'open' ? '!bg-pale !text-emerald' : ''}`}>{openPOs.length}</span>
+          Open POs <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'open' ? '!bg-pale !text-emerald' : ''}`}>{overviewCounts.open}</span>
         </button>
         <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'attn' ? '!text-red !border-red' : ''}`} onClick={() => handleTabClick('attn')}>
-          Needs attention <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'attn' ? '!bg-redfill !text-red' : ''}`}>{needsAttention.length}</span>
+          Needs attention <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'attn' ? '!bg-redfill !text-red' : ''}`}>{overviewCounts.needsAttention}</span>
         </button>
         <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'track' ? '!text-emerald !border-emerald' : ''}`} onClick={() => handleTabClick('track')}>
-          On track <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'track' ? '!bg-pale !text-emerald' : ''}`}>{onTrack.length}</span>
+          On track <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'track' ? '!bg-pale !text-emerald' : ''}`}>{overviewCounts.onTrack}</span>
         </button>
         <button className={`text-[14.5px] font-bold text-muted pt-[10px] pb-[13px] px-[16px] border-b-[2.5px] border-transparent bg-none cursor-pointer flex items-center gap-2 hover:text-body ${activeTab === 'await' ? '!text-emerald !border-emerald' : ''}`} onClick={() => handleTabClick('await')}>
-          Awaiting reply <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'await' ? '!bg-pale !text-emerald' : ''}`}>{awaitingReply.length}</span>
+          Awaiting reply <span className={`text-[12.5px] font-bold text-muted bg-[#F0F3F1] rounded-[20px] py-[1px] px-[8px] ${activeTab === 'await' ? '!bg-pale !text-emerald' : ''}`}>{overviewCounts.awaitingReply}</span>
         </button>
       </div>
 
