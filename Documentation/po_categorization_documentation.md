@@ -93,16 +93,11 @@ Once categorized under Needs Attention, the sub-status, label, and reason displa
 
 | Sub-status | Condition | UI Label | CSS Class | Color / Pill Style | Default Reason Text |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-<<<<<<< HEAD
 | **Unclear Response** | Classification contains `'unclear'` | `"Unclear response"` | `p-unclear` | Purple fill / purple text | Stage-specific delivery status text, or fallback: *"AI clarification attempts failed or unclear response received."* |
-=======
-| **Unclear Response** | Classification is exactly `'unclear'` | `"Unclear response"` | `p-unclear` | Purple fill / purple text | Stage-specific delivery status text, or fallback: *"AI clarification attempts failed or unclear response received."* |
->>>>>>> 41a46295cff09dc196c1f4bdafc142e1fd3ac88b
-| **Low Confidence** | Supplier reply confidence is `'low'` | `"Low confidence"` | `p-low-confidence` | Light canvas bg / gray-brown text | Stage-specific delivery status text, or fallback: *"AI classification confidence is Low; review required."* |
+| **Low Confidence** | Supplier reply confidence is `'low'`, or `needs_human_review` / `human_review_status` trigger | `"Low confidence"` | `p-low-confidence` | Light canvas bg / gray-brown text | Stage-specific delivery status text, or fallback: *"AI classification confidence is Low; review required."* |
 | **Delayed** | Classification matches `"delayed"` | `"Delayed"` | `p-delayed` | Red fill / red text | Stage-specific delivery status text, or fallback: *"Delivery delayed."* |
 | **Delayed TBC** | Classification matches `"delayed tbc"` | `"Delayed · TBC"` | `p-delayed-tbc` | Red fill / red text | Stage-specific delivery status text, or fallback: *"Delivery delayed (TBC)."* |
 | **No Response** | Status is `'escalation_sent'` | `"No Response"` | `p-no-response` | Gold fill / dark gold text | *"No reply despite repeated follow-up emails and calls."* |
-| **Needs Review** (Fallback) | Any other trigger (e.g. manual `needs_human_review === 'yes'`) | `"Needs review"` | `p-review` | Slate gray pill (`#F1F5F9` bg, `#475569` text) | Stage-specific delivery status text, or fallback: *"Flagged for reviewer audit."* |
 
 ---
 
