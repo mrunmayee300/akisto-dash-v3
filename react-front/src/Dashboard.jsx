@@ -185,6 +185,10 @@ function Dashboard() {
       let matchesStatus = true;
       if (statusFilter === 'no_response') {
         matchesStatus = resolved.label === 'No Response';
+      } else if (statusFilter === 'low_confidence') {
+        matchesStatus = resolved.label === 'Low confidence';
+      } else if (statusFilter === 'delayed') {
+        matchesStatus = resolved.label.startsWith('Delayed');
       } else if (statusFilter === 'on_time') {
         matchesStatus = resolved.label.startsWith('On time');
       } else if (statusFilter === 'awaiting_reply') {
@@ -603,6 +607,8 @@ function Dashboard() {
           >
             <option value="all">All statuses</option>
             <option value="no_response">No response</option>
+            <option value="low_confidence">Low confidence</option>
+            <option value="delayed">Delayed</option>
             <option value="on_time">On time</option>
             <option value="awaiting_reply">Awaiting reply</option>
           </select>
