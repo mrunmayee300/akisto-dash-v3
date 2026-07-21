@@ -2956,7 +2956,11 @@
         "json": {
           "client_code": "C0",
           "supplier_code": "S1",
+<<<<<<< HEAD
           "primary_email": "danishsiddiqui2486@gmail.com"
+=======
+          "primary_email": "supplier@example.com"
+>>>>>>> 41a46295cff09dc196c1f4bdafc142e1fd3ac88b
         }
       }
     ]
@@ -3458,4 +3462,8 @@
   "nodeGroups": [],
   "id": "fjL3XwTTpLQ7JGPb",
   "tags": []
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 41a46295cff09dc196c1f4bdafc142e1fd3ac88b

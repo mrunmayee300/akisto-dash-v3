@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Akisto Dashboard - Build Spec</title>
+<style>
+  :root{--emerald:#0E5C44;--accent:#127A5A;--muted:#6B6F73;--line:#E7EAE8;--body:#2C2C2A;--pale:#DDF0E7;--canvas:#EEF1EF;
+    --gold:#C79A2E;--darkgold:#8A6516;--goldfill:#FBF4E2;--red:#B23B2E;--redfill:#F7E7E3;--bright:#1D9E75;--darkE:#0B3D2E;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Aptos','Segoe UI',-apple-system,sans-serif;background:var(--canvas);color:var(--body);padding:30px 18px;line-height:1.5;}
+  .wrap{max-width:1080px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .hd{padding:26px 30px 20px;border-bottom:1px solid var(--line);}
+  h1{font-size:22px;color:var(--emerald);margin-bottom:6px;}
+  .hd p{font-size:14px;color:var(--muted);}
+  h2{font-size:16px;color:#fff;background:var(--emerald);padding:10px 30px;margin-top:28px;}
+  h2:first-of-type{margin-top:0;}
+  h3{font-size:14px;color:var(--emerald);font-weight:800;padding:18px 30px 2px;}
+  p.body,ul.body{font-size:13.5px;color:var(--body);padding:6px 30px;}
+  ul.body{padding-left:50px;}
+  ul.body li{margin-bottom:5px;}
+  ol.body{padding:6px 30px 6px 52px;font-size:13.5px;}
+  ol.body li{margin-bottom:5px;}
+  .legend{margin:10px 30px;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .legend table{width:100%;border-collapse:collapse;}
+  .legend td{padding:9px 14px;border-bottom:1px solid #F2F4F2;font-size:13px;vertical-align:top;}
+  .legend tr:last-child td{border-bottom:none;}
+  .cat{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+  .c1{background:var(--pale);color:var(--emerald);}.c2{background:#E7EEFB;color:#37589C;}
+  .c3{background:var(--goldfill);color:var(--darkgold);}.c4{background:var(--redfill);color:var(--red);}
+  .tblwrap{padding:6px 30px 8px;overflow-x:auto;}
+  table.t{width:100%;border-collapse:collapse;}
+  table.t th{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);font-weight:700;text-align:left;padding:9px 12px;border-bottom:1.5px solid var(--line);background:#FAFBFA;}
+  table.t td{padding:9px 12px;border-bottom:1px solid #F2F4F2;font-size:12.5px;vertical-align:top;line-height:1.4;}
+  table.t td.lab{font-weight:700;color:var(--body);}
+  table.t td.var{font-family:monospace;font-size:11px;color:var(--emerald);}
+  table.t td.sheet{color:var(--muted);font-size:11px;}
+  table.t td.cond{font-weight:700;color:var(--darkE);white-space:nowrap;}
+  .pillp{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+  .p-delayed{background:var(--redfill);color:var(--red);}.p-risk{background:var(--goldfill);color:var(--darkgold);}
+  .p-ontime{background:var(--pale);color:var(--emerald);}.p-tbc{background:#EEF1EF;color:var(--muted);}
+  .p-await{background:#EAF0FB;color:#3A5C9A;}.p-review{background:#F1E9F5;color:#6B3FA0;}
+  .callout{margin:12px 30px;padding:12px 16px;border-radius:10px;font-size:13px;}
+  .co-warn{background:#FBF8EC;border:1px solid #EBDDB0;color:var(--darkgold);}
+  .co-block{background:var(--redfill);border:1px solid #E3B5AE;color:var(--red);}
+  .co-judge{background:#F1E9F5;border:1px solid #D6C2E6;color:#6B3FA0;}
+  .co-info{background:#EAF3EF;border:1px solid #BFE0CF;color:var(--emerald);}
+  code{font-family:monospace;font-size:11.5px;background:#F2F4F2;padding:1px 5px;border-radius:4px;color:var(--darkE);}
+  pre{margin:8px 30px;padding:12px 14px;background:#0B1F18;color:#CFE8DC;border-radius:8px;font-size:11px;overflow-x:auto;line-height:1.5;}
+  .foot{padding:18px 30px 26px;font-size:12.5px;color:var(--muted);}
+  .rule{font-size:13.5px;color:var(--body);padding:5px 30px;}
+  .rule b{color:var(--emerald);}
+  .worked{margin:10px 30px;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .worked .wh{background:#FAFBFA;padding:8px 14px;font-size:12px;font-weight:800;color:var(--emerald);border-bottom:1px solid var(--line);}
+  .worked .wb{padding:12px 14px;font-size:12.5px;}
+  .worked .wb b{color:var(--darkE);}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1>Dashboard (four-view page) &mdash; build spec</h1>
+    <p>Self-contained build kit for the main dashboard. Pair with the reference mock <b>dashboard_v3</b> (the four-tab page with summary banners + count tiles). The mock is the visual source of truth; this doc is the data and logic source of truth. Companion to the detail-panel spec; clicking a row opens that panel.</p>
+  </div>
+
+  <h2>0. How to use this document</h2>
+  <ul class="body">
+    <li><b>The mock shows what it looks like. This doc says what data drives it and how the conditional cases behave.</b> Build the look from the mock, wire data and logic from here.</li>
+    <li><b><span class="cat c4" style="margin:0 2px;">CAT 4</span> / &ldquo;Prabhas&rdquo; flags</b> mark logic that isn&rsquo;t defined yet. Build around them; don&rsquo;t guess.</li>
+    <li><b>&ldquo;Use judgment&rdquo;</b> means follow the mock and Prabhas&rsquo;s established pattern; make a reasonable call and note it rather than stalling.</li>
+    <li><b>Ask Prabhas only when genuinely stuck</b> after trying the doc and mock.</li>
+    <li>Uploadable to a GenAI assistant with the mock to scaffold the UI. The categorization logic and the data pipeline remain your own work.</li>
+  </ul>
+
+  <h2>1. Two separate jobs &mdash; don&rsquo;t conflate them</h2>
+  <ul class="body">
+    <li><b>Job A &mdash; data layer (separate work).</b> Produces, per PO line: the classification (which decides the view), the delivery-status sentence, and the aggregate numbers (tile counts and the &ldquo;since yesterday&rdquo; deltas). The dashboard receives these as ready values.</li>
+    <li><b>Job B &mdash; this dashboard (your build).</b> Reads the prepared rows + aggregates and renders the four views, banners, and tiles. It filters and displays; it does not classify or compute aggregates itself.</li>
+  </ul>
+  <div class="callout co-info">The categorization that sorts a line into On track / Needs attention / Awaiting reply is <b>the same classification logic</b> that drives the detail-panel pills. It is one shared dependency, not a new one. (Prabhas to define; may be Sheet formulas or a function.)</div>
+
+  <h2>2. Readiness legend</h2>
+  <div class="legend"><table>
+    <tr><td><span class="cat c1">CAT 1</span></td><td><b>Exists in the sheet, bind as-is.</b></td></tr>
+    <tr><td><span class="cat c2">CAT 2</span></td><td><b>Panel-side transform.</b> Here: supplier name+code combine, quantity+unit.</td></tr>
+    <tr><td><span class="cat c4">CAT 4</span></td><td><b>Net-new, Prabhas-defined / Job A.</b> Classification, tile counts, deltas. Build around them.</td></tr>
+  </table></div>
+
+  <h2>3. Page structure</h2>
+  <ul class="body">
+    <li><b>Header:</b> brand + the active view label + buyer name/date (top-right).</li>
+    <li><b>Summary banners</b> (two, side by side): &ldquo;Summary&rdquo; (the action-needed call-out) and &ldquo;What changed since yesterday&rdquo;. <b>Persistent across all four tabs</b> (rendered once, above the tabs).</li>
+    <li><b>Count tiles</b> (four): Open POs, On track, Awaiting reply, Need attention. Also persistent above the tabs.</li>
+    <li><b>Tabs</b> (four): Open POs (default), Needs attention, On track, Awaiting reply. Each shows a table.</li>
+    <li><b>Left spine is identical across all four tables</b> (PO, Supplier, Material code, Material description, Quantity, then status) so switching tabs doesn&rsquo;t visually jump. Each view extends right with its own columns.</li>
+  </ul>
+
+  <h2>4. The classification &rarr; view routing</h2>
+  <p class="body"><span class="cat c4" style="margin:0 2px;">CAT 4</span> Each line&rsquo;s <code>delivery_status_classification</code> (Job A) routes it to a view and a pill. Same six-value system as the detail panel.</p>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Classification</th><th>Pill</th><th>Appears in view</th></tr>
+    <tr><td class="cond">On time</td><td><span class="pillp p-ontime">On time</span></td><td>On track (+ Open POs)</td></tr>
+    <tr><td class="cond">On time &middot; TBC</td><td><span class="pillp p-tbc">On time &middot; TBC</span></td><td>On track (+ Open POs)</td></tr>
+    <tr><td class="cond">At risk</td><td><span class="pillp p-risk">At risk</span></td><td>Needs attention (+ Open POs)</td></tr>
+    <tr><td class="cond">Delayed</td><td><span class="pillp p-delayed">Delayed</span></td><td>Needs attention (+ Open POs)</td></tr>
+    <tr><td class="cond">Needs review</td><td><span class="pillp p-review">Needs review</span></td><td>Needs attention (+ Open POs)</td></tr>
+    <tr><td class="cond">Awaiting reply</td><td><span class="pillp p-await">Awaiting reply</span></td><td>Awaiting reply (+ Open POs)</td></tr>
+  </table></div>
+  <p class="body"><b>Open POs</b> shows every line regardless of classification (the master list). The other three views are filtered slices.</p>
+
+  <h2>5. The four views &mdash; columns per view</h2>
+  <p class="body">Shared left spine, then view-specific columns after the status pill.</p>
+  <div class="tblwrap"><table class="t">
+    <tr><th>View</th><th>Pills shown</th><th>Columns after status</th></tr>
+    <tr><td class="cond">Open POs</td><td>all six</td><td>none (status is the last column)</td></tr>
+    <tr><td class="cond">Needs attention</td><td>At risk, Delayed, Needs review</td><td>What&rsquo;s happening</td></tr>
+    <tr><td class="cond">On track</td><td>On time, On time-TBC</td><td>Delivery status</td></tr>
+    <tr><td class="cond">Awaiting reply</td><td>Awaiting reply</td><td>Last update from supplier, Next touch point</td></tr>
+  </table></div>
+
+  <h2>6. Row columns &mdash; mapping (all views)</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Column</th><th>Variable</th><th>Sheet</th><th>Cat</th><th>Note</th></tr>
+    <tr><td class="lab">PO</td><td class="var">po_number</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>e.g. PO-4471 / 300656</td></tr>
+    <tr><td class="lab">Supplier</td><td class="var">supplier_name + supplier_code</td><td class="sheet">po</td><td><span class="cat c2">2</span></td><td><b>Transform:</b> combine as &ldquo;Name (code)&rdquo; e.g. &ldquo;Personal Brushes (S16)&rdquo;. (On the detail panel they&rsquo;re separate; on the dashboard they combine, because space is tight.)</td></tr>
+    <tr><td class="lab">Material code</td><td class="var">material_code</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>Own column</td></tr>
+    <tr><td class="lab">Material description</td><td class="var">material_name</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>Own column (kept separate from code; can run long)</td></tr>
+    <tr><td class="lab">Quantity</td><td class="var">quantity + unit_of_measure</td><td class="sheet">po</td><td><span class="cat c2">2</span></td><td><b>Transform:</b> &ldquo;{quantity} {unit}&rdquo;; if unit blank, number only</td></tr>
+    <tr><td class="lab">Need by</td><td class="var">deliver_by_date_delivery_1</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>Open POs / Needs attention / Awaiting reply use &ldquo;Need by&rdquo;</td></tr>
+    <tr><td class="lab">Ship-by (On track only)</td><td class="var">ship_by_date_delivery_1</td><td class="sheet">po</td><td><span class="cat c1">1</span></td><td>On track view uses &ldquo;Ship-by&rdquo; instead of &ldquo;Need by&rdquo;</td></tr>
+    <tr><td class="lab">Status pill</td><td class="var">delivery_status_classification</td><td class="sheet">state</td><td><span class="cat c4">4</span></td><td>Maps via section 4</td></tr>
+    <tr><td class="lab">What&rsquo;s happening (Needs attention)</td><td class="var">delivery_status_text</td><td class="sheet">state</td><td><span class="cat c1">1</span></td><td>The cleaned status sentence</td></tr>
+    <tr><td class="lab">Delivery status (On track)</td><td class="var">delivery_status_text</td><td class="sheet">state</td><td><span class="cat c1">1</span></td><td>Same source, On-track-flavored sentence</td></tr>
+    <tr><td class="lab">Last update from supplier (Awaiting)</td><td class="var">latest reply text, or &ldquo;no reply since [date]&rdquo;</td><td class="sheet">state</td><td><span class="cat c2">2</span></td><td><b>Transform:</b> last classified reply if any; else &ldquo;No reply since {first outreach date}&rdquo;</td></tr>
+    <tr><td class="lab">Next touch point (Awaiting)</td><td class="var">follow_up_stage + follow_up_status + bands</td><td class="sheet">state</td><td><span class="cat c4">4</span></td><td>Computed by Job A (same as detail panel)</td></tr>
+  </table></div>
+
+  <h2>7. Banners &amp; tiles &mdash; mapping</h2>
+  <p class="body"><span class="cat c4" style="margin:0 2px;">CAT 4</span> These are aggregates over the whole dataset, produced by Job A. The dashboard binds the numbers; it does not compute them.</p>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Element</th><th>Source</th><th>Cat</th><th>Note</th></tr>
+    <tr><td class="lab">Tile: Open POs count</td><td class="var">count of all open lines</td><td><span class="cat c4">4</span></td><td>Job A aggregate</td></tr>
+    <tr><td class="lab">Tile: On track count</td><td class="var">count where classification &isin; {On time, On time-TBC}</td><td><span class="cat c4">4</span></td><td>Job A</td></tr>
+    <tr><td class="lab">Tile: Awaiting reply count</td><td class="var">count where classification = Awaiting reply</td><td><span class="cat c4">4</span></td><td>Job A</td></tr>
+    <tr><td class="lab">Tile: Need attention count</td><td class="var">count where classification &isin; {At risk, Delayed, Needs review}</td><td><span class="cat c4">4</span></td><td>Job A. Subtitle: &ldquo;Need buyer&rsquo;s intervention&rdquo;</td></tr>
+    <tr><td class="lab">Summary banner (action-needed)</td><td class="var">count + breakdown of lines blocked on buyer-side causes (payment, unsigned PO)</td><td><span class="cat c4">4</span></td><td>Job A. The &ldquo;X of Y stalled POs awaiting your action&rdquo; line + cause breakdown</td></tr>
+    <tr><td class="lab">&ldquo;What changed since yesterday&rdquo;</td><td class="var">deltas vs yesterday&rsquo;s snapshot</td><td><span class="cat c4">4</span></td><td>Job A. <b>Requires storing a daily snapshot to diff against</b> &mdash; real work, Prabhas to define</td></tr>
+  </table></div>
+  <div class="callout co-warn"><b>The &ldquo;since yesterday&rdquo; deltas need a stored snapshot.</b> To compute &ldquo;3 POs slipped to delayed&rdquo; the system must compare today&rsquo;s state to yesterday&rsquo;s. That snapshot mechanism doesn&rsquo;t exist yet. Job A / Prabhas. If not available at build time, the dashboard can hide this banner or show a placeholder.</div>
+
+  <h2>8. Row-click behaviour</h2>
+  <p class="rule"><b>Clicking any PO line row opens that line&rsquo;s detail page</b> (the PO line item detail panel, specified in its own doc). Pass the row&rsquo;s <code>po_line_key</code>. Nothing else about the detail view needs documenting here.</p>
+
+  <h2>9. CONDITIONAL: row and view rules</h2>
+  <div class="tblwrap"><table class="t">
+    <tr><th>Condition</th><th>Render rule</th></tr>
+    <tr><td class="cond">Line is open</td><td>Appears in Open POs, and in whichever of the three filtered views its classification maps to</td></tr>
+    <tr><td class="cond">Line is closed (po_status = Closed)</td><td>Out of scope for these open-order views. (Past/closed orders are a separate, not-yet-built surface &mdash; see blocked items.)</td></tr>
+    <tr><td class="cond">A view has many near-identical rows (e.g. lots of &ldquo;dispatch pending&rdquo;)</td><td>Still list each line; this is expected. Don&rsquo;t dedupe. (Earlier design note: &ldquo;dispatch pending within ship-by&rdquo; classifies as Awaiting reply, not Needs attention, so it doesn&rsquo;t flood the attention view.)</td></tr>
+    <tr><td class="cond">unit_of_measure blank</td><td>Quantity shows the number only</td></tr>
+    <tr><td class="cond">A view is empty (no lines in that state)</td><td>Show an empty-state line (e.g. &ldquo;Nothing needs attention right now&rdquo;). Use judgment on wording per view</td></tr>
+    <tr><td class="cond">&ldquo;Showing N of M&rdquo; footer</td><td>Reflect the count for that view; &ldquo;view all&rdquo; expands</td></tr>
+  </table></div>
+
+  <h2>10. Global display conventions</h2>
+  <ul class="body">
+    <li><b>Shared left spine</b> (PO &rarr; status) identical in order and width across all four views, so tab-switching doesn&rsquo;t jump.</li>
+    <li><b>Pill colors:</b> red Delayed, gold At risk, purple Needs review, green On time, grey On time-TBC, blue Awaiting reply. Same set as the detail panel.</li>
+    <li><b>Empty value = dash (&ndash;)</b>, same color as filled values.</li>
+    <li><b>Customer-facing labels only.</b> No variable names, no <code>comms_group_id</code> (internal, never shown).</li>
+    <li><b>Banners + tiles persist</b> across all four tabs (rendered once, above the tabs).</li>
+    <li><b>US spelling, no em dashes</b> in any displayed copy.</li>
+  </ul>
+
+  <h2>11. Worked example (a few real lines &rarr; views)</h2>
+  <div class="worked">
+    <div class="wh">INPUT: three open lines</div>
+    <div class="wb">
+      <b>L1</b> 300656/1, Personal Brushes (S16), FCONS01106 Brush..., qty 1,186,711, deliver-by 6/20, classification Delayed, text &ldquo;Order on hold pending advance payment...&rdquo;<br>
+      <b>L2</b> 300655/6, Green Elements (S20), FCONS01103 Toothbrush, qty 10,000, ship-by 6/14, classification On time, text &ldquo;Shipped 14 Jun, on/before ship-by&rdquo;<br>
+      <b>L3</b> 300661/3, Mahima Biotech (S17), FRM00461 SLES, qty 30,000, deliver-by 6/20, classification Awaiting reply, last reply none since 12 Jun.
+    </div>
+  </div>
+  <div class="worked">
+    <div class="wh">OUTPUT: where each appears</div>
+    <div class="wb">
+      <b>Open POs tab:</b> all three rows, each with its pill, no trailing column.<br>
+      <b>Needs attention tab:</b> L1 only, with &ldquo;What&rsquo;s happening&rdquo; = its delivery_status_text and a <span class="pillp p-delayed">Delayed</span> pill.<br>
+      <b>On track tab:</b> L2 only, with &ldquo;Delivery status&rdquo; sentence and <span class="pillp p-ontime">On time</span> pill, using ship-by date.<br>
+      <b>Awaiting reply tab:</b> L3 only, &ldquo;Last update&rdquo; = &ldquo;No reply since 12 Jun&rdquo;, &ldquo;Next touch point&rdquo; from Job A, <span class="pillp p-await">Awaiting reply</span> pill.<br>
+      <b>Tiles:</b> Open 3, On track 1, Awaiting 1, Need attention 1 (all Job A aggregates).<br>
+      <b>Row click:</b> clicking L1 opens the detail panel for po_line_key C1_300656_1.
+    </div>
+  </div>
+
+  <h2>12. Blocked on Prabhas (the only real unknowns)</h2>
+  <div class="callout co-block">
+    Build everything else. Get these from Prabhas before wiring the logic they govern.
+    <ol style="margin:8px 0 0 18px;">
+      <li><b>Classification logic (CAT 4)</b> &mdash; the same shared dependency as the detail panel. Decides view routing, pills, and tile counts. Sheet formula or function, Prabhas to decide.</li>
+      <li><b>Tile counts &amp; summary aggregates (CAT 4, Job A)</b> &mdash; computed upstream from the classified dataset.</li>
+      <li><b>&ldquo;Since yesterday&rdquo; deltas (CAT 4, Job A)</b> &mdash; need a stored daily snapshot to diff. Mechanism not built. If unavailable, hide the banner.</li>
+      <li><b>Next touch point (CAT 4, Job A)</b> &mdash; same computation as the detail panel.</li>
+      <li><b>Past / closed orders</b> &mdash; these views are open-orders only. Where closed orders live is a separate, not-yet-designed surface.</li>
+    </ol>
+  </div>
+  <div class="callout co-judge"><b>Judgment, not a blocker:</b> empty-state wording per view, footer counts, and how long a row may wrap &mdash; follow the mock and make a reasonable call. Ask Prabhas only when genuinely stuck.</div>
+
+  <div class="foot">Reference mock: dashboard_v3 (four tabs, persistent banners + tiles). Companion doc: the PO line item detail panel spec (opened on row click).</div>
+
+</div>
+</body></html>
