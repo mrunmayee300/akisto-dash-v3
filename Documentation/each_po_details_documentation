@@ -1,0 +1,157 @@
+# PO Detail Page Logic & Data Mapping Documentation
+
+This document explains the data-fetching, backend aggregation, and frontend display logic for the **PO Detail Page** on the dashboard.
+
+---
+
+## 1. Data-Fetching & Merging Workflow
+
+When a user visits a PO detail page (e.g., `/detail/:commsGroupId`), the frontend requests details from the Google Apps Script backend:
+
+$$\text{Request URL} = \text{APPS\_SCRIPT\_URL} + \text{?action=poDetails\&commsGroupId=\{commsGroupId\}\&sessionToken=\{token\}}$$
+
+```mermaid
+sequenceDiagram
+    participant React as React Frontend
+    participant GAS as Google Apps Script
+    participant Sheets as Google Sheets
+    
+    React->>GAS: fetch: action=poDetails & commsGroupId
+    GAS->>Sheets: Read "PO consolidated data", "Communication Logs", & "Material and Supplier Master Data"
+    Sheets-->>GAS: Return Rows
+    GAS->>GAS: Filter & Join Rows by comms_group_id & supplier_code
+    GAS-->>React: Return JSON Response
+    React->>React: Render Tabs (Trail, Dates, Supplier)
+```
+
+---
+
+## 2. Google Sheets Schema & Column Reference
+
+The detail page queries three different sheets. The table below lists the columns extracted and how they are merged:
+
+### A. Sheet: `PO consolidated data`
+Holds transactional line items. Filters all rows where `comms_group_id` matches the URL parameter.
+
+| Sheet Column Name | JSON Output Key | Description |
+| :--- | :--- | :--- |
+| `po_number` | `header.poNumber` | Purchase Order number (displayed in header). |
+| `comms_group_id` | `header.commsGroupId` | Unique communications group identifier. |
+| `po_status` | `header.status` | Transaction status (e.g., "Open"). |
+| `issue_date` | `header.issueDate` | Date the purchase order was issued. |
+| `po_line_key` | `lineItems[].poLineKey` | Unique line item key (e.g. `PO12345_1`). |
+| `po_line_item` | `lineItems[].lineItem` | Line item index number. |
+| `material_code` | `lineItems[].materialCode` | Part or item number. |
+| `material_name` | `lineItems[].materialName` | Description of the material. |
+| `quantity` | `lineItems[].quantity` | Order quantity value. |
+| `unit_of_measure` | `lineItems[].uom` | Order unit of measure (e.g., EA). |
+| `ship_by_date_delivery_1` | `lineItems[].shipBy` | Requested ship-by date. |
+| `deliver_by_date_delivery_1` | `lineItems[].deliverBy` | Requested delivery-by date. |
+| `carrier` | `lineItems[].carrier` | Shipping carrier name (if shipped). |
+| `trackingNumber` | `lineItems[].trackingNumber` | Shipment tracking identifier. |
+
+### B. Sheet: `Communication Logs`
+Holds AI/agent communications, status prefixes, and replies. Filtered by `comms_group_id`.
+
+| Sheet Column Name | JSON Output Key | Description |
+| :--- | :--- | :--- |
+| `follow_up_stage` | `header.followUpStage` | Active follow-up stage (e.g. `Stage1`, `Stage2.5`). Determines the dynamic stage column prefix. |
+| `follow_up_status` | `header.followUpStatus` | State of communication. Used to calculate the next action. |
+| `delivery_location` | `communication.delivery_location` | Shipping target location. |
+| `transit_time_days` | `communication.transit_time_days` | Standard shipping duration in days. |
+| `promised_revert_date` | `communication.promised_revert_date` | Date the supplier promised their next update. |
+| `supplier_colleague_name` | `communication.supplier_colleague_name` | Contact name of delegated team member. |
+| `supplier_colleague_email` | `communication.supplier_colleague_email` | Email of delegated team member. |
+| `[stage]_outreach_timestamp` | `communication.[stage]_outreach_timestamp` | Timestamp showing when initial check-in was sent. |
+| `[stage]_reminder_mail[1-3]_timestamp` | `communication.[stage]_reminder_mail[1-3]_timestamp` | Timestamp of sent email follow-ups. |
+| `[stage]_reminder_call[1-3]_timestamp` | `communication.[stage]_reminder_call[1-3]_timestamp` | Timestamp of placed phone call follow-ups. |
+| `[stage]_reminder_call[1-3]_answered` | `communication.[stage]_reminder_call[1-3]_answered` | Status indicating if the call was answered (`Yes`/`No`). |
+| `[stage]_reminder_call[1-3]_call_outcome` | `communication.[stage]_reminder_call[1-3]_call_outcome` | Context of phone response outcome. |
+| `[stage]_reminder_call[1-3]_delivery_status_classification` | `communication.[stage]_reminder_call[1-3]...` | Classification parsed from call. |
+| `[stage]_reminder_call[1-3]_delivery_status_text` | `communication.[stage]_reminder_call[1-3]...` | Notes or status recorded during the call. |
+| `[stage]_reminder_call[1-3]_supplier_raw_statement` | `communication.[stage]_reminder_call[1-3]...` | Call audio transcript snippet. |
+| `[stage]_reply_timestamp` | `communication.[stage]_reply_timestamp` | Supplier reply time. |
+| `[stage]_mode_of_reply_received` | `communication.[stage]_mode_of_reply_received` | Delivery channel of the reply (e.g. `'email'`, `'call'`). |
+| `[stage]_delivery_status_classification` | `communication.[stage]_delivery_status_classification` | Outcome status of reply classification. |
+| `[stage]_delivery_status_text` | `communication.[stage]_delivery_status_text` | Detail update from reply. |
+| `[stage]_supplier_raw_statement` | `communication.[stage]_supplier_raw_statement` | Email message snippet. |
+| `[stage]_supplier_reply_confidence` | `communication.[stage]_supplier_reply_confidence` | AI confidence score classification. |
+| `[stage]_internal_escalation_sent` | `communication.[stage]_internal_escalation_sent` | Verification flags for human review escalation (`Yes`/`No`). |
+| `[stage]_internal_escalation_timestamp` | `communication.[stage]_internal_escalation_timestamp` | Timestamp when flagged for escalation. |
+
+### C. Sheet: `Material and Supplier Master Data`
+Holds supplier master demographics. Filtered by the supplier code extracted from the PO.
+
+| Sheet Column Name | JSON Output Key | Description |
+| :--- | :--- | :--- |
+| `supplier_name` | `supplier.supplierName` | Supplier corporate name. |
+| `primary_contact_names` | `supplier.contactName` | Main contact person name. |
+| `primary_emails` | `supplier.email` | Contact email addresses. |
+| `primary_phones` | `supplier.phone` | Contact phone numbers. |
+| `working_days` | `supplier.workingDays` | Active business days. |
+| `supplier_source_location` | `supplier.sourceLocation` | Shipment origin facility. |
+| `delivery_location` | `supplier.deliveryLocation` | Destination facility. |
+| `client_buyer_name` | `supplier.buyerName` | Buyer agent assigned. |
+| `client_buyer_email` | `supplier.buyerEmail` | Buyer email. |
+
+---
+
+## 3. Backend Calculations
+
+### A. Next Action Resolution
+The next scheduled communication touch point is computed on the backend using the function `determineNextAction(comm)`:
+1. Normalize the stage code (e.g. `Stage1` is formatted as `stage1`).
+2. Construct the prefix `[stage]_` (e.g. `stage1_`).
+3. Evaluates checklist steps in sequential order. Returns the first unexecuted step:
+   - If Outreach has not been sent: `"Send Outreach"`
+   - If Reminder 1 Email has not been sent: `"Reminder Email 1"`
+   - If Reminder 2 Email has not been sent: `"Reminder Email 2"`
+   - If Reminder 3 Email has not been sent: `"Reminder Email 3"`
+   - If Reminder 1 Call has not been sent: `"Reminder Call 1"`
+   - If Escalation has not been sent: `"Escalate To Buyer"`
+   - Otherwise, returns: `"Waiting"`
+
+### B. Summary Text Resolution
+The main summary description displayed beneath the status pill is resolved on the backend using the `latestStatusText(comm)` helper:
+- Iterates backwards from Stage 3 down to Stage 1.
+- Retrieves the first non-empty text column value from:
+  1. `stage3_delivery_status_text`
+  2. `stage2_5_delivery_status_text`
+  3. `stage2_delivery_status_text`
+  4. `stage1_5_delivery_status_text`
+  5. `stage1_delivery_status_text`
+- If all are empty, falls back to the master `delivery_status_text` value.
+
+---
+
+## 4. Frontend Tab presentation & Logic
+
+Once loaded, the frontend separates the details into three interactive tabs:
+
+### Tab 1: Communication Trail
+Displays a chronological history timeline of all outreach and responses.
+
+1. **Chronological Sorting**:
+   - The frontend iterates through a list of stages: `['stage1', 'stage1_5', 'stage2', 'stage2_5', 'stage3']`.
+   - It collects all logged outreach, email reminders, phone logs, supplier email replies, and human reviews into a temporary list.
+   - It sorts the complete list chronologically:
+     ```javascript
+     stageEvents.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+     ```
+2. **Interactive Event Mapping**:
+   - **Emails Sent**: Displays the date, time, and target channel logo. Shows "No reply received" if no reply timestamp exists for that stage.
+   - **Calls Logged**: Renders conditional pills (Green if classification is positive, Red/Gold/Purple if classification indicates delay, risk, or clarification needs). Displays transcripts and outcome logs if answered.
+   - **Replies**: Extracts and embeds the raw email text snippet (`supplier_raw_statement`) in a dedicated quote component.
+   - **Escalations**: Renders a Red badge marked `"Escalated"` indicating the item was flagged for manual reviewer audit.
+3. **Next Action Schedule**:
+   - If `nextAction` evaluates to anything other than `"Waiting"` or `"--"`, it displays a pending gray timeline node indicating the next scheduled task.
+
+### Tab 2: Other Order Details
+Pulls specific transactional fields to display in a grid:
+- **dates & times**: Formats the timestamps for `issueDate`, `deliverBy`, `shipBy`, and `promised_revert_date` into clear human-readable strings (e.g. `23 Jan 2026`) using timezone-safe helpers.
+- **Logistics**: Displays `delivery_location`, `transit_time_days`, `carrier`, and `trackingNumber`.
+- **Delegation Details**: Shows colleague name/email if delegated.
+- **AI Performance metadata**: Pulls the active stage's confidence level (`supplier_reply_confidence`).
+
+### Tab 3: Supplier Details
+Displays demographics pulled from the `Material and Supplier Master Data` sheet (contact names, working days, origin locations, email links, phone lines).

@@ -1,0 +1,4133 @@
+{
+  "name": "Stage Manager - Each PO line item v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -416,
+        240
+      ],
+      "id": "4676339f-2926-4870-858e-897f7817889f",
+      "name": "1_Triggered by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst poLineKey = $('1_Triggered by Another Workflow').first().json.po_line_key;\n\n// Row exists if it has a po_line_key that matches\nconst exists = (input.po_line_key !== undefined && \n               input.po_line_key !== null && \n               input.po_line_key !== '') ? 'true' : 'false';\n\nreturn [{\n  json: {\n    row_exists: exists,\n    po_line_key: poLineKey\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        240
+      ],
+      "id": "38afaac6-11d0-4d87-8b2b-09a1cc4f1e65",
+      "name": "3_Check - Row Exists"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.row_exists }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f7e2b4de-f68e-47ba-bfab-3e8f2edfeb76"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "true"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ca788a6f-7905-4b63-8681-940aea96c44f",
+                    "leftValue": "={{ $json.row_exists }}",
+                    "rightValue": "false",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "false"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        240
+      ],
+      "id": "c336bc8c-f58e-4a26-819f-ddd05eeef7fb",
+      "name": "4_Switch - Row Exists"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Client info",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "client_code",
+              "lookupValue": "={{ $('2a_Read - All Open POs').item.json.client_code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1952,
+        224
+      ],
+      "id": "b3f87cf5-e42a-4812-8707-8a120e2949f4",
+      "name": "7_Read - Client Config",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const po = $('1_Triggered by Another Workflow').first().json;\nconst band = $('6_Read - Band Config').first().json;\nconst client = $('7_Read - Client Config').first().json;\n\n// Get Communication Logs row - may be freshly created or existing\n// We re-read it after creation to get current state\nconst logs = $('2b_Read - Communication Logs Row').first().json;\n\nconst testMode = client.test_mode === true || client.test_mode === 'true' || client.test_mode === 'TRUE';\n\n// Calculate ship_by_date as a Date object\nconst shipByDate = new Date(po.ship_by_date);\nconst issueDate = new Date(po.issue_date);\n\n// Total window in calendar days\nconst totalWindowDays = Math.round((shipByDate - issueDate) / (1000 * 60 * 60 * 24));\n\n// Stage 2 and Stage 3 start thresholds\nconst s2StartsDaysBefore = parseInt(band['S2 starts N working days before ship-by']) || 0;\nconst s3StartsDaysBefore = parseInt(band['S3 starts N working days before ship-by']) || 0;\n\nreturn [{\n  json: {\n    // PO fields\n    po_line_key: po.po_line_key,\n    po_number: po.po_number,\n    po_line_item: po.po_line_item,\n    supplier_code: po.supplier_code,\n    issue_date: po.issue_date,\n    ship_by_date: po.ship_by_date,\n    ship_by_band: po.ship_by_band,\n    \n    // Band fields\n    s2_starts_days_before_shipby: s2StartsDaysBefore,\n    s3_starts_days_before_shipby: s3StartsDaysBefore,\n    \n    // Client fields\n    test_mode: testMode,\n    \n    // Computed\n    total_window_days: totalWindowDays,\n    \n    // Communication Logs current state\n    // Communication Logs current state\n    follow_up_stage: logs.follow_up_stage || 'Stage1',\n    follow_up_status: logs.follow_up_status || '',\n    stage1_outreach_timestamp: logs.stage1_outreach_timestamp || '',\n    stage2_internal_escalation_sent: logs.stage2_internal_escalation_sent || '',\n    stage2_acknowledgment_sent: logs.stage2_acknowledgment_sent || '',\n    stage2_fully_escalated: logs.stage2_fully_escalated || '',\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2176,
+        224
+      ],
+      "id": "2cecd222-dbf8-45a2-854b-61797fa82e00",
+      "name": "8_Prepare - Merged Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\nconst currentStage = ctx.follow_up_stage;\nconst testMode = ctx.test_mode;\nconst now = new Date();\n\n// Helper: production mode date threshold check\n// Returns true if today >= ship_by_date - N days\nfunction isDateThresholdReached(shipByDateStr, daysBeforeShipBy) {\n  const shipBy = new Date(shipByDateStr);\n  const threshold = new Date(shipBy);\n  threshold.setDate(threshold.getDate() - daysBeforeShipBy);\n  threshold.setHours(0, 0, 0, 0);\n  const today = new Date();\n  today.setHours(0, 0, 0, 0);\n  return today >= threshold;\n}\n\n// Helper: test mode threshold check\n// Returns true if minutes elapsed since stage1_outreach_timestamp >= \n// (total_window_days - daysBeforeShipBy)\nfunction isTestThresholdReached(stage1OutreachTimestamp, totalWindowDays, daysBeforeShipBy) {\n  if (!stage1OutreachTimestamp) return false;\n  const outreachTime = new Date(stage1OutreachTimestamp);\n  const minutesElapsed = (now - outreachTime) / (1000 * 60);\n  const thresholdMinutes = totalWindowDays - daysBeforeShipBy;\n  return minutesElapsed >= thresholdMinutes;\n}\n\nlet newStage = null;\nlet newStatus = null;\n\n// Transition 1: Stage1 -> Stage1.5\nif (currentStage === 'Stage1') {\n  const exhausted = \n    ['Escalation_Sent', 'Acknowledgment_Sent', 'Acknowledgment_Not_Applicable'].includes(ctx.follow_up_status);\n  \n  if (exhausted) {\n    newStage = 'Stage1.5';\n    newStatus = 'Monitoring_Reply';\n  }\n}\n\n// Transition 2: Stage1.5 -> Stage2\nelse if (currentStage === 'Stage1.5') {\n  const thresholdReached = testMode\n    ? isTestThresholdReached(ctx.stage1_outreach_timestamp, ctx.total_window_days, ctx.s2_starts_days_before_shipby)\n    : isDateThresholdReached(ctx.ship_by_date, ctx.s2_starts_days_before_shipby);\n  \n  if (thresholdReached) {\n    newStage = 'Stage2';\n    newStatus = 'Stage_Initiated';\n  }\n}\n\n// Transition 3: Stage2 -> Stage2.5\nelse if (currentStage === 'Stage2') {\n  const exhausted = \n    ['Escalation_Sent', 'Acknowledgment_Sent', 'Acknowledgment_Not_Applicable'].includes(ctx.follow_up_status);\n  \n  if (exhausted) {\n    newStage = 'Stage2.5';\n    newStatus = 'Monitoring_Reply';\n  }\n}\n\n// Transition 4: Stage2.5 -> Stage3\nelse if (currentStage === 'Stage2.5') {\n  const thresholdReached = testMode\n    ? isTestThresholdReached(ctx.stage1_outreach_timestamp, ctx.total_window_days, ctx.s3_starts_days_before_shipby)\n    : isDateThresholdReached(ctx.ship_by_date, ctx.s3_starts_days_before_shipby);\n  \n  if (thresholdReached) {\n    newStage = 'Stage3';\n    newStatus = 'Stage_Initiated';\n  }\n}\n\n// No transition needed\nconst transitionNeeded = newStage !== null;\n\nreturn [{\n  json: {\n    ...ctx,\n    transition_needed: transitionNeeded,\n    new_stage: newStage,\n    new_status: newStatus,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        224
+      ],
+      "id": "03249478-742f-4455-99e6-79a2cdf61ee3",
+      "name": "9_Determine - Stage Transition"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.transition_needed }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    },
+                    "id": "08808dc2-c2c7-4da2-ac0b-f1a8b1ce6bb3"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "true"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e3ff4d85-938f-45f7-a689-1b2673d5296e",
+                    "leftValue": "={{ $json.transition_needed }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2608,
+        224
+      ],
+      "id": "7abcd0b5-39b0-46bb-80fa-35daf31b6102",
+      "name": "10_Switch - Transition Needed"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2896,
+        448
+      ],
+      "id": "9e31f61f-ca00-4354-a3cb-d8c335eb074f",
+      "name": "12_No Op - No Transition"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1716007832,
+          "mode": "list",
+          "cachedResultName": "PO consolidated data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I1y4Aq_mmDufthcDLi5rmqJ4225nurlNbTuE0JKTe4I/edit#gid=1716007832"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "po_line_key",
+              "lookupValue": "={{ $('1_Triggered by Another Workflow').item.json.po_line_key }}"
+            },
+            {
+              "lookupColumn": "po_status",
+              "lookupValue": "Open"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        240
+      ],
+      "id": "616b57c2-90ed-4975-b1b6-d1d707923c44",
+      "name": "2a_Read - All Open POs",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 2a not set to always output data\nAs in that case a communication log row would be created even for inactive POs; hence stopping the operation at this node is the right move",
+        "height": 176,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "692906d9-a91d-4230-81fc-5cf5e423c11f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU",
+          "mode": "list",
+          "cachedResultName": "Akisto System Settings Danish",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FcwWEAANVqBxsD4AyWs4FKVOCEOlkZIfvK9UjA7WPnU/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -96,
+        240
+      ],
+      "id": "db5fce16-a182-4c29-aa6a-a54a38efa455",
+      "name": "1a_Read – Akisto System Settings",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 711817731,
+          "mode": "list",
+          "cachedResultName": "Communication Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I1y4Aq_mmDufthcDLi5rmqJ4225nurlNbTuE0JKTe4I/edit#gid=711817731"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupValue": "={{ $('1_Triggered by Another Workflow').item.json.po_line_key }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        432,
+        240
+      ],
+      "id": "6be1c04b-eb28-4c90-bfe4-62cff23b5521",
+      "name": "2b_Read - Communication Logs Row",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 557607354,
+          "mode": "list",
+          "cachedResultName": "Bands Table",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I1y4Aq_mmDufthcDLi5rmqJ4225nurlNbTuE0JKTe4I/edit#gid=557607354"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Band",
+              "lookupValue": "={{ $('2a_Read - All Open POs').item.json.ship_by_band }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1712,
+        224
+      ],
+      "id": "4b190884-1504-4e96-96af-8dcf2a503a6d",
+      "name": "6_Read - Band Config",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Communication Logs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "po_line_key",
+              "displayName": "po_line_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_company_name",
+              "displayName": "client_company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comms_group_id",
+              "displayName": "comms_group_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_number",
+              "displayName": "po_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_code",
+              "displayName": "supplier_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_name",
+              "displayName": "supplier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "po_line_item",
+              "displayName": "po_line_item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_code",
+              "displayName": "material_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "material_name",
+              "displayName": "material_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "follow_up_stage",
+              "displayName": "follow_up_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "follow_up_status",
+              "displayName": "follow_up_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_sent",
+              "displayName": "stage1_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_mail_subject",
+              "displayName": "stage1_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_body",
+              "displayName": "stage1_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_thread_id",
+              "displayName": "stage1_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_message_id",
+              "displayName": "stage1_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_timestamp",
+              "displayName": "stage1_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail1_sent",
+              "displayName": "stage1_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail1_body",
+              "displayName": "stage1_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail1_timestamp",
+              "displayName": "stage1_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail2_sent",
+              "displayName": "stage1_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail2_body",
+              "displayName": "stage1_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail2_timestamp",
+              "displayName": "stage1_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail3_sent",
+              "displayName": "stage1_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail3_body",
+              "displayName": "stage1_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_mail3_timestamp",
+              "displayName": "stage1_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_sent",
+              "displayName": "stage1_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_timestamp",
+              "displayName": "stage1_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_answered",
+              "displayName": "stage1_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_call_outcome",
+              "displayName": "stage1_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_delivery_status_classification",
+              "displayName": "stage1_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_delivery_status_text",
+              "displayName": "stage1_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call1_supplier_raw_statement",
+              "displayName": "stage1_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_sent",
+              "displayName": "stage1_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_timestamp",
+              "displayName": "stage1_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_answered",
+              "displayName": "stage1_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_call_outcome",
+              "displayName": "stage1_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_delivery_status_classification",
+              "displayName": "stage1_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_delivery_status_text",
+              "displayName": "stage1_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call2_supplier_raw_statement",
+              "displayName": "stage1_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_sent",
+              "displayName": "stage1_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_timestamp",
+              "displayName": "stage1_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_answered",
+              "displayName": "stage1_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_call_outcome",
+              "displayName": "stage1_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_delivery_status_classification",
+              "displayName": "stage1_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_delivery_status_text",
+              "displayName": "stage1_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reminder_call3_supplier_raw_statement",
+              "displayName": "stage1_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_internal_escalation_sent",
+              "displayName": "stage1_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_internal_escalation_timestamp",
+              "displayName": "stage1_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_reply_status",
+              "displayName": "stage1_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_reply_timestamp",
+              "displayName": "stage1_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_reply_confidence",
+              "displayName": "stage1_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_delivery_status_classification",
+              "displayName": "stage1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_delivery_status_text",
+              "displayName": "stage1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_raw_statement",
+              "displayName": "stage1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_mode_of_reply_received",
+              "displayName": "stage1_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_reply_message_id",
+              "displayName": "stage1_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_supplier_reply_thread_id",
+              "displayName": "stage1_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_acknowledgment_sent",
+              "displayName": "stage1_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_status",
+              "displayName": "stage1_5_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_reply_timestamp",
+              "displayName": "stage1_5_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_confidence",
+              "displayName": "stage1_5_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_delivery_status_classification",
+              "displayName": "stage1_5_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_delivery_status_text",
+              "displayName": "stage1_5_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_raw_statement",
+              "displayName": "stage1_5_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_mode_of_reply_received",
+              "displayName": "stage1_5_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_message_id",
+              "displayName": "stage1_5_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_thread_id",
+              "displayName": "stage1_5_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_5_acknowledgment_sent",
+              "displayName": "stage1_5_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_sent",
+              "displayName": "stage2_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_mail_subject",
+              "displayName": "stage2_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_body",
+              "displayName": "stage2_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_thread_id",
+              "displayName": "stage2_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_message_id",
+              "displayName": "stage2_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_outreach_timestamp",
+              "displayName": "stage2_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail1_sent",
+              "displayName": "stage2_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail1_body",
+              "displayName": "stage2_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail1_timestamp",
+              "displayName": "stage2_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail2_sent",
+              "displayName": "stage2_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail2_body",
+              "displayName": "stage2_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail2_timestamp",
+              "displayName": "stage2_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail3_sent",
+              "displayName": "stage2_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail3_body",
+              "displayName": "stage2_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_mail3_timestamp",
+              "displayName": "stage2_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_sent",
+              "displayName": "stage2_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_timestamp",
+              "displayName": "stage2_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_answered",
+              "displayName": "stage2_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_call_outcome",
+              "displayName": "stage2_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_delivery_status_classification",
+              "displayName": "stage2_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_delivery_status_text",
+              "displayName": "stage2_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call1_supplier_raw_statement",
+              "displayName": "stage2_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_sent",
+              "displayName": "stage2_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_timestamp",
+              "displayName": "stage2_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_answered",
+              "displayName": "stage2_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_call_outcome",
+              "displayName": "stage2_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_delivery_status_classification",
+              "displayName": "stage2_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_delivery_status_text",
+              "displayName": "stage2_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call2_supplier_raw_statement",
+              "displayName": "stage2_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_sent",
+              "displayName": "stage2_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_timestamp",
+              "displayName": "stage2_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_answered",
+              "displayName": "stage2_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_call_outcome",
+              "displayName": "stage2_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_delivery_status_classification",
+              "displayName": "stage2_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_delivery_status_text",
+              "displayName": "stage2_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reminder_call3_supplier_raw_statement",
+              "displayName": "stage2_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_internal_escalation_sent",
+              "displayName": "stage2_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_internal_escalation_timestamp",
+              "displayName": "stage2_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_reply_status",
+              "displayName": "stage2_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_reply_confidence",
+              "displayName": "stage2_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_reply_timestamp",
+              "displayName": "stage2_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_delivery_status_classification",
+              "displayName": "stage2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_delivery_status_text",
+              "displayName": "stage2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_raw_statement",
+              "displayName": "stage2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_mode_of_reply_received",
+              "displayName": "stage2_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_reply_message_id",
+              "displayName": "stage2_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_supplier_reply_thread_id",
+              "displayName": "stage2_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_acknowledgment_sent",
+              "displayName": "stage2_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_status",
+              "displayName": "stage2_5_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_confidence",
+              "displayName": "stage2_5_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_reply_timestamp",
+              "displayName": "stage2_5_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_delivery_status_classification",
+              "displayName": "stage2_5_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_delivery_status_text",
+              "displayName": "stage2_5_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_raw_statement",
+              "displayName": "stage2_5_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_mode_of_reply_received",
+              "displayName": "stage2_5_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_message_id",
+              "displayName": "stage2_5_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_thread_id",
+              "displayName": "stage2_5_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage2_5_acknowledgment_sent",
+              "displayName": "stage2_5_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_sent",
+              "displayName": "stage3_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_mail_subject",
+              "displayName": "stage3_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_body",
+              "displayName": "stage3_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_thread_id",
+              "displayName": "stage3_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_message_id",
+              "displayName": "stage3_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_outreach_timestamp",
+              "displayName": "stage3_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail1_sent",
+              "displayName": "stage3_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail1_body",
+              "displayName": "stage3_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail1_timestamp",
+              "displayName": "stage3_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail2_sent",
+              "displayName": "stage3_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail2_body",
+              "displayName": "stage3_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail2_timestamp",
+              "displayName": "stage3_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail3_sent",
+              "displayName": "stage3_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail3_body",
+              "displayName": "stage3_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_mail3_timestamp",
+              "displayName": "stage3_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_sent",
+              "displayName": "stage3_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_timestamp",
+              "displayName": "stage3_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_answered",
+              "displayName": "stage3_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_call_outcome",
+              "displayName": "stage3_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_delivery_status_classification",
+              "displayName": "stage3_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_delivery_status_text",
+              "displayName": "stage3_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call1_supplier_raw_statement",
+              "displayName": "stage3_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_sent",
+              "displayName": "stage3_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_timestamp",
+              "displayName": "stage3_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_answered",
+              "displayName": "stage3_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_call_outcome",
+              "displayName": "stage3_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_delivery_status_classification",
+              "displayName": "stage3_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_delivery_status_text",
+              "displayName": "stage3_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call2_supplier_raw_statement",
+              "displayName": "stage3_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_sent",
+              "displayName": "stage3_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_timestamp",
+              "displayName": "stage3_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_answered",
+              "displayName": "stage3_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_call_outcome",
+              "displayName": "stage3_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_delivery_status_classification",
+              "displayName": "stage3_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_delivery_status_text",
+              "displayName": "stage3_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reminder_call3_supplier_raw_statement",
+              "displayName": "stage3_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_internal_escalation_sent",
+              "displayName": "stage3_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_internal_escalation_timestamp",
+              "displayName": "stage3_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_reply_status",
+              "displayName": "stage3_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_reply_confidence",
+              "displayName": "stage3_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_reply_timestamp",
+              "displayName": "stage3_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_delivery_status_classification",
+              "displayName": "stage3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_delivery_status_text",
+              "displayName": "stage3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_raw_statement",
+              "displayName": "stage3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_mode_of_reply_received",
+              "displayName": "stage3_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_reply_message_id",
+              "displayName": "stage3_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_supplier_reply_thread_id",
+              "displayName": "stage3_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage3_acknowledgment_sent",
+              "displayName": "stage3_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "needs_human_review",
+              "displayName": "needs_human_review",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "human_review_status",
+              "displayName": "human_review_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action_timestamp",
+              "displayName": "last_action_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1488,
+        480
+      ],
+      "id": "6d368d04-6bf7-4554-9069-da257c2dc126",
+      "name": "5b_Create_Communication Logs Row",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const po = $('2a_Read - All Open POs').first().json;\nconst trigger = $('1_Triggered by Another Workflow').first().json;\n\nreturn [{\n  json: {\n    po_line_key: trigger.po_line_key,\n    client_code: po.client_code,\n    client_company_name: po.client_company_name,\n    comms_group_id: po.comms_group_id,\n    po_number: po.po_number,\n    supplier_code: po.supplier_code,\n    supplier_name: po.supplier_name,\n    po_line_item: po.po_line_item,\n    material_code: po.material_code,\n    material_name: po.material_name,\n    follow_up_stage: 'Stage1',\n    follow_up_status: 'Stage_Initiated',\n    last_action_timestamp: new Date().toISOString(),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        480
+      ],
+      "id": "0d5a11e9-440a-441f-9dbd-4b4b9517de88",
+      "name": "5a_Prepare_New_Log_Row"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('1a_Read – Akisto System Settings').item.json['Active PO_data and communication logs'] }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 711817731,
+          "mode": "list",
+          "cachedResultName": "Communication Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1teEG9u1kGk78VRHp57rdyXI7dPdvnDctdlozw_TNsGU/edit#gid=711817731"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "follow_up_stage": "={{ $json.new_stage }}",
+            "follow_up_status": "={{ $json.new_status }}",
+            "last_action_timestamp": "={{ new Date().toISOString() }}",
+            "po_line_key": "={{ $json.po_line_key }}"
+          },
+          "matchingColumns": [
+            "po_line_key"
+          ],
+          "schema": [
+            {
+              "id": "po_line_key",
+              "displayName": "po_line_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client_code",
+              "displayName": "client_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "client_company_name",
+              "displayName": "client_company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "po_number",
+              "displayName": "po_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "supplier_code",
+              "displayName": "supplier_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "supplier_name",
+              "displayName": "supplier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "po_line_item",
+              "displayName": "po_line_item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "material_code",
+              "displayName": "material_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "material_name",
+              "displayName": "material_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "follow_up_stage",
+              "displayName": "follow_up_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "follow_up_status",
+              "displayName": "follow_up_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stage1_outreach_sent",
+              "displayName": "stage1_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_outreach_mail_subject",
+              "displayName": "stage1_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_outreach_body",
+              "displayName": "stage1_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_outreach_thread_id",
+              "displayName": "stage1_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_outreach_message_id",
+              "displayName": "stage1_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_outreach_timestamp",
+              "displayName": "stage1_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail1_sent",
+              "displayName": "stage1_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail1_body",
+              "displayName": "stage1_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail1_timestamp",
+              "displayName": "stage1_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail2_sent",
+              "displayName": "stage1_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail2_body",
+              "displayName": "stage1_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail2_timestamp",
+              "displayName": "stage1_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail3_sent",
+              "displayName": "stage1_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail3_body",
+              "displayName": "stage1_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_mail3_timestamp",
+              "displayName": "stage1_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call1_sent",
+              "displayName": "stage1_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call1_timestamp",
+              "displayName": "stage1_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call1_answered",
+              "displayName": "stage1_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call1_call_outcome",
+              "displayName": "stage1_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call1_delivery_status_classification",
+              "displayName": "stage1_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call1_delivery_status_text",
+              "displayName": "stage1_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call1_supplier_raw_statement",
+              "displayName": "stage1_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call2_sent",
+              "displayName": "stage1_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call2_timestamp",
+              "displayName": "stage1_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call2_answered",
+              "displayName": "stage1_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call2_call_outcome",
+              "displayName": "stage1_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call2_delivery_status_classification",
+              "displayName": "stage1_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call2_delivery_status_text",
+              "displayName": "stage1_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call2_supplier_raw_statement",
+              "displayName": "stage1_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call3_sent",
+              "displayName": "stage1_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call3_timestamp",
+              "displayName": "stage1_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call3_answered",
+              "displayName": "stage1_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call3_call_outcome",
+              "displayName": "stage1_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call3_delivery_status_classification",
+              "displayName": "stage1_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call3_delivery_status_text",
+              "displayName": "stage1_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reminder_call3_supplier_raw_statement",
+              "displayName": "stage1_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_internal_escalation_sent",
+              "displayName": "stage1_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_internal_escalation_timestamp",
+              "displayName": "stage1_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_supplier_reply_status",
+              "displayName": "stage1_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_reply_timestamp",
+              "displayName": "stage1_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_supplier_reply_confidence",
+              "displayName": "stage1_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_delivery_status_classification",
+              "displayName": "stage1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_delivery_status_text",
+              "displayName": "stage1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_supplier_raw_statement",
+              "displayName": "stage1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_mode_of_reply_received",
+              "displayName": "stage1_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_supplier_reply_message_id",
+              "displayName": "stage1_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_supplier_reply_thread_id",
+              "displayName": "stage1_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_acknowledgment_sent",
+              "displayName": "stage1_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_status",
+              "displayName": "stage1_5_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_reply_timestamp",
+              "displayName": "stage1_5_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_confidence",
+              "displayName": "stage1_5_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_delivery_status_classification",
+              "displayName": "stage1_5_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_delivery_status_text",
+              "displayName": "stage1_5_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_supplier_raw_statement",
+              "displayName": "stage1_5_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_mode_of_reply_received",
+              "displayName": "stage1_5_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_message_id",
+              "displayName": "stage1_5_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_supplier_reply_thread_id",
+              "displayName": "stage1_5_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage1_5_acknowledgment_sent",
+              "displayName": "stage1_5_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_outreach_sent",
+              "displayName": "stage2_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_outreach_mail_subject",
+              "displayName": "stage2_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_outreach_body",
+              "displayName": "stage2_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_outreach_thread_id",
+              "displayName": "stage2_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_outreach_message_id",
+              "displayName": "stage2_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_outreach_timestamp",
+              "displayName": "stage2_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail1_sent",
+              "displayName": "stage2_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail1_body",
+              "displayName": "stage2_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail1_timestamp",
+              "displayName": "stage2_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail2_sent",
+              "displayName": "stage2_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail2_body",
+              "displayName": "stage2_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail2_timestamp",
+              "displayName": "stage2_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail3_sent",
+              "displayName": "stage2_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail3_body",
+              "displayName": "stage2_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_mail3_timestamp",
+              "displayName": "stage2_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call1_sent",
+              "displayName": "stage2_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call1_timestamp",
+              "displayName": "stage2_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call1_answered",
+              "displayName": "stage2_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call1_call_outcome",
+              "displayName": "stage2_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call1_delivery_status_classification",
+              "displayName": "stage2_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call1_delivery_status_text",
+              "displayName": "stage2_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call1_supplier_raw_statement",
+              "displayName": "stage2_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call2_sent",
+              "displayName": "stage2_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call2_timestamp",
+              "displayName": "stage2_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call2_answered",
+              "displayName": "stage2_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call2_call_outcome",
+              "displayName": "stage2_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call2_delivery_status_classification",
+              "displayName": "stage2_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call2_delivery_status_text",
+              "displayName": "stage2_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call2_supplier_raw_statement",
+              "displayName": "stage2_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call3_sent",
+              "displayName": "stage2_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call3_timestamp",
+              "displayName": "stage2_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call3_answered",
+              "displayName": "stage2_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call3_call_outcome",
+              "displayName": "stage2_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call3_delivery_status_classification",
+              "displayName": "stage2_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call3_delivery_status_text",
+              "displayName": "stage2_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reminder_call3_supplier_raw_statement",
+              "displayName": "stage2_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_internal_escalation_sent",
+              "displayName": "stage2_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_internal_escalation_timestamp",
+              "displayName": "stage2_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_supplier_reply_status",
+              "displayName": "stage2_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_supplier_reply_confidence",
+              "displayName": "stage2_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_reply_timestamp",
+              "displayName": "stage2_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_delivery_status_classification",
+              "displayName": "stage2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_delivery_status_text",
+              "displayName": "stage2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_supplier_raw_statement",
+              "displayName": "stage2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_mode_of_reply_received",
+              "displayName": "stage2_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_supplier_reply_message_id",
+              "displayName": "stage2_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_supplier_reply_thread_id",
+              "displayName": "stage2_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_acknowledgment_sent",
+              "displayName": "stage2_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_status",
+              "displayName": "stage2_5_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_confidence",
+              "displayName": "stage2_5_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_reply_timestamp",
+              "displayName": "stage2_5_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_delivery_status_classification",
+              "displayName": "stage2_5_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_delivery_status_text",
+              "displayName": "stage2_5_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_supplier_raw_statement",
+              "displayName": "stage2_5_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_mode_of_reply_received",
+              "displayName": "stage2_5_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_message_id",
+              "displayName": "stage2_5_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_supplier_reply_thread_id",
+              "displayName": "stage2_5_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage2_5_acknowledgment_sent",
+              "displayName": "stage2_5_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_outreach_sent",
+              "displayName": "stage3_outreach_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_outreach_mail_subject",
+              "displayName": "stage3_outreach_mail_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_outreach_body",
+              "displayName": "stage3_outreach_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_outreach_thread_id",
+              "displayName": "stage3_outreach_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_outreach_message_id",
+              "displayName": "stage3_outreach_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_outreach_timestamp",
+              "displayName": "stage3_outreach_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail1_sent",
+              "displayName": "stage3_reminder_mail1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail1_body",
+              "displayName": "stage3_reminder_mail1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail1_timestamp",
+              "displayName": "stage3_reminder_mail1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail2_sent",
+              "displayName": "stage3_reminder_mail2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail2_body",
+              "displayName": "stage3_reminder_mail2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail2_timestamp",
+              "displayName": "stage3_reminder_mail2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail3_sent",
+              "displayName": "stage3_reminder_mail3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail3_body",
+              "displayName": "stage3_reminder_mail3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_mail3_timestamp",
+              "displayName": "stage3_reminder_mail3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call1_sent",
+              "displayName": "stage3_reminder_call1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call1_timestamp",
+              "displayName": "stage3_reminder_call1_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call1_answered",
+              "displayName": "stage3_reminder_call1_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call1_call_outcome",
+              "displayName": "stage3_reminder_call1_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call1_delivery_status_classification",
+              "displayName": "stage3_reminder_call1_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call1_delivery_status_text",
+              "displayName": "stage3_reminder_call1_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call1_supplier_raw_statement",
+              "displayName": "stage3_reminder_call1_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call2_sent",
+              "displayName": "stage3_reminder_call2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call2_timestamp",
+              "displayName": "stage3_reminder_call2_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call2_answered",
+              "displayName": "stage3_reminder_call2_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call2_call_outcome",
+              "displayName": "stage3_reminder_call2_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call2_delivery_status_classification",
+              "displayName": "stage3_reminder_call2_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call2_delivery_status_text",
+              "displayName": "stage3_reminder_call2_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call2_supplier_raw_statement",
+              "displayName": "stage3_reminder_call2_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call3_sent",
+              "displayName": "stage3_reminder_call3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call3_timestamp",
+              "displayName": "stage3_reminder_call3_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call3_answered",
+              "displayName": "stage3_reminder_call3_answered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call3_call_outcome",
+              "displayName": "stage3_reminder_call3_call_outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call3_delivery_status_classification",
+              "displayName": "stage3_reminder_call3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call3_delivery_status_text",
+              "displayName": "stage3_reminder_call3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reminder_call3_supplier_raw_statement",
+              "displayName": "stage3_reminder_call3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_internal_escalation_sent",
+              "displayName": "stage3_internal_escalation_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_internal_escalation_timestamp",
+              "displayName": "stage3_internal_escalation_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_supplier_reply_status",
+              "displayName": "stage3_supplier_reply_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_supplier_reply_confidence",
+              "displayName": "stage3_supplier_reply_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_reply_timestamp",
+              "displayName": "stage3_reply_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_delivery_status_classification",
+              "displayName": "stage3_delivery_status_classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_delivery_status_text",
+              "displayName": "stage3_delivery_status_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_supplier_raw_statement",
+              "displayName": "stage3_supplier_raw_statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_mode_of_reply_received",
+              "displayName": "stage3_mode_of_reply_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_supplier_reply_message_id",
+              "displayName": "stage3_supplier_reply_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_supplier_reply_thread_id",
+              "displayName": "stage3_supplier_reply_thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "stage3_acknowledgment_sent",
+              "displayName": "stage3_acknowledgment_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "needs_human_review",
+              "displayName": "needs_human_review",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "human_review_status",
+              "displayName": "human_review_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "last_action_timestamp",
+              "displayName": "last_action_timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3152,
+        208
+      ],
+      "id": "d121c252-0823-4e5e-bcdc-d345c30d12ea",
+      "name": "11b_Update - Communication Logs Row",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NWiaj6SkNPmsUcX7",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('9_Determine - Stage Transition').first().json;\n\nreturn [{\n  json: {\n    po_line_key: ctx.po_line_key,\n    follow_up_stage: ctx.new_stage,\n    follow_up_status: ctx.new_status,\n    last_action_timestamp: new Date().toISOString(),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        208
+      ],
+      "id": "b0340e41-635a-46a4-ba00-294d445dc3c1",
+      "name": "11a_Prepare_Update_Log_Row"
+    }
+  ],
+  "pinData": {
+    "1_Triggered by Another Workflow": [
+      {
+        "json": {
+          "po_line_key": "C0_2026-012_20"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "1_Triggered by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "1a_Read – Akisto System Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3_Check - Row Exists": {
+      "main": [
+        [
+          {
+            "node": "4_Switch - Row Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4_Switch - Row Exists": {
+      "main": [
+        [
+          {
+            "node": "6_Read - Band Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5a_Prepare_New_Log_Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7_Read - Client Config": {
+      "main": [
+        [
+          {
+            "node": "8_Prepare - Merged Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8_Prepare - Merged Context": {
+      "main": [
+        [
+          {
+            "node": "9_Determine - Stage Transition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9_Determine - Stage Transition": {
+      "main": [
+        [
+          {
+            "node": "10_Switch - Transition Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10_Switch - Transition Needed": {
+      "main": [
+        [
+          {
+            "node": "11a_Prepare_Update_Log_Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "12_No Op - No Transition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2a_Read - All Open POs": {
+      "main": [
+        [
+          {
+            "node": "2b_Read - Communication Logs Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1a_Read – Akisto System Settings": {
+      "main": [
+        [
+          {
+            "node": "2a_Read - All Open POs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2b_Read - Communication Logs Row": {
+      "main": [
+        [
+          {
+            "node": "3_Check - Row Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6_Read - Band Config": {
+      "main": [
+        [
+          {
+            "node": "7_Read - Client Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5b_Create_Communication Logs Row": {
+      "main": [
+        [
+          {
+            "node": "6_Read - Band Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5a_Prepare_New_Log_Row": {
+      "main": [
+        [
+          {
+            "node": "5b_Create_Communication Logs Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11a_Prepare_Update_Log_Row": {
+      "main": [
+        [
+          {
+            "node": "11b_Update - Communication Logs Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "45c52846-f7b0-4dfc-beab-06b3d57f70c2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4ee474ecbdbe20bb5eaed48e0f4d58c1ffb0805814011251d6c608a835c16bbd"
+  },
+  "nodeGroups": [],
+  "id": "YjohTo1eulUF7G00",
+  "tags": []
+}
