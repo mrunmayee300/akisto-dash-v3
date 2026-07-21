@@ -74,15 +74,15 @@ const getPoStatusBucket = (row) => {
                            isLowConfidence;
 
   if (isNeedsAttention) {
-    let subStatus = 'Needs Review';
-    if (classificationLower === 'unclear') {
+    let subStatus = 'Low Confidence';
+    if (classificationLower.includes('unclear')) {
       subStatus = 'Unclear Response';
-    } else if (isLowConfidence) {
-      subStatus = 'Low Confidence';
     } else if (classificationLower.includes('delay') || classificationLower.includes('late')) {
       subStatus = 'Delayed';
     } else if (isEscalated) {
       subStatus = 'No Response';
+    } else if (isLowConfidence || needsHumanReview || humanReviewStatus) {
+      subStatus = 'Low Confidence';
     }
     return { bucket: 'needsAttention', subStatus };
   }
