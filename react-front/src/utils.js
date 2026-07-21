@@ -102,11 +102,9 @@ export function resolvePoDashboardState(po) {
 
   // 1. Needs Attention Bucket
   if (isNeedsAttention) {
-    let subStatus = 'Needs Review';
-    if (classificationLower === 'unclear') {
+    let subStatus = 'Low Confidence';
+    if (classificationLower.includes('unclear')) {
       subStatus = 'Unclear Response';
-    } else if (isLowConfidence) {
-      subStatus = 'Low Confidence';
     } else if (classificationLower.includes('delay') || classificationLower.includes('late')) {
       if (classificationLower.includes('tbc')) {
         subStatus = 'Delayed TBC';
@@ -115,11 +113,13 @@ export function resolvePoDashboardState(po) {
       }
     } else if (isEscalated) {
       subStatus = 'No Response';
+    } else if (isLowConfidence || needsHumanReview || humanReviewStatus) {
+      subStatus = 'Low Confidence';
     }
 
-    let label = 'Needs review';
-    let cls = 'p-review';
-    let reason = po[prefix + 'delivery_status_text'] || 'Flagged for reviewer audit.';
+    let label = 'Low confidence';
+    let cls = 'p-low-confidence';
+    let reason = po[prefix + 'delivery_status_text'] || 'AI classification confidence is Low; review required.';
 
     if (subStatus === 'Unclear Response') {
       label = 'Unclear response';
