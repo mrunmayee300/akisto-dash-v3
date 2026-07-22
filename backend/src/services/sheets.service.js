@@ -367,6 +367,11 @@ const mockDelayEventLogs = [
   { event_id: 'DEL_06', po_line_key: 'C1_S14_1', client_code: 'C1', supplier_code: 'S14', buyer_name: 'Dan Whitaker', buyer_email: 'dan@company.com', timestamp: '2026-06-16T08:00:00Z', delay_origin: 'supplier', delay_reason_category: 'In-transit delay', delay_evidence: 'Truck mechanical failure', delay_confidence: 'high' }
 ];
 
+const mockClientStats = [
+  { client_code: 'C1', total_po_lines: '185', on_time_lines: '148', on_time_rate: '0.80', client_otr_6months: '-0.08', escalation_rate: '0.05', client_escalation_6months: '-0.10' },
+  { client_code: 'C0', total_po_lines: '250', on_time_lines: '215', on_time_rate: '0.86', client_otr_6months: '-0.05', escalation_rate: '0.02', client_escalation_6months: '-0.05' }
+];
+
 const getObjects = (rows, clientCode = null, options = {}) => {
   if (!rows || rows.length === 0) return [];
   const headers = rows[0].map(h => String(h).trim());
@@ -413,6 +418,7 @@ const getRawMockData = (sheetName) => {
   else if (sheetName === 'Supplier Stats') mockData = mockSupplierStats;
   else if (sheetName === 'Supplier Monthly Stats') mockData = mockSupplierMonthlyStats;
   else if (sheetName === 'Delay Event Logs') mockData = mockDelayEventLogs;
+  else if (sheetName === 'Client Stats') mockData = mockClientStats;
 
   if (mockData.length > 0) {
     const headers = Object.keys(mockData[0]);
