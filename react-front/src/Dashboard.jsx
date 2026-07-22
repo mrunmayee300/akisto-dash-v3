@@ -533,7 +533,7 @@ function Dashboard() {
             <span>Summary</span>
           </div>
           <div className="text-[17px] font-extrabold text-darkgold leading-[1.34] mb-3">
-            4 of the 20 stalled POs are awaiting your action, not the supplier&rsquo;s.
+            4 of the 37 stalled POs are awaiting your action, not the supplier&rsquo;s.
           </div>
           <div className="flex flex-col gap-[9px]">
             <div className="flex items-start gap-2.5 text-[15px] text-body leading-[1.3]"><span className="w-3.5 text-center font-extrabold flex-shrink-0 leading-[1.3] text-gold">&bull;</span><span>3 held on unreleased payments</span></div>
@@ -595,8 +595,8 @@ function Dashboard() {
         {/* Search Input */}
         <div className="flex items-center gap-2.5 w-full max-w-[400px]">
           <span className="text-[12px] font-extrabold text-muted uppercase tracking-[0.5px]">Search</span>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search PO#, supplier, or material code"
             value={searchQuery}
             onChange={(e) => {
@@ -613,7 +613,7 @@ function Dashboard() {
         </div>
 
         {/* Status Filter */}
-        <div className="flex items-center gap-2.5 ml-auto">
+        <div className="flex items-center gap-2.5">
           <span className="text-[12px] font-extrabold text-muted uppercase tracking-[0.5px]">Status</span>
           <select
             aria-label="Filter by status"
@@ -639,10 +639,10 @@ function Dashboard() {
         </div>
 
         {/* Sort Select */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 ml-auto">
           <span className="text-[12px] font-extrabold text-muted uppercase tracking-[0.5px]">Sort By</span>
-          <select 
-            value={sortBy} 
+          <select
+            value={sortBy}
             onChange={(e) => {
               setSortBy(e.target.value);
               setPages({
