@@ -179,12 +179,30 @@ const supplierController = {
         cs => normalize(cs.client_code) === normalize(clientCode)
       );
 
+      let clientOnTimeRate = null;
+      let clientEscalatedRate = null;
+      let clientTotalPoLines = null;
+
+      if (clientStatRow) {
+        if (clientStatRow.on_time_rate !== undefined && clientStatRow.on_time_rate !== '') {
+          const rawOnTime = parseFloat(clientStatRow.on_time_rate || 0);
+          clientOnTimeRate = Math.round(rawOnTime > 1.5 ? rawOnTime : rawOnTime * 100);
+        }
+        if (clientStatRow.escalation_rate !== undefined && clientStatRow.escalation_rate !== '') {
+          const rawEsc = parseFloat(clientStatRow.escalation_rate || 0);
+          clientEscalatedRate = Math.round(rawEsc > 1.5 ? rawEsc : rawEsc * 100);
+        }
+        if (clientStatRow.total_po_lines !== undefined && clientStatRow.total_po_lines !== '') {
+          clientTotalPoLines = parseInt(clientStatRow.total_po_lines || 0, 10);
+        }
+      }
+
       const kpis = {
-        onTimeRate: onTimeRateOverall,
+        onTimeRate: isAdmin(req) && clientOnTimeRate !== null && !isNaN(clientOnTimeRate) ? clientOnTimeRate : onTimeRateOverall,
         onTimeRateDelta: clientStatRow ? parseFloat(clientStatRow.client_otr_6months || 0) : 0,
-        escalatedRate: escalatedRateOverall,
+        escalatedRate: isAdmin(req) && clientEscalatedRate !== null && !isNaN(clientEscalatedRate) ? clientEscalatedRate : escalatedRateOverall,
         escalatedRateDelta: clientStatRow ? parseFloat(clientStatRow.client_escalation_6months || 0) : 0,
-        totalPoLines: totalPoLines,
+        totalPoLines: isAdmin(req) && clientTotalPoLines !== null && !isNaN(clientTotalPoLines) ? clientTotalPoLines : totalPoLines,
         supplierCount: supplierCount
       };
 

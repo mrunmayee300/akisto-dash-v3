@@ -61,3 +61,11 @@ frontend1.md
 po_classification_documentation_v3.docx
 po_classification_documentation.md
 info/
+SECURITY.md
+RELEASE_HARDENING_STATUS.md
+HARDENING_ROADMAP.md
+go_backend_and_optimization_guide.md
+DEPLOYMENT.md
+dashboard_capacity_and_deployment_guide.md
+redis_integration_guide.md
+flagging_guide.md
