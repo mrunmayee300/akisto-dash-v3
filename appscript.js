@@ -140,6 +140,9 @@ function doGet(e) {
     // ====================================
     if (action === "supplierPerformance") {
         var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var statsSheet = ss.getSheetByName("Supplier Stats");
+        var monthlySheet = ss.getSheetByName("Supplier Monthly Stats");
+        var delaySheet = ss.getSheetByName("Delay Event Logs");
         var clientStatsSheet = ss.getSheetByName("Client Stats");
         var stats = getObjects(statsSheet);
         var monthly = getObjects(monthlySheet);
@@ -204,7 +207,13 @@ function doGet(e) {
                 clientTotalPoLines = parseInt(foundClientStat.total_po_lines || 0, 10);
             }
             clientOtrDelta = parseFloat(foundClientStat.client_otr_6months || 0);
+            if (Math.abs(clientOtrDelta) > 1.0) {
+                clientOtrDelta = clientOtrDelta / 100;
+            }
             clientEscalationDelta = parseFloat(foundClientStat.client_escalation_6months || 0);
+            if (Math.abs(clientEscalationDelta) > 1.0) {
+                clientEscalationDelta = clientEscalationDelta / 100;
+            }
         }
 
         var formatMonth = function (monthVal) {
@@ -987,4 +996,47 @@ function recalculateClientStats() {
     }
 
     dataRange.setValues(values);
+}
+
+/**
+ * Sets dynamic column-header based formulas into the Client Stats sheet.
+ * Safe against column moving/reordering in both Client Stats and Supplier Stats sheets.
+ */
+function applyHeaderFormulasToClientStats() {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var clientStatsSheet = ss.getSheetByName("Client Stats");
+    if (!clientStatsSheet) return;
+
+    var maxRows = clientStatsSheet.getLastRow();
+    if (maxRows <= 1) return;
+
+    var headers = clientStatsSheet.getRange(1, 1, 1, clientStatsSheet.getLastColumn()).getValues()[0].map(function (h) { return String(h).trim(); });
+
+    var totalPoIdx = headers.indexOf("total_po_lines") + 1;
+    var onTimeLinesIdx = headers.indexOf("on_time_lines") + 1;
+    var onTimeRateIdx = headers.indexOf("on_time_rate") + 1;
+    var escalationRateIdx = headers.indexOf("escalation_rate") + 1;
+    var otrDeltaIdx = headers.indexOf("client_otr_6months") + 1;
+    var escDeltaIdx = headers.indexOf("client_escalation_6months") + 1;
+
+    for (var row = 2; row <= maxRows; row++) {
+        if (totalPoIdx > 0) {
+            clientStatsSheet.getRange(row, totalPoIdx).setFormula('=SUM(IFERROR(FILTER(IFERROR(INDEX(\'Supplier Stats\'!A:Z, 0, MATCH("total_po_lines", \'Supplier Stats\'!A$1:Z$1, 0)), 0), IFERROR(INDEX(\'Supplier Stats\'!A:Z, 0, MATCH("client_code", \'Supplier Stats\'!A$1:Z$1, 0)), "") = INDEX(A:Z, ROW(), MATCH("client_code", A$1:Z$1, 0))), 0))');
+        }
+        if (onTimeLinesIdx > 0) {
+            clientStatsSheet.getRange(row, onTimeLinesIdx).setFormula('=SUM(IFERROR(FILTER(IFERROR(INDEX(\'Supplier Stats\'!A:Z, 0, MATCH("on_time_lines", \'Supplier Stats\'!A$1:Z$1, 0)), 0), IFERROR(INDEX(\'Supplier Stats\'!A:Z, 0, MATCH("client_code", \'Supplier Stats\'!A$1:Z$1, 0)), "") = INDEX(A:Z, ROW(), MATCH("client_code", A$1:Z$1, 0))), 0))');
+        }
+        if (onTimeRateIdx > 0) {
+            clientStatsSheet.getRange(row, onTimeRateIdx).setFormula('=IFERROR(INDEX(A:Z, ROW(), MATCH("on_time_lines", A$1:Z$1, 0)) / INDEX(A:Z, ROW(), MATCH("total_po_lines", A$1:Z$1, 0)), 1)');
+        }
+        if (escalationRateIdx > 0) {
+            clientStatsSheet.getRange(row, escalationRateIdx).setFormula('=IFERROR(SUM(IFERROR(FILTER(IFERROR(INDEX(\'Supplier Stats\'!A:Z, 0, MATCH("escalated_lines", \'Supplier Stats\'!A$1:Z$1, 0)), 0), IFERROR(INDEX(\'Supplier Stats\'!A:Z, 0, MATCH("client_code", \'Supplier Stats\'!A$1:Z$1, 0)), "") = INDEX(A:Z, ROW(), MATCH("client_code", A$1:Z$1, 0))), 0)) / INDEX(A:Z, ROW(), MATCH("total_po_lines", A$1:Z$1, 0)), 0)');
+        }
+        if (otrDeltaIdx > 0) {
+            clientStatsSheet.getRange(row, otrDeltaIdx).setFormula('=IFERROR(INDEX(A:Z, ROW(), MATCH("on_time_rate", A$1:Z$1, 0)) - INDEX(A:Z, ROW(), MATCH("prior_on_time_rate", A$1:Z$1, 0)), 0)');
+        }
+        if (escDeltaIdx > 0) {
+            clientStatsSheet.getRange(row, escDeltaIdx).setFormula('=IFERROR(INDEX(A:Z, ROW(), MATCH("escalation_rate", A$1:Z$1, 0)) - INDEX(A:Z, ROW(), MATCH("prior_escalation_rate", A$1:Z$1, 0)), 0)');
+        }
+    }
 }
