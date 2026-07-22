@@ -197,12 +197,21 @@ const supplierController = {
         }
       }
 
+      let clientOtrDelta = clientStatRow ? parseFloat(clientStatRow.client_otr_6months || 0) : 0;
+      if (Math.abs(clientOtrDelta) > 1.0) {
+        clientOtrDelta = clientOtrDelta / 100;
+      }
+      let clientEscalationDelta = clientStatRow ? parseFloat(clientStatRow.client_escalation_6months || 0) : 0;
+      if (Math.abs(clientEscalationDelta) > 1.0) {
+        clientEscalationDelta = clientEscalationDelta / 100;
+      }
+
       const kpis = {
-        onTimeRate: isAdmin(req) && clientOnTimeRate !== null && !isNaN(clientOnTimeRate) ? clientOnTimeRate : onTimeRateOverall,
-        onTimeRateDelta: clientStatRow ? parseFloat(clientStatRow.client_otr_6months || 0) : 0,
-        escalatedRate: isAdmin(req) && clientEscalatedRate !== null && !isNaN(clientEscalatedRate) ? clientEscalatedRate : escalatedRateOverall,
-        escalatedRateDelta: clientStatRow ? parseFloat(clientStatRow.client_escalation_6months || 0) : 0,
-        totalPoLines: isAdmin(req) && clientTotalPoLines !== null && !isNaN(clientTotalPoLines) ? clientTotalPoLines : totalPoLines,
+        onTimeRate: clientOnTimeRate !== null && !isNaN(clientOnTimeRate) ? clientOnTimeRate : onTimeRateOverall,
+        onTimeRateDelta: clientOtrDelta,
+        escalatedRate: clientEscalatedRate !== null && !isNaN(clientEscalatedRate) ? clientEscalatedRate : escalatedRateOverall,
+        escalatedRateDelta: clientEscalationDelta,
+        totalPoLines: clientTotalPoLines !== null && !isNaN(clientTotalPoLines) ? clientTotalPoLines : totalPoLines,
         supplierCount: supplierCount
       };
 
